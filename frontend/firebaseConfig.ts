@@ -8,15 +8,14 @@ import { getMessaging } from 'firebase/messaging';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-// TODO: Replace with your Firebase configuration
-// Get this from Firebase Console -> Project Settings -> Web App
+// Firebase configuration - Auto-configured from google-services.json
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyAB15tMu9OpirH-u9TjyUVhCe-V-oEcK_8",
+  authDomain: "dmat-b0ce6.firebaseapp.com",
+  projectId: "dmat-b0ce6",
+  storageBucket: "dmat-b0ce6.firebasestorage.app",
+  messagingSenderId: "160685363693",
+  appId: "1:160685363693:android:12d10447fb5c0c040ad7e4"
 };
 
 // Initialize Firebase
