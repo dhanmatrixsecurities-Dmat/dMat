@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,9 +13,8 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
-import { PhoneAuthProvider } from 'firebase/auth';
-import { app, auth } from '@/firebaseConfig';
+import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+import { auth } from '@/firebaseConfig';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
@@ -23,12 +22,43 @@ import { Colors } from '@/constants/Colors';
 export default function PhoneLogin() {
   const router = useRouter();
   const { signInWithPhone } = useAuth();
-  const recaptchaVerifier = useRef(null);
-
+  
   const [phoneNumber, setPhoneNumber] = useState('');
   const [verificationId, setVerificationId] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [confirmationResult, setConfirmationResult] = useState<any>(null);
+  
+  const recaptchaContainer = useRef<any>(null);
+
+  useEffect(() => {
+    // Initialize reCAPTCHA for web
+    if (Platform.OS === 'web' && !recaptchaContainer.current) {
+      try {
+        recaptchaContainer.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
+          size: 'invisible',
+          callback: () => {
+            console.log('reCAPTCHA resolved');
+          },
+          'expired-callback': () => {
+            console.log('reCAPTCHA expired');
+          }
+        });
+      } catch (error) {
+        console.error('reCAPTCHA initialization error:', error);
+      }
+    }
+
+    return () => {
+      if (recaptchaContainer.current) {
+        try {
+          recaptchaContainer.current.clear();
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+      }
+    };
+  }, []);
 
   const sendVerificationCode = async () => {
     try {
@@ -39,17 +69,34 @@ export default function PhoneLogin() {
         ? phoneNumber 
         : `+91${phoneNumber}`;
 
-      const phoneProvider = new PhoneAuthProvider(auth);
-      const verificationId = await phoneProvider.verifyPhoneNumber(
-        formattedPhone,
-        recaptchaVerifier.current
-      );
+      if (Platform.OS === 'web') {
+        // Web flow with reCAPTCHA
+        if (!recaptchaContainer.current) {
+          recaptchaContainer.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
+            size: 'invisible'
+          });
+        }
 
-      setVerificationId(verificationId);
-      Alert.alert('Success', 'Verification code sent to your phone');
+        const confirmation = await signInWithPhoneNumber(
+          auth,
+          formattedPhone,
+          recaptchaContainer.current
+        );
+        
+        setConfirmationResult(confirmation);
+        setVerificationId('web'); // Marker for web flow
+        Alert.alert('Success', 'Verification code sent to your phone');
+      } else {
+        // Mobile flow - For now, show message that phone auth works on web
+        Alert.alert(
+          'Phone Authentication',
+          'Phone authentication is best supported on web. Please use the web version or enable test mode in Firebase Console.',
+          [{ text: 'OK' }]
+        );
+      }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to send verification code');
       console.error('Phone verification error:', error);
+      Alert.alert('Error', error.message || 'Failed to send verification code');
     } finally {
       setLoading(false);
     }
@@ -58,11 +105,17 @@ export default function PhoneLogin() {
   const confirmVerificationCode = async () => {
     try {
       setLoading(true);
-      await signInWithPhone(verificationId, verificationCode);
-      router.replace('/(tabs)/active-trades');
+      
+      if (Platform.OS === 'web' && confirmationResult) {
+        // Confirm the code on web
+        await confirmationResult.confirm(verificationCode);
+        router.replace('/(tabs)/active-trades');
+      } else {
+        Alert.alert('Error', 'Invalid verification flow');
+      }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Invalid verification code');
       console.error('Verification error:', error);
+      Alert.alert('Error', error.message || 'Invalid verification code');
     } finally {
       setLoading(false);
     }
@@ -70,11 +123,8 @@ export default function PhoneLogin() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <FirebaseRecaptchaVerifierModal
-        ref={recaptchaVerifier}
-        firebaseConfig={app.options}
-        attemptInvisibleVerification
-      />
+      {/* Hidden reCAPTCHA container for web */}
+      {Platform.OS === 'web' && <div id="recaptcha-container"></div>}
       
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -122,6 +172,15 @@ export default function PhoneLogin() {
                   <Text style={styles.buttonText}>Send OTP</Text>
                 )}
               </TouchableOpacity>
+
+              {Platform.OS !== 'web' && (
+                <View style={styles.infoBox}>
+                  <Ionicons name="information-circle" size={20} color={Colors.primary} />
+                  <Text style={styles.infoText}>
+                    Phone authentication works best on web. For testing, use test numbers configured in Firebase.
+                  </Text>
+                </View>
+              )}
             </View>
           ) : (
             <View style={styles.formContainer}>
@@ -164,6 +223,7 @@ export default function PhoneLogin() {
                 onPress={() => {
                   setVerificationId('');
                   setVerificationCode('');
+                  setConfirmationResult(null);
                 }}
                 disabled={loading}
               >
@@ -303,6 +363,20 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontSize: 16,
     fontWeight: '600',
+  },
+  infoBox: {
+    flexDirection: 'row',
+    backgroundColor: '#E3F2FD',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  infoText: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 13,
+    color: Colors.primary,
+    lineHeight: 18,
   },
   footer: {
     marginTop: 32,
