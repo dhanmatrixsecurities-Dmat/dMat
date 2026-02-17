@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "160685363693",
+    "project_id": "dmat-b0ce6",
+    "storage_bucket": "dmat-b0ce6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:160685363693:android:12d10447fb5c0c040ad7e4",
+        "android_client_info": {
+          "package_name": "com.stockadvisory.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAB15tMu9OpirH-u9TjyUVhCe-V-oEcK_8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
