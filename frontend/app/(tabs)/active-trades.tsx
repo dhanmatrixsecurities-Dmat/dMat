@@ -9,10 +9,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
-import { db } from '../../firebaseConfig';
-import { useAuth } from '../../contexts/AuthContext';
+import { db } from '@/firebaseConfig';
+import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../constants/Colors';
+import { Colors } from '@/constants/Colors';
 
 interface Trade {
   id: string;
