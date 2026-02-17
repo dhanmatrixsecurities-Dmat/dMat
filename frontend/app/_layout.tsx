@@ -1,3 +1,6 @@
+// Initialize Firebase first (before any other imports that might use it)
+import '@/firebaseConfig';
+
 import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { AuthProvider } from '@/contexts/AuthContext';
