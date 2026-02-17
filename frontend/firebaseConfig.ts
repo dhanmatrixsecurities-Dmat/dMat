@@ -1,10 +1,7 @@
 // Firebase Configuration
-// Replace these values with your actual Firebase config after setup
-
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import { getMessaging } from 'firebase/messaging';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
@@ -18,17 +15,28 @@ const firebaseConfig = {
   appId: "1:160685363693:android:12d10447fb5c0c040ad7e4"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Initialize Firebase (prevent multiple initializations)
+const app = getApps().length === 0 
+  ? initializeApp(firebaseConfig) 
+  : getApps()[0];
 
 // Initialize Auth with AsyncStorage persistence for React Native
 let auth;
-if (Platform.OS === 'web') {
-  auth = getAuth(app);
-} else {
-  auth = initializeAuth(app, {
-    persistence: getReactNativePersistence(AsyncStorage)
-  });
+try {
+  if (Platform.OS === 'web') {
+    auth = getAuth(app);
+  } else {
+    auth = initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage)
+    });
+  }
+} catch (error: any) {
+  // If auth is already initialized, just get it
+  if (error.code === 'auth/already-initialized') {
+    auth = getAuth(app);
+  } else {
+    throw error;
+  }
 }
 
 // Initialize Firestore
