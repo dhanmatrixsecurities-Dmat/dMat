@@ -15,10 +15,10 @@ import {
 import { useRouter } from 'expo-router';
 import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 import { PhoneAuthProvider } from 'firebase/auth';
-import { app, auth } from '../../firebaseConfig';
-import { useAuth } from '../../contexts/AuthContext';
+import { app, auth } from '@/firebaseConfig';
+import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../constants/Colors';
+import { Colors } from '@/constants/Colors';
 
 export default function PhoneLogin() {
   const router = useRouter();
