@@ -42,7 +42,7 @@ const ActiveTrades: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTrade, setEditingTrade] = useState<ActiveTrade | null>(null);
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
-  const [tradeToCl ose, setTradeToClose] = useState<ActiveTrade | null>(null);
+  const [tradeToClose, setTradeToClose] = useState<ActiveTrade | null>(null);
   const [exitPrice, setExitPrice] = useState('');
   const [formData, setFormData] = useState({
     stockName: '',
