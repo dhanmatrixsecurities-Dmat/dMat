@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Stock Advisory",
-    "slug": "stock-advisory-app",
+    "name": "DhanMatrix",
+    "slug": "dhanmatrix-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "stockadvisory",
+    "scheme": "dhanmatrix",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -15,26 +15,18 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.stockadvisory.app",
+      "bundleIdentifier": "com.dhanmatrix.app",
       "infoPlist": {
         "NSCameraUsageDescription": "Allow camera access to scan QR codes",
-        "NSPhotoLibraryUsageDescription": "Select photos for profile",
-        "NSMicrophoneUsageDescription": "Record audio for support"
+        "NSPhotoLibraryUsageDescription": "Select photos for profile"
       }
     },
     "android": {
-      "package": "com.stockadvisory.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#001F3F"
       },
-      "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "VIBRATE"
-      ],
-      "edgeToEdgeEnabled": true
+      "package": "com.dhanmatrix.app"
     },
     "web": {
       "bundler": "metro",
@@ -55,11 +47,6 @@
     ],
     "experiments": {
       "typedRoutes": true
-    },
-    "extra": {
-      "eas": {
-        "projectId": "your-project-id-here"
-      }
     }
   }
 }
