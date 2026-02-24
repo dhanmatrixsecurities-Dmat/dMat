@@ -14,6 +14,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 
+type Segment = 'equity' | 'futures' | 'options';
+
 interface Trade {
   id: string;
   stockName: string;
@@ -23,6 +25,7 @@ interface Trade {
   stopLoss: number;
   status: string;
   createdAt: string;
+  segment: Segment;
 }
 
 export default function ActiveTrades() {
@@ -30,6 +33,7 @@ export default function ActiveTrades() {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeSegment, setActiveSegment] = useState<Segment>('equity');
 
   useEffect(() => {
     if (userData?.status !== 'ACTIVE') {
@@ -66,6 +70,9 @@ export default function ActiveTrades() {
   const onRefresh = () => {
     setRefreshing(true);
   };
+
+  // Filter trades by selected segment tab
+  const filteredTrades = trades.filter((t) => t.segment === activeSegment);
 
   const renderTradeCard = ({ item }: { item: Trade }) => {
     const isBuy = item.type === 'BUY';
@@ -182,17 +189,34 @@ export default function ActiveTrades() {
 
   return (
     <View style={styles.container}>
-      {trades.length === 0 ? (
+
+      {/* ── SEGMENT TABS ── */}
+      <View style={styles.tabRow}>
+        {(['equity', 'futures', 'options'] as Segment[]).map((seg) => (
+          <TouchableOpacity
+            key={seg}
+            style={[styles.tab, activeSegment === seg && styles.tabActive]}
+            onPress={() => setActiveSegment(seg)}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.tabText, activeSegment === seg && styles.tabTextActive]}>
+              {seg.charAt(0).toUpperCase() + seg.slice(1)}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {filteredTrades.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="bar-chart-outline" size={80} color={Colors.textSecondary} />
-          <Text style={styles.emptyText}>No active trades at the moment</Text>
+          <Text style={styles.emptyText}>No active {activeSegment} trades</Text>
           <Text style={styles.emptySubtext}>
             Pull down to refresh and check for new trades
           </Text>
         </View>
       ) : (
         <FlatList
-          data={trades}
+          data={filteredTrades}
           renderItem={renderTradeCard}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
@@ -225,6 +249,41 @@ const styles = StyleSheet.create({
   listContent: {
     padding: 16,
   },
+
+  // ── TABS ──
+  tabRow: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
+    marginTop: 14,
+    marginBottom: 8,
+    borderRadius: 12,
+    padding: 4,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 9,
+    alignItems: 'center',
+    borderRadius: 9,
+  },
+  tabActive: {
+    backgroundColor: '#001F3F',
+    elevation: 2,
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  tabTextActive: {
+    color: '#fff',
+  },
+
   tradeCard: {
     backgroundColor: Colors.cardBackground,
     borderRadius: 16,
