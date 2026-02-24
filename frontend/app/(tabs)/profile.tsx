@@ -192,7 +192,7 @@ export default function Profile() {
         </TouchableOpacity>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Stock Advisory App v1.0</Text>
+          <Text style={styles.footerText}>DhanMatrix v1.0</Text>
           <Text style={styles.footerSubtext}>Made for educational purposes only</Text>
         </View>
       </ScrollView>
