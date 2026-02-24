@@ -50,6 +50,7 @@ const ActiveTrades: React.FC = () => {
     entryPrice: '',
     targetPrice: '',
     stopLoss: '',
+    segment: 'equity' as 'equity' | 'futures' | 'options',
   });
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
@@ -88,6 +89,7 @@ const ActiveTrades: React.FC = () => {
         entryPrice: trade.entryPrice.toString(),
         targetPrice: trade.targetPrice.toString(),
         stopLoss: trade.stopLoss.toString(),
+        segment: (trade as any).segment || 'equity',
       });
     } else {
       setEditingTrade(null);
@@ -97,6 +99,7 @@ const ActiveTrades: React.FC = () => {
         entryPrice: '',
         targetPrice: '',
         stopLoss: '',
+        segment: 'equity',
       });
     }
     setDialogOpen(true);
@@ -115,6 +118,7 @@ const ActiveTrades: React.FC = () => {
         entryPrice: parseFloat(formData.entryPrice),
         targetPrice: parseFloat(formData.targetPrice),
         stopLoss: parseFloat(formData.stopLoss),
+        segment: formData.segment,
         status: 'Active',
         createdAt: new Date().toISOString(),
       };
@@ -162,17 +166,16 @@ const ActiveTrades: React.FC = () => {
       const profitLossPercent =
         ((exitPriceNum - tradeToClose.entryPrice) / tradeToClose.entryPrice) * 100;
 
-      // Add to closed trades
       await addDoc(collection(db, 'closedTrades'), {
         stockName: tradeToClose.stockName,
         type: tradeToClose.type,
+        segment: (tradeToClose as any).segment || 'equity',
         entryPrice: tradeToClose.entryPrice,
         exitPrice: exitPriceNum,
         profitLossPercent: parseFloat(profitLossPercent.toFixed(2)),
         closedAt: new Date().toISOString(),
       });
 
-      // Delete from active trades
       await deleteDoc(doc(db, 'activeTrades', tradeToClose.id));
 
       showSnackbar('Trade closed successfully', 'success');
@@ -187,6 +190,12 @@ const ActiveTrades: React.FC = () => {
 
   const showSnackbar = (message: string, severity: 'success' | 'error') => {
     setSnackbar({ open: true, message, severity });
+  };
+
+  const segmentColor = (segment: string) => {
+    if (segment === 'futures') return 'warning';
+    if (segment === 'options') return 'secondary';
+    return 'primary';
   };
 
   return (
@@ -216,6 +225,7 @@ const ActiveTrades: React.FC = () => {
               <TableHead>
                 <TableRow>
                   <TableCell><strong>Stock</strong></TableCell>
+                  <TableCell><strong>Segment</strong></TableCell>
                   <TableCell><strong>Type</strong></TableCell>
                   <TableCell><strong>Entry</strong></TableCell>
                   <TableCell><strong>Target</strong></TableCell>
@@ -227,7 +237,7 @@ const ActiveTrades: React.FC = () => {
               <TableBody>
                 {trades.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} align="center">
+                    <TableCell colSpan={8} align="center">
                       <Typography color="text.secondary">No active trades</Typography>
                     </TableCell>
                   </TableRow>
@@ -235,6 +245,13 @@ const ActiveTrades: React.FC = () => {
                   trades.map((trade) => (
                     <TableRow key={trade.id}>
                       <TableCell><strong>{trade.stockName}</strong></TableCell>
+                      <TableCell>
+                        <Chip
+                          label={((trade as any).segment || 'equity').toUpperCase()}
+                          color={segmentColor((trade as any).segment || 'equity')}
+                          size="small"
+                        />
+                      </TableCell>
                       <TableCell>
                         <Chip
                           label={trade.type}
@@ -291,6 +308,23 @@ const ActiveTrades: React.FC = () => {
             margin="normal"
             placeholder="e.g., RELIANCE, TCS, INFY"
           />
+
+          {/* ── SEGMENT DROPDOWN ── */}
+          <TextField
+            fullWidth
+            select
+            label="Segment"
+            value={formData.segment}
+            onChange={(e) =>
+              setFormData({ ...formData, segment: e.target.value as 'equity' | 'futures' | 'options' })
+            }
+            margin="normal"
+          >
+            <MenuItem value="equity">Equity</MenuItem>
+            <MenuItem value="futures">Futures (F&O)</MenuItem>
+            <MenuItem value="options">Options (F&O)</MenuItem>
+          </TextField>
+
           <TextField
             fullWidth
             select
