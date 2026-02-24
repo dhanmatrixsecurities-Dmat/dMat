@@ -61,7 +61,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     <div>
       <Toolbar>
         <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 'bold' }}>
-          Stock Advisory
+          DhanMatrix
         </Typography>
       </Toolbar>
       <Divider />
