@@ -50,6 +50,7 @@ const ActiveTrades: React.FC = () => {
     entryPrice: '',
     targetPrice: '',
     stopLoss: '',
+    strikePrice: '',
     segment: 'equity' as 'equity' | 'futures' | 'options',
   });
   const [snackbar, setSnackbar] = useState<{
@@ -89,6 +90,7 @@ const ActiveTrades: React.FC = () => {
         entryPrice: trade.entryPrice.toString(),
         targetPrice: trade.targetPrice.toString(),
         stopLoss: trade.stopLoss.toString(),
+        strikePrice: (trade as any).strikePrice?.toString() || '',
         segment: (trade as any).segment || 'equity',
       });
     } else {
@@ -99,6 +101,7 @@ const ActiveTrades: React.FC = () => {
         entryPrice: '',
         targetPrice: '',
         stopLoss: '',
+        strikePrice: '',
         segment: 'equity',
       });
     }
@@ -112,7 +115,7 @@ const ActiveTrades: React.FC = () => {
 
   const handleSubmit = async () => {
     try {
-      const tradeData = {
+      const tradeData: any = {
         stockName: formData.stockName.toUpperCase(),
         type: formData.type,
         entryPrice: parseFloat(formData.entryPrice),
@@ -122,6 +125,11 @@ const ActiveTrades: React.FC = () => {
         status: 'Active',
         createdAt: new Date().toISOString(),
       };
+
+      // Only include strikePrice for options
+      if (formData.segment === 'options' && formData.strikePrice) {
+        tradeData.strikePrice = parseFloat(formData.strikePrice);
+      }
 
       if (editingTrade) {
         await updateDoc(doc(db, 'activeTrades', editingTrade.id), tradeData);
@@ -198,6 +206,12 @@ const ActiveTrades: React.FC = () => {
     return 'primary';
   };
 
+  const segmentLabel = (segment: string) => {
+    if (segment === 'futures') return 'FUTURES';
+    if (segment === 'options') return 'OPTIONS';
+    return 'EQUITY';
+  };
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -230,6 +244,7 @@ const ActiveTrades: React.FC = () => {
                   <TableCell><strong>Entry</strong></TableCell>
                   <TableCell><strong>Target</strong></TableCell>
                   <TableCell><strong>Stop Loss</strong></TableCell>
+                  <TableCell><strong>Strike Price</strong></TableCell>
                   <TableCell><strong>Created</strong></TableCell>
                   <TableCell><strong>Actions</strong></TableCell>
                 </TableRow>
@@ -237,7 +252,7 @@ const ActiveTrades: React.FC = () => {
               <TableBody>
                 {trades.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center">
+                    <TableCell colSpan={9} align="center">
                       <Typography color="text.secondary">No active trades</Typography>
                     </TableCell>
                   </TableRow>
@@ -247,7 +262,7 @@ const ActiveTrades: React.FC = () => {
                       <TableCell><strong>{trade.stockName}</strong></TableCell>
                       <TableCell>
                         <Chip
-                          label={((trade as any).segment || 'equity').toUpperCase()}
+                          label={segmentLabel((trade as any).segment || 'equity')}
                           color={segmentColor((trade as any).segment || 'equity')}
                           size="small"
                         />
@@ -262,6 +277,11 @@ const ActiveTrades: React.FC = () => {
                       <TableCell>₹{trade.entryPrice.toFixed(2)}</TableCell>
                       <TableCell>₹{trade.targetPrice.toFixed(2)}</TableCell>
                       <TableCell>₹{trade.stopLoss.toFixed(2)}</TableCell>
+                      <TableCell>
+                        {(trade as any).strikePrice
+                          ? `₹${(trade as any).strikePrice}`
+                          : '—'}
+                      </TableCell>
                       <TableCell>
                         {new Date(trade.createdAt).toLocaleDateString('en-IN', {
                           day: 'numeric',
@@ -306,24 +326,42 @@ const ActiveTrades: React.FC = () => {
             value={formData.stockName}
             onChange={(e) => setFormData({ ...formData, stockName: e.target.value })}
             margin="normal"
-            placeholder="e.g., RELIANCE, TCS, INFY"
+            placeholder="e.g., RELIANCE, TCS, NIFTY"
           />
 
-          {/* ── SEGMENT DROPDOWN ── */}
+          {/* SEGMENT */}
           <TextField
             fullWidth
             select
             label="Segment"
             value={formData.segment}
             onChange={(e) =>
-              setFormData({ ...formData, segment: e.target.value as 'equity' | 'futures' | 'options' })
+              setFormData({
+                ...formData,
+                segment: e.target.value as 'equity' | 'futures' | 'options',
+                strikePrice: '',
+              })
             }
             margin="normal"
           >
             <MenuItem value="equity">Equity</MenuItem>
-            <MenuItem value="futures">Futures (F&O)</MenuItem>
-            <MenuItem value="options">Options (F&O)</MenuItem>
+            <MenuItem value="futures">Futures</MenuItem>
+            <MenuItem value="options">Options</MenuItem>
           </TextField>
+
+          {/* STRIKE PRICE — only shown for Options */}
+          {formData.segment === 'options' && (
+            <TextField
+              fullWidth
+              label="Strike Price"
+              type="number"
+              value={formData.strikePrice}
+              onChange={(e) => setFormData({ ...formData, strikePrice: e.target.value })}
+              margin="normal"
+              placeholder="e.g., 23000"
+              helperText="Enter the strike price for this options trade"
+            />
+          )}
 
           <TextField
             fullWidth
