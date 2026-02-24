@@ -6,6 +6,8 @@ export interface User {
   status: UserStatus;
   fcmToken?: string;
   createdAt: string;
+  name?: string;
+  subscriptionEndDate?: string; // ISO string e.g. "2025-12-31T00:00:00.000Z"
 }
 
 export interface ActiveTrade {
