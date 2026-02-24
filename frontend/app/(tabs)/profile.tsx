@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
   SafeAreaView,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,10 +23,7 @@ export default function Profile() {
       'Sign Out',
       'Are you sure you want to sign out?',
       [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
+        { text: 'Cancel', style: 'cancel' },
         {
           text: 'Sign Out',
           style: 'destructive',
@@ -39,56 +37,146 @@ export default function Profile() {
     );
   };
 
+  // Generate initials from name or phone
+  const getInitials = () => {
+    const name = userData?.name?.trim();
+    if (name && name.length > 0) {
+      const parts = name.split(' ');
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+      }
+      return name.substring(0, 2).toUpperCase();
+    }
+    // Fallback to last 2 digits of phone
+    const phone = userData?.phone || user?.phoneNumber || '';
+    return phone.length >= 2 ? phone.slice(-2) : 'DM';
+  };
+
+  // Get first name for greeting
+  const getFirstName = () => {
+    const name = userData?.name?.trim();
+    if (name && name.length > 0) {
+      return name.split(' ')[0];
+    }
+    return null;
+  };
+
+  // Calculate days remaining for subscription
+  const getSubscriptionInfo = () => {
+    if (userData?.status !== 'ACTIVE') return null;
+    if (!userData?.subscriptionEndDate) return null;
+
+    const endDate = new Date(userData.subscriptionEndDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    endDate.setHours(0, 0, 0, 0);
+
+    const diffTime = endDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    const formattedDate = endDate.toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+
+    return { daysLeft: diffDays, endDateFormatted: formattedDate };
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'ACTIVE':
-        return Colors.success;
-      case 'FREE':
-        return Colors.warning;
-      case 'BLOCKED':
-        return Colors.error;
-      default:
-        return Colors.textSecondary;
+      case 'ACTIVE': return Colors.success;
+      case 'FREE': return Colors.warning;
+      case 'BLOCKED': return Colors.error;
+      default: return Colors.textSecondary;
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'ACTIVE':
-        return 'checkmark-circle';
-      case 'FREE':
-        return 'star';
-      case 'BLOCKED':
-        return 'lock-closed';
-      default:
-        return 'help-circle';
+      case 'ACTIVE': return 'checkmark-circle';
+      case 'FREE': return 'star';
+      case 'BLOCKED': return 'lock-closed';
+      default: return 'help-circle';
     }
+  };
+
+  const subscriptionInfo = getSubscriptionInfo();
+  const firstName = getFirstName();
+
+  const handleContactSupport = () => {
+    const message = encodeURIComponent('Hi, I need support for my DhanMatrix account.');
+    Alert.alert(
+      'Contact Support',
+      'Choose a number to contact us on WhatsApp',
+      [
+        {
+          text: '8383898886',
+          onPress: () => {
+            Linking.openURL(`whatsapp://send?phone=918383898886&text=${message}`).catch(() => {
+              Alert.alert('WhatsApp not installed', 'Please contact us at support@dhanmatrix.com');
+            });
+          },
+        },
+        {
+          text: '9258303916',
+          onPress: () => {
+            Linking.openURL(`whatsapp://send?phone=919258303916&text=${message}`).catch(() => {
+              Alert.alert('WhatsApp not installed', 'Please contact us at support@dhanmatrix.com');
+            });
+          },
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
+  const handlePrivacyPolicy = () => {
+    // Replace with your actual privacy policy URL
+    Linking.openURL('https://dhanmatrix.com/privacy-policy');
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+
+        {/* HEADER */}
         <View style={styles.header}>
-          <View style={styles.avatarContainer}>
-            <Ionicons name="person" size={60} color={Colors.secondary} />
+          {/* Initials Avatar */}
+          <View style={[styles.avatarContainer, { backgroundColor: getStatusColor(userData?.status || 'FREE') }]}>
+            <Text style={styles.avatarText}>{getInitials()}</Text>
           </View>
-          <Text style={styles.phoneNumber}>{user?.phoneNumber || 'Not Available'}</Text>
+
+          {/* Name */}
+          {firstName ? (
+            <Text style={styles.userName}>
+              {userData?.name || ''}
+            </Text>
+          ) : null}
+
+          {/* Phone */}
+          <Text style={styles.phoneNumber}>
+            {userData?.phone || user?.phoneNumber || 'Not Available'}
+          </Text>
+
+          {/* Status Badge */}
           <View style={[styles.statusBadge, { backgroundColor: getStatusColor(userData?.status || 'FREE') }]}>
-            <Ionicons name={getStatusIcon(userData?.status || 'FREE')} size={16} color={Colors.secondary} />
+            <Ionicons name={getStatusIcon(userData?.status || 'FREE')} size={16} color="#fff" />
             <Text style={styles.statusText}>{userData?.status || 'FREE'} MEMBER</Text>
           </View>
         </View>
 
+        {/* SUBSCRIPTION CARD */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account Status</Text>
-          
+          <Text style={styles.sectionTitle}>Membership</Text>
+
           {userData?.status === 'FREE' && (
-            <View style={styles.infoCard}>
+            <View style={[styles.infoCard, { backgroundColor: '#FFF3E0' }]}>
               <Ionicons name="information-circle" size={24} color={Colors.warning} />
               <View style={styles.infoContent}>
                 <Text style={styles.infoTitle}>Free Membership</Text>
                 <Text style={styles.infoText}>
-                  You can view closed trades. Upgrade to ACTIVE to access live trades and notifications.
+                  You can view closed trades only. Contact support to upgrade and access live trade recommendations.
                 </Text>
               </View>
             </View>
@@ -100,8 +188,33 @@ export default function Profile() {
               <View style={styles.infoContent}>
                 <Text style={styles.infoTitle}>Active Membership</Text>
                 <Text style={styles.infoText}>
-                  You have full access to live trades and real-time notifications.
+                  You have full access to live trade recommendations and notifications.
                 </Text>
+                {subscriptionInfo && (
+                  <View style={styles.subscriptionDetails}>
+                    <View style={styles.subscriptionRow}>
+                      <Ionicons name="calendar-outline" size={16} color={Colors.success} />
+                      <Text style={styles.subscriptionText}>
+                        Expires: {subscriptionInfo.endDateFormatted}
+                      </Text>
+                    </View>
+                    <View style={styles.subscriptionRow}>
+                      <Ionicons name="time-outline" size={16} color={
+                        subscriptionInfo.daysLeft <= 7 ? Colors.error :
+                        subscriptionInfo.daysLeft <= 15 ? Colors.warning : Colors.success
+                      } />
+                      <Text style={[styles.subscriptionText, {
+                        color: subscriptionInfo.daysLeft <= 7 ? Colors.error :
+                               subscriptionInfo.daysLeft <= 15 ? Colors.warning : Colors.success,
+                        fontWeight: 'bold',
+                      }]}>
+                        {subscriptionInfo.daysLeft > 0
+                          ? `${subscriptionInfo.daysLeft} days remaining`
+                          : 'Subscription expired'}
+                      </Text>
+                    </View>
+                  </View>
+                )}
               </View>
             </View>
           )}
@@ -119,23 +232,19 @@ export default function Profile() {
           )}
         </View>
 
+        {/* FEATURES */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Features</Text>
-          
           <View style={styles.featuresList}>
             <View style={styles.featureItem}>
-              <Ionicons 
-                name="checkmark-done" 
-                size={20} 
-                color={Colors.success} 
-              />
+              <Ionicons name="checkmark-done" size={20} color={Colors.success} />
               <Text style={styles.featureText}>Closed Trades History</Text>
             </View>
             <View style={styles.featureItem}>
-              <Ionicons 
-                name="pulse" 
-                size={20} 
-                color={userData?.status === 'ACTIVE' ? Colors.success : Colors.textSecondary} 
+              <Ionicons
+                name="pulse"
+                size={20}
+                color={userData?.status === 'ACTIVE' ? Colors.success : Colors.textSecondary}
               />
               <Text style={[styles.featureText, userData?.status !== 'ACTIVE' && styles.disabledText]}>
                 Live Active Trades
@@ -144,11 +253,11 @@ export default function Profile() {
                 <Text style={styles.premiumLabel}>PREMIUM</Text>
               )}
             </View>
-            <View style={styles.featureItem}>
-              <Ionicons 
-                name="notifications" 
-                size={20} 
-                color={userData?.status === 'ACTIVE' ? Colors.success : Colors.textSecondary} 
+            <View style={[styles.featureItem, { borderBottomWidth: 0 }]}>
+              <Ionicons
+                name="notifications"
+                size={20}
+                color={userData?.status === 'ACTIVE' ? Colors.success : Colors.textSecondary}
               />
               <Text style={[styles.featureText, userData?.status !== 'ACTIVE' && styles.disabledText]}>
                 Push Notifications
@@ -160,30 +269,26 @@ export default function Profile() {
           </View>
         </View>
 
+        {/* SUPPORT */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Support</Text>
-          
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="help-circle-outline" size={24} color={Colors.primary} />
-            <Text style={styles.menuText}>Help & FAQ</Text>
-            <Ionicons name="chevron-forward" size={24} color={Colors.textSecondary} />
-          </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="mail-outline" size={24} color={Colors.primary} />
+          <TouchableOpacity style={styles.menuItem} onPress={handleContactSupport}>
+            <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
             <Text style={styles.menuText}>Contact Support</Text>
             <Ionicons name="chevron-forward" size={24} color={Colors.textSecondary} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity style={styles.menuItem} onPress={handlePrivacyPolicy}>
             <Ionicons name="shield-checkmark-outline" size={24} color={Colors.primary} />
             <Text style={styles.menuText}>Privacy Policy</Text>
             <Ionicons name="chevron-forward" size={24} color={Colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity 
-          style={styles.signOutButton} 
+        {/* SIGN OUT */}
+        <TouchableOpacity
+          style={styles.signOutButton}
           onPress={handleSignOut}
           activeOpacity={0.8}
         >
@@ -191,10 +296,12 @@ export default function Profile() {
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
 
+        {/* FOOTER */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>DhanMatrix v1.0</Text>
           <Text style={styles.footerSubtext}>Made for educational purposes only</Text>
         </View>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -213,18 +320,27 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   avatarContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: Colors.primary,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
-  phoneNumber: {
-    fontSize: 20,
+  avatarText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  userName: {
+    fontSize: 22,
     fontWeight: 'bold',
     color: Colors.text,
+    marginBottom: 4,
+  },
+  phoneNumber: {
+    fontSize: 15,
+    color: Colors.textSecondary,
     marginBottom: 12,
   },
   statusBadge: {
@@ -235,9 +351,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   statusText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 'bold',
-    color: Colors.secondary,
+    color: '#fff',
     marginLeft: 6,
   },
   section: {
@@ -251,7 +367,6 @@ const styles = StyleSheet.create({
   },
   infoCard: {
     flexDirection: 'row',
-    backgroundColor: '#FFF3E0',
     padding: 16,
     borderRadius: 12,
   },
@@ -269,6 +384,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.textSecondary,
     lineHeight: 20,
+  },
+  subscriptionDetails: {
+    marginTop: 10,
+    gap: 6,
+  },
+  subscriptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  subscriptionText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
   },
   featuresList: {
     backgroundColor: Colors.cardBackground,
