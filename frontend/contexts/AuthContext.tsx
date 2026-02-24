@@ -18,6 +18,8 @@ interface UserData {
   status: UserStatus;
   fcmToken?: string;
   createdAt: string;
+  name?: string;
+  subscriptionEndDate?: string; // ISO string e.g. "2025-12-31T00:00:00.000Z"
 }
 
 interface AuthContextType {
@@ -88,19 +90,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(firebaseUser);
       
       if (firebaseUser) {
-        // Fetch user data from Firestore
         const data = await fetchUserData(firebaseUser.uid);
         
         if (data) {
           setUserData(data);
         } else {
-          // Create new user document if doesn't exist
           const fcmToken = await registerForPushNotifications();
           const newUserData: UserData = {
             phone: firebaseUser.phoneNumber || '',
             status: 'FREE',
             fcmToken: fcmToken || '',
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            name: '',
+            subscriptionEndDate: '',
           };
           
           await setDoc(doc(db, 'users', firebaseUser.uid), newUserData);
@@ -116,7 +118,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return unsubscribe;
   }, []);
 
-  // Sign in with phone number
   const signInWithPhone = async (verificationId: string, code: string) => {
     try {
       const credential = PhoneAuthProvider.credential(verificationId, code);
@@ -127,7 +128,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Sign out
   const signOut = async () => {
     try {
       await firebaseSignOut(auth);
