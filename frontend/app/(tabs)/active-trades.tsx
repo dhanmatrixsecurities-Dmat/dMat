@@ -23,9 +23,10 @@ interface Trade {
   entryPrice: number;
   targetPrice: number;
   stopLoss: number;
+  strikePrice?: number;
   status: string;
   createdAt: string;
-  segment: Segment;
+  segment?: Segment;
 }
 
 export default function ActiveTrades() {
@@ -71,21 +72,58 @@ export default function ActiveTrades() {
     setRefreshing(true);
   };
 
+  // Normalize segment: treat missing/undefined as 'equity'
+  const normalizeSegment = (seg?: string): Segment => {
+    if (seg === 'futures' || seg === 'options') return seg;
+    return 'equity';
+  };
+
   // Filter trades by selected segment tab
-  const filteredTrades = trades.filter((t) => t.segment === activeSegment);
+  const filteredTrades = trades.filter(
+    (t) => normalizeSegment(t.segment) === activeSegment
+  );
+
+  // Count per tab for badge display
+  const countBySegment = (seg: Segment) =>
+    trades.filter((t) => normalizeSegment(t.segment) === seg).length;
+
+  const tabLabels: { key: Segment; label: string }[] = [
+    { key: 'equity', label: 'Equity' },
+    { key: 'futures', label: 'Futures' },
+    { key: 'options', label: 'Options' },
+  ];
 
   const renderTradeCard = ({ item }: { item: Trade }) => {
     const isBuy = item.type === 'BUY';
-    const potential = ((item.targetPrice - item.entryPrice) / item.entryPrice) * 100;
-    const risk = ((item.entryPrice - item.stopLoss) / item.entryPrice) * 100;
+    const entryPrice = Number(item.entryPrice) || 0;
+    const targetPrice = Number(item.targetPrice) || 0;
+    const stopLoss = Number(item.stopLoss) || 0;
+
+    const potential = entryPrice > 0
+      ? ((targetPrice - entryPrice) / entryPrice) * 100
+      : 0;
+    const risk = entryPrice > 0
+      ? ((entryPrice - stopLoss) / entryPrice) * 100
+      : 0;
+
+    const seg = normalizeSegment(item.segment);
 
     return (
       <View style={styles.tradeCard}>
         <View style={styles.tradeHeader}>
           <View style={styles.stockInfo}>
             <Text style={styles.stockName}>{item.stockName}</Text>
-            <View style={[styles.typeBadge, isBuy ? styles.buyBadge : styles.sellBadge]}>
-              <Text style={styles.typeText}>{item.type}</Text>
+            <View style={styles.badgeRow}>
+              <View style={[styles.typeBadge, isBuy ? styles.buyBadge : styles.sellBadge]}>
+                <Text style={[styles.typeText, isBuy ? styles.buyText : styles.sellText]}>
+                  {item.type}
+                </Text>
+              </View>
+              {seg === 'options' && item.strikePrice ? (
+                <View style={styles.strikeBadge}>
+                  <Text style={styles.strikeText}>Strike: ₹{item.strikePrice}</Text>
+                </View>
+              ) : null}
             </View>
           </View>
           <Ionicons name="pulse" size={24} color={Colors.primary} />
@@ -94,18 +132,18 @@ export default function ActiveTrades() {
         <View style={styles.priceGrid}>
           <View style={styles.priceItem}>
             <Text style={styles.priceLabel}>Entry Price</Text>
-            <Text style={styles.priceValue}>₹{item.entryPrice.toFixed(2)}</Text>
+            <Text style={styles.priceValue}>₹{entryPrice.toFixed(2)}</Text>
           </View>
           <View style={styles.priceItem}>
             <Text style={styles.priceLabel}>Target</Text>
             <Text style={[styles.priceValue, styles.targetPrice]}>
-              ₹{item.targetPrice.toFixed(2)}
+              ₹{targetPrice.toFixed(2)}
             </Text>
           </View>
           <View style={styles.priceItem}>
             <Text style={styles.priceLabel}>Stop Loss</Text>
             <Text style={[styles.priceValue, styles.stopLoss]}>
-              ₹{item.stopLoss.toFixed(2)}
+              {stopLoss > 0 ? `₹${stopLoss.toFixed(2)}` : 'N/A'}
             </Text>
           </View>
         </View>
@@ -120,7 +158,7 @@ export default function ActiveTrades() {
           <View style={styles.metric}>
             <Text style={styles.metricLabel}>Risk</Text>
             <Text style={[styles.metricValue, styles.riskText]}>
-              -{risk.toFixed(2)}%
+              {stopLoss > 0 ? `-${risk.toFixed(2)}%` : 'N/A'}
             </Text>
           </View>
         </View>
@@ -192,24 +230,36 @@ export default function ActiveTrades() {
 
       {/* ── SEGMENT TABS ── */}
       <View style={styles.tabRow}>
-        {(['equity', 'futures', 'options'] as Segment[]).map((seg) => (
-          <TouchableOpacity
-            key={seg}
-            style={[styles.tab, activeSegment === seg && styles.tabActive]}
-            onPress={() => setActiveSegment(seg)}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.tabText, activeSegment === seg && styles.tabTextActive]}>
-              {seg.charAt(0).toUpperCase() + seg.slice(1)}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {tabLabels.map(({ key, label }) => {
+          const count = countBySegment(key);
+          return (
+            <TouchableOpacity
+              key={key}
+              style={[styles.tab, activeSegment === key && styles.tabActive]}
+              onPress={() => setActiveSegment(key)}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.tabText, activeSegment === key && styles.tabTextActive]}>
+                {label}
+              </Text>
+              {count > 0 && (
+                <View style={[styles.badge, activeSegment === key && styles.badgeActive]}>
+                  <Text style={[styles.badgeText, activeSegment === key && styles.badgeTextActive]}>
+                    {count}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {filteredTrades.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="bar-chart-outline" size={80} color={Colors.textSecondary} />
-          <Text style={styles.emptyText}>No active {activeSegment} trades</Text>
+          <Text style={styles.emptyText}>
+            No active {activeSegment} trades
+          </Text>
           <Text style={styles.emptySubtext}>
             Pull down to refresh and check for new trades
           </Text>
@@ -270,6 +320,9 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     alignItems: 'center',
     borderRadius: 9,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 4,
   },
   tabActive: {
     backgroundColor: '#001F3F',
@@ -281,6 +334,26 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   tabTextActive: {
+    color: '#fff',
+  },
+  badge: {
+    backgroundColor: '#E5E7EB',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeActive: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#374151',
+  },
+  badgeTextActive: {
     color: '#fff',
   },
 
@@ -310,6 +383,11 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginBottom: 8,
   },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   typeBadge: {
     paddingHorizontal: 12,
     paddingVertical: 4,
@@ -325,6 +403,23 @@ const styles = StyleSheet.create({
   typeText: {
     fontSize: 12,
     fontWeight: 'bold',
+  },
+  buyText: {
+    color: '#2E7D32',
+  },
+  sellText: {
+    color: '#C62828',
+  },
+  strikeBadge: {
+    backgroundColor: '#EDE9FE',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  strikeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6D28D9',
   },
   priceGrid: {
     flexDirection: 'row',
