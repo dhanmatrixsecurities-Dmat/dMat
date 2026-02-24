@@ -34,7 +34,7 @@ export default function PhoneLogin() {
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
             <Ionicons name="phone-portrait" size={80} color={Colors.primary} />
-            <Text style={styles.title}>Stock Advisory</Text>
+            <Text style={styles.title}>DhanMatrix</Text>
             <Text style={styles.subtitle}>Sign in to continue</Text>
           </View>
           <View style={styles.formContainer}>
