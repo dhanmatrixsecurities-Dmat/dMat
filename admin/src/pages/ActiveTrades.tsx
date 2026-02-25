@@ -31,11 +31,10 @@ const sendTradeNotification = async (stockName: string, type: 'BUY' | 'SELL') =>
       body: `${stockName} - ${type} signal added`,
       sound: 'default',
     }));
-    const response = await fetch('https://exp.host/--/api/v2/push/send', {
+    const response = await fetch('https://corsproxy.io/?' + encodeURIComponent('https://exp.host/--/api/v2/push/send'), {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
-        'Accept-Encoding': 'gzip, deflate',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(messages),
