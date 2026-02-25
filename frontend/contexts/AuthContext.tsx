@@ -6,7 +6,7 @@ import {
   onAuthStateChanged,
   User
 } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/firebaseConfig';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
@@ -15,11 +15,12 @@ export type UserStatus = 'FREE' | 'ACTIVE' | 'BLOCKED';
 
 interface UserData {
   phone: string;
+  email: string; // ✅ ADDED
   status: UserStatus;
   fcmToken?: string;
   createdAt: string;
   name?: string;
-  subscriptionEndDate?: string; // ISO string e.g. "2025-12-31T00:00:00.000Z"
+  subscriptionEndDate?: string;
 }
 
 interface AuthContextType {
@@ -38,7 +39,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Request notification permissions and get FCM token
   const registerForPushNotifications = async () => {
     try {
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
@@ -62,7 +62,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Fetch user data from Firestore
   const fetchUserData = async (uid: string) => {
     try {
       const userDoc = await getDoc(doc(db, 'users', uid));
@@ -76,7 +75,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Refresh user data
   const refreshUserData = async () => {
     if (user) {
       const data = await fetchUserData(user.uid);
@@ -84,20 +82,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Monitor auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       
       if (firebaseUser) {
+        // ✅ Always get fresh FCM token on every login
+        const fcmToken = await registerForPushNotifications();
         const data = await fetchUserData(firebaseUser.uid);
         
         if (data) {
-          setUserData(data);
+          // ✅ Always update email + fcmToken for existing users
+          const updates: Partial<UserData> = {};
+          
+          if (fcmToken && fcmToken !== data.fcmToken) {
+            updates.fcmToken = fcmToken;
+          }
+          
+          const currentEmail = firebaseUser.email || '';
+          if (currentEmail && currentEmail !== data.email) {
+            updates.email = currentEmail;
+          }
+
+          if (Object.keys(updates).length > 0) {
+            await updateDoc(doc(db, 'users', firebaseUser.uid), updates);
+          }
+
+          setUserData({ ...data, ...updates });
         } else {
-          const fcmToken = await registerForPushNotifications();
+          // New user — create document
           const newUserData: UserData = {
             phone: firebaseUser.phoneNumber || '',
+            email: firebaseUser.email || '', // ✅ Save email on creation
             status: 'FREE',
             fcmToken: fcmToken || '',
             createdAt: new Date().toISOString(),
