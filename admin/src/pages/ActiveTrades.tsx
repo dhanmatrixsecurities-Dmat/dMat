@@ -16,7 +16,7 @@ const sendTradeNotification = async (stockName: string, type: 'BUY' | 'SELL') =>
       console.warn('No tokens found');
       return;
     }
-    const response = await fetch('/api/send-notification', {
+    const response = await fetch('https://d-mat-gamma.vercel.app/api/send-notification', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ tokens, stockName, type }),
