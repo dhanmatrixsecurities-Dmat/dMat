@@ -32,9 +32,62 @@ import {
   deleteDoc,
   doc,
   orderBy,
+  where,
 } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { ActiveTrade } from '../types';
+
+// Send push notification to all ACTIVE users
+const sendTradeNotification = async (stockName: string, type: 'BUY' | 'SELL') => {
+  try {
+    // Fetch all ACTIVE users with FCM tokens
+    const usersQuery = query(
+      collection(db, 'users'),
+      where('status', '==', 'ACTIVE')
+    );
+    const snapshot = await getDocs(usersQuery);
+    
+    const tokens: string[] = [];
+    snapshot.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.fcmToken && data.fcmToken.length > 0) {
+        tokens.push(data.fcmToken);
+      }
+    });
+
+    if (tokens.length === 0) {
+      console.log('No active users with FCM tokens found');
+      return;
+    }
+
+    // Send notification via Expo Push API
+    const messages = tokens.map(token => ({
+      to: token,
+      sound: 'default',
+      title: '📈 New Trade Alert — DhanMatrix',
+      body: `New trade posted — ${stockName} ${type}`,
+      data: { screen: 'active-trades' },
+    }));
+
+    // Send in batches of 100 (Expo limit)
+    const batchSize = 100;
+    for (let i = 0; i < messages.length; i += batchSize) {
+      const batch = messages.slice(i, i + batchSize);
+      await fetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(batch),
+      });
+    }
+
+    console.log(`Notifications sent to ${tokens.length} users`);
+  } catch (error) {
+    console.error('Error sending notifications:', error);
+  }
+};
 
 const ActiveTrades: React.FC = () => {
   const [trades, setTrades] = useState<ActiveTrade[]>([]);
@@ -126,7 +179,6 @@ const ActiveTrades: React.FC = () => {
         createdAt: new Date().toISOString(),
       };
 
-      // Only include strikePrice for options
       if (formData.segment === 'options' && formData.strikePrice) {
         tradeData.strikePrice = parseFloat(formData.strikePrice);
       }
@@ -135,8 +187,12 @@ const ActiveTrades: React.FC = () => {
         await updateDoc(doc(db, 'activeTrades', editingTrade.id), tradeData);
         showSnackbar('Trade updated successfully', 'success');
       } else {
+        // New trade — save to Firebase then send notification
         await addDoc(collection(db, 'activeTrades'), tradeData);
-        showSnackbar('Trade added successfully', 'success');
+        showSnackbar('Trade added! Sending notifications...', 'success');
+        // Send push notification to all ACTIVE users
+        await sendTradeNotification(tradeData.stockName, tradeData.type);
+        showSnackbar(`Trade added! Notifications sent to all active users.`, 'success');
       }
 
       handleCloseDialog();
@@ -278,9 +334,7 @@ const ActiveTrades: React.FC = () => {
                       <TableCell>₹{trade.targetPrice.toFixed(2)}</TableCell>
                       <TableCell>₹{trade.stopLoss.toFixed(2)}</TableCell>
                       <TableCell>
-                        {(trade as any).strikePrice
-                          ? `₹${(trade as any).strikePrice}`
-                          : '—'}
+                        {(trade as any).strikePrice ? `₹${(trade as any).strikePrice}` : '—'}
                       </TableCell>
                       <TableCell>
                         {new Date(trade.createdAt).toLocaleDateString('en-IN', {
@@ -328,8 +382,6 @@ const ActiveTrades: React.FC = () => {
             margin="normal"
             placeholder="e.g., RELIANCE, TCS, NIFTY"
           />
-
-          {/* SEGMENT */}
           <TextField
             fullWidth
             select
@@ -348,8 +400,6 @@ const ActiveTrades: React.FC = () => {
             <MenuItem value="futures">Futures</MenuItem>
             <MenuItem value="options">Options</MenuItem>
           </TextField>
-
-          {/* STRIKE PRICE — only shown for Options */}
           {formData.segment === 'options' && (
             <TextField
               fullWidth
@@ -362,7 +412,6 @@ const ActiveTrades: React.FC = () => {
               helperText="Enter the strike price for this options trade"
             />
           )}
-
           <TextField
             fullWidth
             select
@@ -402,7 +451,7 @@ const ActiveTrades: React.FC = () => {
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cancel</Button>
           <Button onClick={handleSubmit} variant="contained">
-            {editingTrade ? 'Update' : 'Add'}
+            {editingTrade ? 'Update' : 'Add Trade & Notify'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -454,7 +503,7 @@ const ActiveTrades: React.FC = () => {
 
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={3000}
+        autoHideDuration={4000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
       >
         <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })}>
