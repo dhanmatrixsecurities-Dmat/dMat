@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { db } from '../firebase';
+import { db } from '../firebaseConfig';
 import { collection, getDocs, query, where, addDoc, Timestamp } from 'firebase/firestore';
 
 interface Trade {
@@ -63,36 +63,3 @@ const ActiveTrades = () => {
 
   const handleAdd = async () => {
     if (!stockName || !price) return;
-    await addDoc(collection(db, 'activeTrades'), {
-      stockName,
-      type,
-      price: parseFloat(price),
-      createdAt: Timestamp.now(),
-    });
-    await sendTradeNotification(stockName, type);
-    setStockName('');
-    setPrice('');
-  };
-
-  return (
-    <div style={{ padding: 24 }}>
-      <h2>Active Trades</h2>
-      <div style={{ marginBottom: 16 }}>
-        <input placeholder="Stock Name" value={stockName} onChange={e => setStockName(e.target.value)} style={{ marginRight: 8 }} />
-        <input placeholder="Price" value={price} onChange={e => setPrice(e.target.value)} style={{ marginRight: 8 }} />
-        <select value={type} onChange={e => setType(e.target.value as 'BUY' | 'SELL')} style={{ marginRight: 8 }}>
-          <option value="BUY">BUY</option>
-          <option value="SELL">SELL</option>
-        </select>
-        <button onClick={handleAdd}>Add Trade</button>
-      </div>
-      <ul>
-        {trades.map(trade => (
-          <li key={trade.id}>{trade.stockName} - {trade.type} @ {trade.price}</li>
-        ))}
-      </ul>
-    </div>
-  );
-};
-
-export default ActiveTrades; 
