@@ -95,4 +95,4 @@ const ActiveTrades = () => {
   );
 };
 
-export default ActiveTrades;
+export default ActiveTrades; 
