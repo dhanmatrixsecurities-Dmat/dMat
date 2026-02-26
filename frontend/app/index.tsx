@@ -12,7 +12,7 @@ export default function Index() {
     if (!loading) {
       if (user) {
         // User is signed in, go to main app
-        router.replace('/(tabs)/active-trades');
+        router.replace('/(tabs)');
       } else {
         // User is not signed in, show disclaimer first
         router.replace('/auth/disclaimer');
