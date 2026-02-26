@@ -1,17 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   ActivityIndicator,
+  Animated,
   Dimensions,
 } from 'react-native';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
-import { Colors } from '@/constants/Colors';
+import Svg, { Circle, G } from 'react-native-svg';
 
 const { width } = Dimensions.get('window');
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ClosedTrade {
   id: string;
@@ -31,241 +34,143 @@ interface SegmentStats {
   accuracy: number;
 }
 
-// ── Gauge Component ───────────────────────────────────────────────────────────
+// ─── Animated SVG Donut Gauge ────────────────────────────────────────────────
+// Uses react-native-svg for a crisp, smooth animated arc
 
-const Gauge = ({
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+const DonutGauge = ({
   accuracy,
   size = 160,
-  color = '#22c55e',
+  strokeWidth = 14,
+  fillColor = '#3b82f6',
+  trackColor = '#1e3a5f',
+  centerFontSize,
+  showLabel = false,
 }: {
   accuracy: number;
   size?: number;
-  color?: string;
+  strokeWidth?: number;
+  fillColor?: string;
+  trackColor?: string;
+  centerFontSize?: number;
+  showLabel?: boolean;
 }) => {
-  const stroke = size * 0.09;
-  const radius = (size - stroke) / 2;
-  const circumference = Math.PI * radius; // half circle
-  const greenLen = (accuracy / 100) * circumference;
-  const redLen = circumference - greenLen;
+  const animValue = useRef(new Animated.Value(0)).current;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+
+  useEffect(() => {
+    Animated.timing(animValue, {
+      toValue: accuracy,
+      duration: 1200,
+      useNativeDriver: false,
+    }).start();
+  }, [accuracy]);
+
+  const strokeDashoffset = animValue.interpolate({
+    inputRange: [0, 100],
+    outputRange: [circumference, circumference - (accuracy / 100) * circumference],
+  });
+
+  const fontSize = centerFontSize ?? size * 0.22;
 
   return (
-    <View style={{ width: size, height: size / 2 + stroke, alignItems: 'center' }}>
-      {/* SVG-style using View arcs — use simple curved bar via borderRadius */}
-      <View style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        borderWidth: stroke,
-        borderColor: '#1e3a5f',
-        position: 'absolute',
-        top: 0,
-        overflow: 'hidden',
-      }} />
-      {/* Green arc */}
-      <View style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        borderWidth: stroke,
-        borderColor: 'transparent',
-        borderTopColor: color,
-        borderLeftColor: color,
-        position: 'absolute',
-        top: 0,
-        transform: [{ rotate: `${-180 + (accuracy / 100) * 180}deg` }],
-      }} />
-      {/* Red arc */}
-      <View style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        borderWidth: stroke,
-        borderColor: 'transparent',
-        borderTopColor: '#ef4444',
-        borderRightColor: '#ef4444',
-        position: 'absolute',
-        top: 0,
-      }} />
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={size} height={size}>
+        <G rotation="-90" origin={`${size / 2}, ${size / 2}`}>
+          {/* Track */}
+          <Circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke={trackColor}
+            strokeWidth={strokeWidth}
+            fill="transparent"
+          />
+          {/* Animated fill */}
+          <AnimatedCircle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke={fillColor}
+            strokeWidth={strokeWidth}
+            fill="transparent"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+          />
+        </G>
+      </Svg>
+      {/* Center text */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          {showLabel && (
+            <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '600', marginBottom: 2 }}>
+              Accuracy
+            </Text>
+          )}
+          <Text style={{ color: '#fff', fontSize, fontWeight: '900', letterSpacing: -1 }}>
+            {accuracy}%
+          </Text>
+        </View>
+      </View>
     </View>
   );
 };
 
-// ── Accuracy Dial ─────────────────────────────────────────────────────────────
+// ─── Overall Big Donut Card ───────────────────────────────────────────────────
 
-const AccuracyDial = ({
-  accuracy,
-  size = 180,
-  color = '#22c55e',
-}: {
-  accuracy: number;
-  size?: number;
-  color?: string;
-}) => (
-  <View style={{ alignItems: 'center', marginVertical: 8 }}>
-    {/* Outer ring */}
-    <View style={[dialStyles.ring, {
-      width: size,
-      height: size,
-      borderRadius: size / 2,
-      borderColor: '#1e3a5f',
-    }]}>
-      {/* Green portion */}
-      <View style={[dialStyles.greenArc, {
-        width: size - 20,
-        height: size - 20,
-        borderRadius: (size - 20) / 2,
-        borderColor: color,
-        borderRightColor: 'transparent',
-        borderBottomColor: accuracy > 50 ? color : 'transparent',
-        transform: [{ rotate: `-135deg` }],
-      }]} />
-      {/* Red portion */}
-      <View style={[dialStyles.redArc, {
-        width: size - 20,
-        height: size - 20,
-        borderRadius: (size - 20) / 2,
-        borderColor: '#ef4444',
-        borderLeftColor: 'transparent',
-        borderBottomColor: 'transparent',
-        transform: [{ rotate: `45deg` }],
-      }]} />
-      {/* Center content */}
-      <View style={dialStyles.center}>
-        <Text style={[dialStyles.label, { color: '#94a3b8' }]}>Accuracy</Text>
-        <Text style={[dialStyles.value, { color: '#fff', fontSize: size * 0.22 }]}>
-          {accuracy}%
-        </Text>
-        <View style={dialStyles.iconRow}>
-          <View style={dialStyles.greenDot}>
-            <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>✓</Text>
-          </View>
-          <View style={dialStyles.redDot}>
-            <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>✕</Text>
-          </View>
-        </View>
+const OverallCard = ({ stats }: { stats: SegmentStats }) => (
+  <View style={styles.overallCard}>
+    <Text style={styles.cardHeading}>Overall Performance</Text>
+    <DonutGauge
+      accuracy={stats.accuracy}
+      size={200}
+      strokeWidth={18}
+      fillColor="#3b82f6"
+      trackColor="#1e3a5f"
+      centerFontSize={36}
+    />
+    <View style={styles.overallRow}>
+      <View style={styles.overallStat}>
+        <Text style={styles.overallStatLabel}>Winning Trades</Text>
+        <Text style={[styles.overallStatValue, { color: '#22c55e' }]}>{stats.profitable}</Text>
+      </View>
+      <View style={[styles.overallStat, styles.statDivider]}>
+        <Text style={styles.overallStatLabel}>Losing Trades</Text>
+        <Text style={[styles.overallStatValue, { color: '#ef4444' }]}>{stats.losing}</Text>
       </View>
     </View>
   </View>
 );
 
-const dialStyles = StyleSheet.create({
-  ring: {
-    borderWidth: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#0a1628',
-  },
-  greenArc: {
-    position: 'absolute',
-    borderWidth: 10,
-  },
-  redArc: {
-    position: 'absolute',
-    borderWidth: 10,
-  },
-  center: {
-    alignItems: 'center',
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  value: {
-    fontWeight: '900',
-    letterSpacing: -1,
-  },
-  iconRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 6,
-  },
-  greenDot: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#22c55e',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  redDot: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#ef4444',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+// ─── Segment Accuracy Card ────────────────────────────────────────────────────
 
-// ── Segment Card ──────────────────────────────────────────────────────────────
-
-const SegmentCard = ({
-  title,
-  icon,
+const SegmentAccuracyCard = ({
+  label,
   stats,
-  accentColor,
+  fillColor,
 }: {
-  title: string;
-  icon: string;
+  label: string;
   stats: SegmentStats;
-  accentColor: string;
+  fillColor: string;
 }) => (
-  <View style={[cardStyles.card, { borderTopColor: accentColor }]}>
-    <View style={cardStyles.header}>
-      <Text style={cardStyles.icon}>{icon}</Text>
-      <Text style={cardStyles.title}>{title}</Text>
-    </View>
-    <AccuracyDial accuracy={stats.accuracy} size={130} color={accentColor} />
-    <View style={cardStyles.stats}>
-      <View style={cardStyles.statRow}>
-        <Text style={cardStyles.statLabel}>Total Trades</Text>
-        <Text style={cardStyles.statValue}>{stats.total}</Text>
-      </View>
-      <View style={cardStyles.statRow}>
-        <Text style={cardStyles.statLabel}>Profitable Trades</Text>
-        <Text style={[cardStyles.statValue, { color: '#22c55e' }]}>
-          {stats.profitable} <Text style={cardStyles.badge}>In Profit</Text>
-        </Text>
-      </View>
-      <View style={cardStyles.statRow}>
-        <Text style={cardStyles.statLabel}>Losing Trades</Text>
-        <Text style={[cardStyles.statValue, { color: '#ef4444' }]}>
-          {stats.losing} <Text style={cardStyles.badge}>In Loss</Text>
-        </Text>
-      </View>
-    </View>
+  <View style={[styles.segCard, { borderTopColor: fillColor }]}>
+    <Text style={styles.segCardTitle}>{label}</Text>
+    <DonutGauge
+      accuracy={stats.accuracy}
+      size={110}
+      strokeWidth={11}
+      fillColor={fillColor}
+      trackColor="#1e3a5f"
+      centerFontSize={22}
+    />
+    <Text style={[styles.segLabel, { color: fillColor }]}>{label}</Text>
   </View>
 );
 
-const cardStyles = StyleSheet.create({
-  card: {
-    backgroundColor: '#0d1f38',
-    borderRadius: 16,
-    padding: 16,
-    borderTopWidth: 3,
-    marginBottom: 12,
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  icon: { fontSize: 18, marginRight: 6 },
-  title: { fontSize: 14, fontWeight: '700', color: '#fff' },
-  stats: { marginTop: 8 },
-  statRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  statLabel: { fontSize: 12, color: '#94a3b8', fontWeight: '500' },
-  statValue: { fontSize: 13, fontWeight: '700', color: '#fff' },
-  badge: { fontSize: 10, fontWeight: '600', color: '#94a3b8' },
-});
-
-// ── Main Screen ───────────────────────────────────────────────────────────────
+// ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
@@ -305,130 +210,123 @@ export default function HomeScreen() {
   if (loading) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#22c55e" />
+        <ActivityIndicator size="large" color="#3b82f6" />
       </View>
     );
   }
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-      {/* Title */}
-      <Text style={styles.pageTitle}>Trading Performance</Text>
-      <Text style={styles.pageSubtitle}>Overview</Text>
+      {/* Overall Performance */}
+      <OverallCard stats={overall} />
 
-      {/* Overall Accuracy Dial */}
-      <View style={styles.overallCard}>
-        <AccuracyDial accuracy={overall.accuracy} size={200} color="#22c55e" />
-
-        {/* Overall Stats Row */}
-        <View style={styles.overallRow}>
-          <View style={styles.overallStat}>
-            <Text style={styles.overallStatLabel}>Total Trades</Text>
-            <Text style={styles.overallStatValue}>{overall.total}</Text>
-          </View>
-          <View style={[styles.overallStat, styles.overallStatBorder]}>
-            <Text style={styles.overallStatLabel}>Profitable Trades</Text>
-            <Text style={[styles.overallStatValue, { color: '#22c55e' }]}>
-              {overall.profitable}
-            </Text>
-            <Text style={styles.inProfit}>In Profit</Text>
-          </View>
-          <View style={styles.overallStat}>
-            <Text style={styles.overallStatLabel}>Losing Trades</Text>
-            <Text style={[styles.overallStatValue, { color: '#ef4444' }]}>
-              {overall.losing}
-            </Text>
-            <Text style={styles.inLoss}>In Loss</Text>
-          </View>
-        </View>
+      {/* Segment Accuracy Row */}
+      <View style={styles.segRow}>
+        <SegmentAccuracyCard label="Equity Accuracy" stats={equity} fillColor="#22c55e" />
+        <SegmentAccuracyCard label="Future Accuracy" stats={futures} fillColor="#f59e0b" />
+        <SegmentAccuracyCard label="Option Accuracy" stats={options} fillColor="#3b82f6" />
       </View>
-
-      {/* Segment Cards */}
-      <View style={styles.segmentRow}>
-        <SegmentCard title="Equity Performance" icon="📊" stats={equity} accentColor="#22c55e" />
-        <SegmentCard title="Futures Performance" icon="🔄" stats={futures} accentColor="#f59e0b" />
-      </View>
-      <SegmentCard title="Options Performance" icon="💊" stats={options} accentColor="#3b82f6" />
     </ScrollView>
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   loading: {
     flex: 1,
-    backgroundColor: '#061122',
+    backgroundColor: '#e8edf5',
     alignItems: 'center',
     justifyContent: 'center',
   },
   scroll: {
     flex: 1,
-    backgroundColor: '#061122',
+    backgroundColor: '#e8edf5',
   },
   content: {
     padding: 16,
-    paddingBottom: 32,
+    paddingBottom: 40,
+    alignItems: 'center',
   },
-  pageTitle: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: '#fff',
-    textAlign: 'center',
-    marginTop: 8,
-    letterSpacing: 0.5,
-  },
-  pageSubtitle: {
-    fontSize: 16,
-    color: '#94a3b8',
-    textAlign: 'center',
-    marginBottom: 20,
-    fontWeight: '600',
-  },
+
+  // ── Overall card
   overallCard: {
-    backgroundColor: '#0d1f38',
+    backgroundColor: '#fff',
     borderRadius: 20,
     padding: 20,
     alignItems: 'center',
+    width: '100%',
     marginBottom: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  cardHeading: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1e3a5f',
+    marginBottom: 16,
+    letterSpacing: 0.3,
   },
   overallRow: {
     flexDirection: 'row',
-    marginTop: 16,
+    marginTop: 20,
     width: '100%',
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+    paddingTop: 16,
   },
   overallStat: {
     flex: 1,
     alignItems: 'center',
   },
-  overallStatBorder: {
+  statDivider: {
     borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: '#1e3a5f',
+    borderLeftColor: '#e2e8f0',
   },
   overallStatLabel: {
-    fontSize: 11,
-    color: '#94a3b8',
-    textAlign: 'center',
+    fontSize: 12,
+    color: '#64748b',
+    fontWeight: '600',
     marginBottom: 4,
-    fontWeight: '500',
   },
   overallStatValue: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '900',
-    color: '#fff',
   },
-  inProfit: {
-    fontSize: 11,
-    color: '#22c55e',
-    fontWeight: '600',
-  },
-  inLoss: {
-    fontSize: 11,
-    color: '#ef4444',
-    fontWeight: '600',
-  },
-  segmentRow: {
+
+  // ── Segment row
+  segRow: {
     flexDirection: 'row',
     gap: 10,
-    marginBottom: 0,
+    width: '100%',
+  },
+  segCard: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 12,
+    alignItems: 'center',
+    borderTopWidth: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  segCardTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#1e3a5f',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  segLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 6,
+    textAlign: 'center',
   },
 });
