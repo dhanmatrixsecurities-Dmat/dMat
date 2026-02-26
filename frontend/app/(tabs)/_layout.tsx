@@ -30,6 +30,17 @@ export default function TabLayout() {
         },
       }}
     >
+      {/* ── HOME (Performance Overview) ── */}
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Performance',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home" size={size} color={color} />
+          ),
+        }}
+      />
+
       <Tabs.Screen
         name="active-trades"
         options={{
