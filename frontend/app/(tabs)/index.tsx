@@ -87,7 +87,8 @@ export default function HomeScreen() {
 
   return (
     <ScrollView style={s.scroll} contentContainerStyle={s.content}>
-      {/* Overall */}
+
+      {/* Overall Card */}
       <View style={s.overallCard}>
         <Text style={s.heading}>Overall Performance</Text>
         <DonutGauge accuracy={overall.accuracy} size={200} strokeWidth={20} fillColor="#3b82f6" />
@@ -103,19 +104,57 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Segments */}
+      {/* Segment Cards */}
       <View style={s.segRow}>
-        {[
-          { label: 'Equity Accuracy', stats: equity, color: '#22c55e' },
-          { label: 'Future Accuracy', stats: futures, color: '#f59e0b' },
-          { label: 'Option Accuracy', stats: options, color: '#3b82f6' },
-        ].map(({ label, stats, color }) => (
-          <View key={label} style={[s.segCard, { borderTopColor: color }]}>
-            <Text style={s.segTitle}>{label}</Text>
-            <DonutGauge accuracy={stats.accuracy} size={100} strokeWidth={10} fillColor={color} />
-            <Text style={[s.segLabel, { color }]}>{label}</Text>
+
+        {/* Equity */}
+        <View style={[s.segCard, { borderTopColor: '#22c55e' }]}>
+          <Text style={s.segTitle}>Equity Accuracy</Text>
+          <DonutGauge accuracy={equity.accuracy} size={110} strokeWidth={10} fillColor="#22c55e" />
+          <View style={s.segStats}>
+            <View style={s.segStat}>
+              <Text style={s.segStatLabel}>Win</Text>
+              <Text style={[s.segStatVal, { color: '#22c55e' }]}>{equity.profitable}</Text>
+            </View>
+            <View style={[s.segStat, s.segDivider]}>
+              <Text style={s.segStatLabel}>Loss</Text>
+              <Text style={[s.segStatVal, { color: '#ef4444' }]}>{equity.losing}</Text>
+            </View>
           </View>
-        ))}
+        </View>
+
+        {/* Futures */}
+        <View style={[s.segCard, { borderTopColor: '#f59e0b' }]}>
+          <Text style={s.segTitle}>Future Accuracy</Text>
+          <DonutGauge accuracy={futures.accuracy} size={110} strokeWidth={10} fillColor="#f59e0b" />
+          <View style={s.segStats}>
+            <View style={s.segStat}>
+              <Text style={s.segStatLabel}>Win</Text>
+              <Text style={[s.segStatVal, { color: '#22c55e' }]}>{futures.profitable}</Text>
+            </View>
+            <View style={[s.segStat, s.segDivider]}>
+              <Text style={s.segStatLabel}>Loss</Text>
+              <Text style={[s.segStatVal, { color: '#ef4444' }]}>{futures.losing}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Options - Purple */}
+        <View style={[s.segCard, { borderTopColor: '#a855f7' }]}>
+          <Text style={s.segTitle}>Option Accuracy</Text>
+          <DonutGauge accuracy={options.accuracy} size={110} strokeWidth={10} fillColor="#a855f7" />
+          <View style={s.segStats}>
+            <View style={s.segStat}>
+              <Text style={s.segStatLabel}>Win</Text>
+              <Text style={[s.segStatVal, { color: '#22c55e' }]}>{options.profitable}</Text>
+            </View>
+            <View style={[s.segStat, s.segDivider]}>
+              <Text style={s.segStatLabel}>Loss</Text>
+              <Text style={[s.segStatVal, { color: '#ef4444' }]}>{options.losing}</Text>
+            </View>
+          </View>
+        </View>
+
       </View>
     </ScrollView>
   );
@@ -131,7 +170,10 @@ const s = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 },
   },
   heading: { fontSize: 20, fontWeight: '800', color: '#1e3a5f', marginBottom: 16 },
-  row: { flexDirection: 'row', marginTop: 16, width: '100%', borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingTop: 16 },
+  row: {
+    flexDirection: 'row', marginTop: 16, width: '100%',
+    borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingTop: 16,
+  },
   stat: { flex: 1, alignItems: 'center' },
   divider: { borderLeftWidth: 1, borderLeftColor: '#e2e8f0' },
   statLabel: { fontSize: 12, color: '#64748b', fontWeight: '600', marginBottom: 4 },
@@ -142,6 +184,13 @@ const s = StyleSheet.create({
     alignItems: 'center', borderTopWidth: 4, elevation: 3,
     shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 3 },
   },
-  segTitle: { fontSize: 10, fontWeight: '700', color: '#1e3a5f', textAlign: 'center', marginBottom: 6 },
-  segLabel: { fontSize: 10, fontWeight: '700', marginTop: 4, textAlign: 'center' },
+  segTitle: { fontSize: 11, fontWeight: '800', color: '#1e3a5f', textAlign: 'center', marginBottom: 6 },
+  segStats: {
+    flexDirection: 'row', marginTop: 8, width: '100%',
+    borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingTop: 8,
+  },
+  segStat: { flex: 1, alignItems: 'center' },
+  segDivider: { borderLeftWidth: 1, borderLeftColor: '#e2e8f0' },
+  segStatLabel: { fontSize: 10, color: '#64748b', fontWeight: '600', marginBottom: 2 },
+  segStatVal: { fontSize: 16, fontWeight: '900' },
 });
