@@ -1,11 +1,18 @@
-export default async function handler(req: any, res: any) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).end();
+export const config = { runtime: 'edge' };
 
-  const { tokens, stockName, type } = req.body;
+export default async function handler(req: Request) {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      },
+    });
+  }
+
+  const { tokens, stockName, type } = await req.json();
+
   const messages = tokens.map((token: string) => ({
     to: token,
     sound: 'default',
@@ -21,21 +28,11 @@ export default async function handler(req: any, res: any) {
   });
 
   const result = await response.json();
-  res.status(200).json(result);
+
+  return new Response(JSON.stringify(result), {
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+    },
+  });
 }
-```
-
-5. Click **"Commit changes"**
-
----
-
-**Step 2 — Update ActiveTrades.tsx**
-
-Go to `admin/src/pages/ActiveTrades.tsx`, find this line:
-```
-body: JSON.stringify({ tokens, stockName, type }),
-```
-
-Just above it, find the fetch URL and change it to:
-```
-const response = await fetch('https://d-mat-gamma.vercel.app/api/send-notification', {
