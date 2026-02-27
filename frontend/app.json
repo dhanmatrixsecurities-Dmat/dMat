@@ -26,7 +26,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#001F3F"
       },
-      "package": "com.dhanmatrix.app"
+      "package": "com.dhanmatrix.app",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",
@@ -47,6 +48,11 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "36419ed4-89c6-432f-ad9c-ed34c2ca19f5"
+      }
     }
   }
 }
