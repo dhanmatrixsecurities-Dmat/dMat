@@ -32,9 +32,61 @@ import {
   deleteDoc,
   doc,
   orderBy,
+  where,
 } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { ActiveTrade } from '../types';
+
+// ✅ Send push notifications directly to Expo push API
+const sendPushNotifications = async (stockName: string, type: string) => {
+  try {
+    // ✅ Get all ACTIVE users who have an fcmToken
+    const usersSnapshot = await getDocs(
+      query(
+        collection(db, 'users'),
+        where('status', '==', 'ACTIVE')
+      )
+    );
+
+    const tokens: string[] = [];
+    usersSnapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.fcmToken && data.fcmToken.startsWith('ExponentPushToken')) {
+        tokens.push(data.fcmToken);
+      }
+    });
+
+    if (tokens.length === 0) {
+      console.log('No active users with push tokens found');
+      return;
+    }
+
+    console.log(`Sending notifications to ${tokens.length} users`);
+
+    // ✅ Send to Expo push API in batches of 100
+    const messages = tokens.map((token) => ({
+      to: token,
+      title: type === 'BUY' ? '📈 New BUY Trade' : '📉 New SELL Trade',
+      body: `${stockName} - ${type} signal added`,
+      sound: 'default',
+      priority: 'high',
+    }));
+
+    const response = await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(messages),
+    });
+
+    const result = await response.json();
+    console.log('Push notification result:', result);
+  } catch (error) {
+    console.error('Error sending push notifications:', error);
+  }
+};
 
 const ActiveTrades: React.FC = () => {
   const [trades, setTrades] = useState<ActiveTrade[]>([]);
@@ -127,8 +179,13 @@ const ActiveTrades: React.FC = () => {
         await updateDoc(doc(db, 'activeTrades', editingTrade.id), tradeData);
         showSnackbar('Trade updated successfully', 'success');
       } else {
+        // ✅ Save trade to Firestore
         await addDoc(collection(db, 'activeTrades'), tradeData);
-        showSnackbar('Trade added successfully', 'success');
+
+        // ✅ Send push notifications to all ACTIVE users
+        await sendPushNotifications(tradeData.stockName, tradeData.type);
+
+        showSnackbar('Trade added & notifications sent!', 'success');
       }
 
       handleCloseDialog();
@@ -308,8 +365,6 @@ const ActiveTrades: React.FC = () => {
             margin="normal"
             placeholder="e.g., RELIANCE, TCS, INFY"
           />
-
-          {/* ── SEGMENT DROPDOWN ── */}
           <TextField
             fullWidth
             select
@@ -324,7 +379,6 @@ const ActiveTrades: React.FC = () => {
             <MenuItem value="futures">Futures (F&O)</MenuItem>
             <MenuItem value="options">Options (F&O)</MenuItem>
           </TextField>
-
           <TextField
             fullWidth
             select
