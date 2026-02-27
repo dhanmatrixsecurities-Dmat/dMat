@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, ActivityIndicator, Animated,
+  View, Text, StyleSheet, ScrollView, ActivityIndicator, Animated, TouchableOpacity, Linking,
 } from 'react-native';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
@@ -139,7 +139,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Options - Purple */}
+        {/* Options */}
         <View style={[s.segCard, { borderTopColor: '#a855f7' }]}>
           <Text style={s.segTitle}>Option Accuracy</Text>
           <DonutGauge accuracy={options.accuracy} size={110} strokeWidth={10} fillColor="#a855f7" />
@@ -156,6 +156,44 @@ export default function HomeScreen() {
         </View>
 
       </View>
+
+      {/* ── IPO & Mutual Fund Cards ── */}
+      <View style={s.quickRow}>
+
+        {/* IPO Card */}
+        <TouchableOpacity
+          style={[s.quickCard, { borderLeftColor: '#3b82f6' }]}
+          onPress={() => Linking.openURL('https://www.nseindia.com/market-data/all-upcoming-issues-ipo')}
+          activeOpacity={0.85}
+        >
+          <View style={s.quickIconBox}>
+            <Text style={s.quickEmoji}>📋</Text>
+          </View>
+          <View style={s.quickText}>
+            <Text style={s.quickTitle}>IPO</Text>
+            <Text style={s.quickSub}>View Upcoming IPOs</Text>
+          </View>
+          <Text style={s.quickArrow}>›</Text>
+        </TouchableOpacity>
+
+        {/* Mutual Fund Card */}
+        <TouchableOpacity
+          style={[s.quickCard, { borderLeftColor: '#22c55e' }]}
+          onPress={() => Linking.openURL('https://www.amfiindia.com/nav-history-download')}
+          activeOpacity={0.85}
+        >
+          <View style={s.quickIconBox}>
+            <Text style={s.quickEmoji}>💼</Text>
+          </View>
+          <View style={s.quickText}>
+            <Text style={s.quickTitle}>Mutual Fund</Text>
+            <Text style={s.quickSub}>Explore Mutual Funds</Text>
+          </View>
+          <Text style={s.quickArrow}>›</Text>
+        </TouchableOpacity>
+
+      </View>
+
     </ScrollView>
   );
 }
@@ -178,7 +216,7 @@ const s = StyleSheet.create({
   divider: { borderLeftWidth: 1, borderLeftColor: '#e2e8f0' },
   statLabel: { fontSize: 12, color: '#64748b', fontWeight: '600', marginBottom: 4 },
   statVal: { fontSize: 32, fontWeight: '900' },
-  segRow: { flexDirection: 'row', gap: 8, width: '100%' },
+  segRow: { flexDirection: 'row', gap: 8, width: '100%', marginBottom: 16 },
   segCard: {
     flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 10,
     alignItems: 'center', borderTopWidth: 4, elevation: 3,
@@ -193,4 +231,22 @@ const s = StyleSheet.create({
   segDivider: { borderLeftWidth: 1, borderLeftColor: '#e2e8f0' },
   segStatLabel: { fontSize: 10, color: '#64748b', fontWeight: '600', marginBottom: 2 },
   segStatVal: { fontSize: 16, fontWeight: '900' },
+
+  // ── Quick Access Cards ──
+  quickRow: { width: '100%', gap: 10 },
+  quickCard: {
+    backgroundColor: '#fff', borderRadius: 16, padding: 16,
+    flexDirection: 'row', alignItems: 'center', borderLeftWidth: 4,
+    elevation: 3, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  quickIconBox: {
+    width: 44, height: 44, borderRadius: 12, backgroundColor: '#f1f5f9',
+    alignItems: 'center', justifyContent: 'center', marginRight: 12,
+  },
+  quickEmoji: { fontSize: 22 },
+  quickText: { flex: 1 },
+  quickTitle: { fontSize: 15, fontWeight: '800', color: '#1e3a5f' },
+  quickSub: { fontSize: 12, color: '#64748b', marginTop: 2 },
+  quickArrow: { fontSize: 24, color: '#94a3b8', fontWeight: '300' },
 });
