@@ -132,8 +132,17 @@ export default function ActiveTrades() {
     const stopLoss = Number(item.stopLoss) || 0;
     const seg = normalizeSegment(item.segment);
     const isFnO = seg === 'options' || seg === 'futures';
-    const potential = entryPrice > 0 ? ((targetPrice - entryPrice) / entryPrice) * 100 : 0;
-    const risk = entryPrice > 0 ? ((entryPrice - stopLoss) / entryPrice) * 100 : 0;
+    // For BUY: profit when price goes up. For SELL: profit when price goes down.
+    const potential = entryPrice > 0
+      ? isBuy
+        ? ((targetPrice - entryPrice) / entryPrice) * 100   // BUY: target > entry
+        : ((entryPrice - targetPrice) / entryPrice) * 100   // SELL: entry > target
+      : 0;
+    const risk = entryPrice > 0
+      ? isBuy
+        ? ((entryPrice - stopLoss) / entryPrice) * 100      // BUY: stop below entry
+        : ((stopLoss - entryPrice) / entryPrice) * 100      // SELL: stop above entry
+      : 0;
 
     return (
       <View style={styles.tradeCard}>
