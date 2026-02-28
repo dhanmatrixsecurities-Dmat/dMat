@@ -25,10 +25,9 @@ interface ClosedTrade {
   closedAt: string;
 }
 
-type SegmentFilter = 'all' | 'equity' | 'futures' | 'options';
+type SegmentFilter = 'equity' | 'futures' | 'options';
 
 const TABS: { label: string; value: SegmentFilter; color: string }[] = [
-  { label: 'All', value: 'all', color: '#3b82f6' },
   { label: 'Equity', value: 'equity', color: '#22c55e' },
   { label: 'Futures', value: 'futures', color: '#f59e0b' },
   { label: 'Options', value: 'options', color: '#a855f7' },
@@ -39,7 +38,7 @@ export default function ClosedTrades() {
   const [trades, setTrades] = useState<ClosedTrade[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<SegmentFilter>('all');
+  const [activeTab, setActiveTab] = useState<SegmentFilter>('equity');
 
   useEffect(() => {
     if (!user) {
@@ -74,19 +73,13 @@ export default function ClosedTrades() {
   }, [user]);
 
   const filteredTrades = trades.filter((t) => {
-    if (activeTab === 'all') return true;
     if (activeTab === 'equity') return !t.segment || t.segment === 'equity';
     return t.segment === activeTab;
   });
 
-  // Stats for active tab
-  const wins = filteredTrades.filter(t => t.profitLossPercent > 0).length;
-  const losses = filteredTrades.filter(t => t.profitLossPercent <= 0).length;
-  const accuracy = filteredTrades.length > 0
-    ? Math.round((wins / filteredTrades.length) * 100)
-    : 0;
-
   const onRefresh = () => setRefreshing(true);
+
+  const activeColor = TABS.find(t => t.value === activeTab)?.color || '#22c55e';
 
   const renderTradeCard = ({ item }: { item: ClosedTrade }) => {
     const isBuy = item.type === 'BUY';
@@ -115,7 +108,7 @@ export default function ClosedTrades() {
             <Ionicons
               name={isProfit ? 'trending-up' : 'trending-down'}
               size={20}
-              color={Colors.secondary}
+              color="#fff"
             />
             <Text style={styles.resultText}>
               {isProfit ? '+' : ''}{item.profitLossPercent.toFixed(2)}%
@@ -178,7 +171,7 @@ export default function ClosedTrades() {
           >
             <Text style={[
               styles.tabText,
-              activeTab === tab.value && { color: '#fff' },
+              activeTab === tab.value ? { color: '#fff' } : { color: Colors.textSecondary },
             ]}>
               {tab.label}
             </Text>
@@ -186,34 +179,11 @@ export default function ClosedTrades() {
         ))}
       </View>
 
-      {/* ── Stats Bar ── */}
-      <View style={styles.statsBar}>
-        <View style={styles.statItem}>
-          <Text style={styles.statNum}>{filteredTrades.length}</Text>
-          <Text style={styles.statLbl}>Total</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={[styles.statNum, { color: '#22c55e' }]}>{wins}</Text>
-          <Text style={styles.statLbl}>Wins</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={[styles.statNum, { color: '#ef4444' }]}>{losses}</Text>
-          <Text style={styles.statLbl}>Losses</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={[styles.statNum, { color: '#3b82f6' }]}>{accuracy}%</Text>
-          <Text style={styles.statLbl}>Accuracy</Text>
-        </View>
-      </View>
-
       {filteredTrades.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="document-text-outline" size={80} color={Colors.textSecondary} />
-          <Text style={styles.emptyText}>No closed trades</Text>
-          <Text style={styles.emptySubtext}>No trades in this segment yet</Text>
+          <Text style={styles.emptyText}>No {activeTab} trades yet</Text>
+          <Text style={styles.emptySubtext}>Completed {activeTab} trades will appear here</Text>
         </View>
       ) : (
         <FlatList
@@ -246,22 +216,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
   tab: {
-    flex: 1, paddingVertical: 8, borderRadius: 20,
-    borderWidth: 1, borderColor: Colors.border,
+    flex: 1, paddingVertical: 10, borderRadius: 20,
+    borderWidth: 1.5, borderColor: Colors.border,
     alignItems: 'center', justifyContent: 'center',
   },
-  tabText: { fontSize: 12, fontWeight: '700', color: Colors.textSecondary },
-
-  // Stats bar
-  statsBar: {
-    flexDirection: 'row', backgroundColor: Colors.cardBackground,
-    paddingVertical: 12, paddingHorizontal: 16,
-    marginBottom: 4, borderBottomWidth: 1, borderBottomColor: Colors.border,
-  },
-  statItem: { flex: 1, alignItems: 'center' },
-  statNum: { fontSize: 18, fontWeight: '900', color: Colors.text },
-  statLbl: { fontSize: 10, color: Colors.textSecondary, fontWeight: '600', marginTop: 2 },
-  statDivider: { width: 1, backgroundColor: Colors.border, marginVertical: 4 },
+  tabText: { fontSize: 13, fontWeight: '700' },
 
   // List
   listContent: { padding: 16 },
@@ -273,11 +232,9 @@ const styles = StyleSheet.create({
   },
   tradeHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
   stockInfo: { flex: 1 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 8 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 8, flexWrap: 'wrap' },
   stockName: { fontSize: 20, fontWeight: 'bold', color: Colors.text },
-  segmentBadge: {
-    paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, borderWidth: 1,
-  },
+  segmentBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, borderWidth: 1 },
   segmentText: { fontSize: 10, fontWeight: '800' },
   typeBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 6, alignSelf: 'flex-start' },
   buyBadge: { backgroundColor: '#E8F5E9' },
@@ -286,7 +243,7 @@ const styles = StyleSheet.create({
   resultBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
   profitBadge: { backgroundColor: Colors.success },
   lossBadge: { backgroundColor: Colors.error },
-  resultText: { fontSize: 16, fontWeight: 'bold', color: Colors.secondary, marginLeft: 4 },
+  resultText: { fontSize: 16, fontWeight: 'bold', color: '#fff', marginLeft: 4 },
   priceRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginBottom: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: Colors.border,
