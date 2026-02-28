@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, RefreshControl,
   TouchableOpacity, ActivityIndicator, Animated,
 } from 'react-native';
-import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, onSnapshot, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -37,7 +37,6 @@ interface Trade {
   segment?: Segment;
 }
 
-// ── Subscription Blink Banner ─────────────────────────────────────────────────
 function SubscriptionBanner({ endDate }: { endDate?: string }) {
   const blinkAnim = useRef(new Animated.Value(1)).current;
 
@@ -111,6 +110,20 @@ export default function ActiveTrades() {
     return () => unsubscribe();
   }, [userData]);
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const q = query(collection(db, 'activeTrades'), orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
+      const tradesData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Trade[];
+      setTrades(tradesData);
+    } catch (error) {
+      console.error('Refresh error:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
+
   const normalizeSegment = (seg?: string): Segment => {
     if (seg === 'futures' || seg === 'options') return seg;
     return 'equity';
@@ -132,16 +145,15 @@ export default function ActiveTrades() {
     const stopLoss = Number(item.stopLoss) || 0;
     const seg = normalizeSegment(item.segment);
     const isFnO = seg === 'options' || seg === 'futures';
-    // For BUY: profit when price goes up. For SELL: profit when price goes down.
     const potential = entryPrice > 0
       ? isBuy
-        ? ((targetPrice - entryPrice) / entryPrice) * 100   // BUY: target > entry
-        : ((entryPrice - targetPrice) / entryPrice) * 100   // SELL: entry > target
+        ? ((targetPrice - entryPrice) / entryPrice) * 100
+        : ((entryPrice - targetPrice) / entryPrice) * 100
       : 0;
     const risk = entryPrice > 0
       ? isBuy
-        ? ((entryPrice - stopLoss) / entryPrice) * 100      // BUY: stop below entry
-        : ((stopLoss - entryPrice) / entryPrice) * 100      // SELL: stop above entry
+        ? ((entryPrice - stopLoss) / entryPrice) * 100
+        : ((stopLoss - entryPrice) / entryPrice) * 100
       : 0;
 
     return (
@@ -264,7 +276,6 @@ export default function ActiveTrades() {
   return (
     <View style={styles.container}>
       <SubscriptionBanner endDate={userData?.subscriptionEndDate} />
-
       <View style={styles.tabRow}>
         {tabLabels.map(({ key, label }) => {
           const count = countBySegment(key);
@@ -292,8 +303,15 @@ export default function ActiveTrades() {
       ) : (
         <FlatList data={filteredTrades} renderItem={renderTradeCard} keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => setRefreshing(true)}
-            colors={[Colors.primary]} tintColor={Colors.primary} />} />
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[Colors.primary]}
+              tintColor={Colors.primary}
+            />
+          }
+        />
       )}
     </View>
   );
