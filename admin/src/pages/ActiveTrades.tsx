@@ -102,6 +102,7 @@ const ActiveTrades: React.FC = () => {
     entryPrice: '',
     targetPrice: '',
     stopLoss: '',
+    strikePrice: '',
     segment: 'equity' as 'equity' | 'futures' | 'options',
   });
   const [snackbar, setSnackbar] = useState<{
@@ -141,6 +142,7 @@ const ActiveTrades: React.FC = () => {
         entryPrice: trade.entryPrice.toString(),
         targetPrice: trade.targetPrice.toString(),
         stopLoss: trade.stopLoss.toString(),
+        strikePrice: (trade as any).strikePrice?.toString() || '',
         segment: (trade as any).segment || 'equity',
       });
     } else {
@@ -151,6 +153,7 @@ const ActiveTrades: React.FC = () => {
         entryPrice: '',
         targetPrice: '',
         stopLoss: '',
+        strikePrice: '',
         segment: 'equity',
       });
     }
@@ -170,6 +173,7 @@ const ActiveTrades: React.FC = () => {
         entryPrice: parseFloat(formData.entryPrice),
         targetPrice: parseFloat(formData.targetPrice),
         stopLoss: parseFloat(formData.stopLoss),
+        strikePrice: formData.strikePrice ? parseFloat(formData.strikePrice) : null,
         segment: formData.segment,
         status: 'Active',
         createdAt: new Date().toISOString(),
@@ -412,6 +416,14 @@ const ActiveTrades: React.FC = () => {
             type="number"
             value={formData.stopLoss}
             onChange={(e) => setFormData({ ...formData, stopLoss: e.target.value })}
+            margin="normal"
+          />
+          <TextField
+            fullWidth
+            label="Strike Price (optional, for options)"
+            type="number"
+            value={formData.strikePrice}
+            onChange={(e) => setFormData({ ...formData, strikePrice: e.target.value })}
             margin="normal"
           />
         </DialogContent>
