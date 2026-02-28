@@ -1,326 +1,261 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, RefreshControl,
-  TouchableOpacity, ActivityIndicator, Animated,
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  Animated,
+  FlatList,
+  ActivityIndicator,
 } from 'react-native';
-import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
-import { db } from '@/firebaseConfig';
-import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@/constants/Colors';
-import * as Notifications from 'expo-notifications';
+import { useAuth } from '../../context/AuthContext';
+import { db } from '../../lib/firebase';
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  orderBy,
+} from 'firebase/firestore';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
-
-type Segment = 'equity' | 'futures' | 'options';
+type TradeType = 'Equity' | 'Futures' | 'Options';
 
 interface Trade {
   id: string;
-  stockName: string;
-  type: 'BUY' | 'SELL';
+  symbol: string;
+  tradeType: TradeType;
+  action: 'BUY' | 'SELL';
   entryPrice: number;
   targetPrice: number;
   stopLoss: number;
-  strikePrice?: number;
-  optionType?: 'CE' | 'PE';
   lotSize?: number;
   expiryDate?: string;
+  strikePrice?: number;
+  optionType?: 'CE' | 'PE';
   duration?: string;
+  createdAt: any;
   status: string;
-  createdAt: string;
-  segment?: Segment;
 }
 
-// ── Subscription Blink Banner ─────────────────────────────────────────────────
-function SubscriptionBanner({ endDate }: { endDate?: string }) {
-  const blinkAnim = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(blinkAnim, { toValue: 0.2, duration: 600, useNativeDriver: true }),
-        Animated.timing(blinkAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
-      ])
-    );
-    animation.start();
-    return () => animation.stop();
-  }, []);
-
-  if (!endDate) return null;
-
-  const end = new Date(endDate);
-  const now = new Date();
-  const daysLeft = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-  if (daysLeft > 7 || daysLeft <= 0) return null;
-
-  return (
-    <Animated.View style={[styles.subBanner, { opacity: blinkAnim }]}>
-      <Ionicons name="warning" size={16} color="#fff" />
-      <Text style={styles.subBannerText}>
-        ⚠️ Subscription expires in {daysLeft} day{daysLeft !== 1 ? 's' : ''}! Contact admin to renew.
-      </Text>
-    </Animated.View>
-  );
-}
-
-export default function ActiveTrades() {
-  const { userData } = useAuth();
+export default function ActiveTradesScreen() {
+  const { user } = useAuth();
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [activeSegment, setActiveSegment] = useState<Segment>('equity');
+  const [activeTab, setActiveTab] = useState<TradeType>('Equity');
+  const [subscriptionDaysLeft, setSubscriptionDaysLeft] = useState<number | null>(null);
+  const blinkAnim = useRef(new Animated.Value(1)).current;
 
-  const prevTradeIdsRef = useRef<Set<string>>(new Set());
-  const isFirstLoadRef = useRef(true);
-
+  // Fetch subscription info
   useEffect(() => {
-    if (userData?.status !== 'ACTIVE') {
-      setLoading(false);
-      return;
-    }
-
-    const q = query(collection(db, 'activeTrades'), orderBy('createdAt', 'desc'));
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const tradesData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Trade[];
-
-      if (!isFirstLoadRef.current) {
-        snapshot.docChanges().forEach((change) => {
-          if (change.type === 'added') {
-            const newTrade = { id: change.doc.id, ...change.doc.data() } as Trade;
-            if (!prevTradeIdsRef.current.has(newTrade.id)) {
-              Notifications.scheduleNotificationAsync({
-                content: {
-                  title: `🚨 New ${newTrade.type} Trade Alert!`,
-                  body: `${newTrade.stockName} | Entry: ₹${newTrade.entryPrice} | Target: ₹${newTrade.targetPrice}`,
-                  sound: true,
-                },
-                trigger: null,
-              });
-            }
+    if (!user) return;
+    const unsubscribe = onSnapshot(
+      query(collection(db, 'subscriptions'), where('userId', '==', user.uid)),
+      (snap) => {
+        if (!snap.empty) {
+          const data = snap.docs[0].data();
+          if (data.expiryDate) {
+            const expiry = data.expiryDate.toDate ? data.expiryDate.toDate() : new Date(data.expiryDate);
+            const now = new Date();
+            const diff = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+            setSubscriptionDaysLeft(diff);
           }
-        });
+        }
       }
+    );
+    return unsubscribe;
+  }, [user]);
 
-      prevTradeIdsRef.current = new Set(tradesData.map((t) => t.id));
-      isFirstLoadRef.current = false;
-      setTrades(tradesData);
+  // Blinking animation — triggers when 3 days or less
+  useEffect(() => {
+    if (subscriptionDaysLeft !== null && subscriptionDaysLeft <= 3) {
+      const blink = Animated.loop(
+        Animated.sequence([
+          Animated.timing(blinkAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
+          Animated.timing(blinkAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+        ])
+      );
+      blink.start();
+      return () => blink.stop();
+    }
+  }, [subscriptionDaysLeft]);
+
+  // Fetch trades
+  useEffect(() => {
+    if (!user) return;
+    const q = query(
+      collection(db, 'trades'),
+      where('status', '==', 'active'),
+      orderBy('createdAt', 'desc')
+    );
+    const unsubscribe = onSnapshot(q, (snap) => {
+      const data = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Trade));
+      setTrades(data);
       setLoading(false);
-      setRefreshing(false);
-    }, (error) => {
-      console.error('Error fetching active trades:', error);
-      setLoading(false);
-      setRefreshing(false);
     });
+    return unsubscribe;
+  }, [user]);
 
-    return () => unsubscribe();
-  }, [userData]);
+  const filteredTrades = trades.filter((t) => t.tradeType === activeTab);
 
-  const normalizeSegment = (seg?: string): Segment => {
-    if (seg === 'futures' || seg === 'options') return seg;
-    return 'equity';
+  const counts: Record<TradeType, number> = {
+    Equity: trades.filter((t) => t.tradeType === 'Equity').length,
+    Futures: trades.filter((t) => t.tradeType === 'Futures').length,
+    Options: trades.filter((t) => t.tradeType === 'Options').length,
   };
 
-  const filteredTrades = trades.filter((t) => normalizeSegment(t.segment) === activeSegment);
-  const countBySegment = (seg: Segment) => trades.filter((t) => normalizeSegment(t.segment) === seg).length;
+  const formatDate = (ts: any) => {
+    if (!ts) return '';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) +
+      ', ' + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+  };
 
-  const tabLabels: { key: Segment; label: string }[] = [
-    { key: 'equity', label: 'Equity' },
-    { key: 'futures', label: 'Futures' },
-    { key: 'options', label: 'Options' },
-  ];
+  const calcGain = (entry: number, target: number) =>
+    (((target - entry) / entry) * 100).toFixed(2);
+  const calcRisk = (entry: number, sl: number) =>
+    (((sl - entry) / entry) * 100).toFixed(2);
 
-  // ── Trade Card ──────────────────────────────────────────────────────────────
-  const renderTradeCard = ({ item }: { item: Trade }) => {
-    const isBuy = item.type === 'BUY';
-    const entryPrice = Number(item.entryPrice) || 0;
-    const targetPrice = Number(item.targetPrice) || 0;
-    const stopLoss = Number(item.stopLoss) || 0;
-    const seg = normalizeSegment(item.segment);
-
-    const potential = entryPrice > 0 ? ((targetPrice - entryPrice) / entryPrice) * 100 : 0;
-    const risk = entryPrice > 0 ? ((entryPrice - stopLoss) / entryPrice) * 100 : 0;
-
-    const isFnO = seg === 'options' || seg === 'futures';
+  const renderTrade = ({ item }: { item: Trade }) => {
+    const gain = calcGain(item.entryPrice, item.targetPrice);
+    const risk = calcRisk(item.entryPrice, item.stopLoss);
+    const isOptions = item.tradeType === 'Options';
+    const isFuturesOrOptions = item.tradeType === 'Futures' || item.tradeType === 'Options';
 
     return (
-      <View style={styles.tradeCard}>
-        {/* ── Header ── */}
-        <View style={styles.tradeHeader}>
-          <View style={styles.stockInfo}>
-            <View style={styles.stockNameRow}>
-              <Text style={styles.stockName}>{item.stockName}</Text>
-              {/* Strike + CE/PE badge for options */}
-              {seg === 'options' && item.strikePrice && (
-                <View style={styles.strikeBadge}>
-                  <Text style={styles.strikeText}>
-                    {item.strikePrice} {item.optionType || ''}
-                  </Text>
-                </View>
-              )}
-            </View>
-            <View style={styles.badgeRow}>
-              <View style={[styles.typeBadge, isBuy ? styles.buyBadge : styles.sellBadge]}>
-                <Text style={[styles.typeText, isBuy ? styles.buyText : styles.sellText]}>{item.type}</Text>
-              </View>
-              {/* Lot size badge */}
-              {isFnO && item.lotSize && (
-                <View style={styles.lotBadge}>
-                  <Text style={styles.lotText}>Lot: {item.lotSize}</Text>
-                </View>
-              )}
-            </View>
-          </View>
-          <Ionicons name="pulse" size={24} color={Colors.primary} />
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.symbol}>{item.symbol}</Text>
+          <Ionicons name="pulse-outline" size={22} color="#1a3c6e" />
         </View>
 
-        {/* ── F&O Info Row: Expiry + Duration ── */}
-        {isFnO && (item.expiryDate || item.duration) && (
-          <View style={styles.fnoRow}>
+        <View style={styles.badgeRow}>
+          <View style={[styles.badge, item.action === 'BUY' ? styles.buyBadge : styles.sellBadge]}>
+            <Text style={[styles.badgeText, item.action === 'BUY' ? styles.buyText : styles.sellText]}>
+              {item.action}
+            </Text>
+          </View>
+
+          {isOptions && item.strikePrice && item.optionType && (
+            <View style={styles.strikeBadge}>
+              <Text style={styles.strikeText}>
+                {item.strikePrice} {item.optionType}
+              </Text>
+            </View>
+          )}
+
+          {isFuturesOrOptions && item.lotSize && (
+            <View style={styles.lotBadge}>
+              <Text style={styles.lotText}>Lot: {item.lotSize}</Text>
+            </View>
+          )}
+        </View>
+
+        {isOptions && (item.expiryDate || item.duration) && (
+          <View style={styles.expiryRow}>
             {item.expiryDate && (
-              <View style={styles.fnoItem}>
-                <Ionicons name="calendar-outline" size={13} color="#f59e0b" />
-                <Text style={styles.fnoText}>Expiry: {item.expiryDate}</Text>
+              <View style={styles.expiryChip}>
+                <Ionicons name="calendar-outline" size={12} color="#b45309" />
+                <Text style={styles.expiryText}>Exp: {item.expiryDate}</Text>
               </View>
             )}
             {item.duration && (
-              <View style={styles.fnoItem}>
-                <Ionicons name="time-outline" size={13} color="#f59e0b" />
-                <Text style={styles.fnoText}>{item.duration}</Text>
+              <View style={styles.expiryChip}>
+                <Ionicons name="time-outline" size={12} color="#b45309" />
+                <Text style={styles.expiryText}>{item.duration}</Text>
               </View>
             )}
           </View>
         )}
 
-        {/* ── Price Grid ── */}
-        <View style={styles.priceGrid}>
-          <View style={styles.priceItem}>
+        <View style={styles.priceRow}>
+          <View style={styles.priceCol}>
             <Text style={styles.priceLabel}>Entry Price</Text>
-            <Text style={styles.priceValue}>₹{entryPrice.toFixed(2)}</Text>
+            <Text style={styles.priceValue}>₹{item.entryPrice.toFixed(2)}</Text>
           </View>
-          <View style={styles.priceItem}>
+          <View style={styles.priceCol}>
             <Text style={styles.priceLabel}>Target</Text>
-            <Text style={[styles.priceValue, styles.targetPrice]}>₹{targetPrice.toFixed(2)}</Text>
+            <Text style={[styles.priceValue, { color: '#16a34a' }]}>₹{item.targetPrice.toFixed(2)}</Text>
           </View>
-          <View style={styles.priceItem}>
+          <View style={styles.priceCol}>
             <Text style={styles.priceLabel}>Stop Loss</Text>
-            <Text style={[styles.priceValue, styles.stopLossText]}>
-              {stopLoss > 0 ? `₹${stopLoss.toFixed(2)}` : 'N/A'}
-            </Text>
+            <Text style={[styles.priceValue, { color: '#dc2626' }]}>₹{item.stopLoss.toFixed(2)}</Text>
           </View>
         </View>
 
-        {/* ── Metrics ── */}
-        <View style={styles.metricsRow}>
-          <View style={styles.metric}>
-            <Text style={styles.metricLabel}>Potential Gain</Text>
-            <Text style={[styles.metricValue, styles.gainText]}>+{potential.toFixed(2)}%</Text>
+        <View style={styles.divider} />
+
+        <View style={styles.gainRow}>
+          <View style={styles.gainCol}>
+            <Text style={styles.priceLabel}>Potential Gain</Text>
+            <Text style={[styles.gainValue, { color: '#16a34a' }]}>+{gain}%</Text>
           </View>
-          <View style={styles.metric}>
-            <Text style={styles.metricLabel}>Risk</Text>
-            <Text style={[styles.metricValue, styles.riskText]}>
-              {stopLoss > 0 ? `-${risk.toFixed(2)}%` : 'N/A'}
-            </Text>
+          <View style={styles.gainCol}>
+            <Text style={styles.priceLabel}>Risk</Text>
+            <Text style={[styles.gainValue, { color: '#dc2626' }]}>{risk}%</Text>
           </View>
         </View>
 
-        {/* ── Date ── */}
-        <View style={styles.dateContainer}>
-          <Ionicons name="time-outline" size={14} color={Colors.textSecondary} />
-          <Text style={styles.dateText}>
-            {new Date(item.createdAt).toLocaleString('en-IN', {
-              day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
-            })}
-          </Text>
+        <View style={styles.timeRow}>
+          <Ionicons name="time-outline" size={13} color="#9ca3af" />
+          <Text style={styles.timeText}>{formatDate(item.createdAt)}</Text>
         </View>
       </View>
     );
   };
 
-  if (loading) {
-    return <View style={styles.centerContainer}><ActivityIndicator size="large" color={Colors.primary} /></View>;
-  }
-
-  if (userData?.status === 'BLOCKED') {
-    return (
-      <View style={styles.centerContainer}>
-        <Ionicons name="lock-closed" size={80} color={Colors.error} />
-        <Text style={styles.blockedTitle}>Account Blocked</Text>
-        <Text style={styles.blockedText}>Your account has been blocked. Please contact support.</Text>
-      </View>
-    );
-  }
-
-  if (userData?.status === 'FREE') {
-    return (
-      <View style={styles.centerContainer}>
-        <Ionicons name="star" size={80} color={Colors.warning} />
-        <Text style={styles.upgradeTitle}>Upgrade to Premium</Text>
-        <Text style={styles.upgradeText}>
-          Active trades are only available to ACTIVE subscribers.{`\n\n`}Contact admin to upgrade.
-        </Text>
-        <View style={styles.featuresList}>
-          {['Live trade alerts', 'Real-time notifications', 'Entry & exit signals'].map((f) => (
-            <View key={f} style={styles.featureItem}>
-              <Ionicons name="checkmark-circle" size={20} color={Colors.success} />
-              <Text style={styles.featureText}>{f}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
-      {/* ── Subscription Blink Warning ── */}
-      <SubscriptionBanner endDate={userData?.subscriptionEndDate} />
-
-      {/* ── Segment Tabs ── */}
-      <View style={styles.tabRow}>
-        {tabLabels.map(({ key, label }) => {
-          const count = countBySegment(key);
-          return (
-            <TouchableOpacity
-              key={key}
-              style={[styles.tab, activeSegment === key && styles.tabActive]}
-              onPress={() => setActiveSegment(key)}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.tabText, activeSegment === key && styles.tabTextActive]}>{label}</Text>
-              {count > 0 && (
-                <View style={[styles.badge, activeSegment === key && styles.badgeActive]}>
-                  <Text style={[styles.badgeText, activeSegment === key && styles.badgeTextActive]}>{count}</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          );
-        })}
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Active Trades</Text>
       </View>
 
-      {filteredTrades.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="bar-chart-outline" size={80} color={Colors.textSecondary} />
-          <Text style={styles.emptyText}>No active {activeSegment} trades</Text>
-          <Text style={styles.emptySubtext}>Pull down to refresh and check for new trades</Text>
+      {/* Subscription Blink Warning — shows when ≤ 3 days left */}
+      {subscriptionDaysLeft !== null && subscriptionDaysLeft <= 3 && (
+        <Animated.View style={[styles.subWarning, { opacity: blinkAnim }]}>
+          <Ionicons name="warning" size={16} color="#fff" />
+          <Text style={styles.subWarningText}>
+            Subscription expires in {subscriptionDaysLeft} day{subscriptionDaysLeft !== 1 ? 's' : ''}! Contact admin to renew.
+          </Text>
+        </Animated.View>
+      )}
+
+      {/* Tabs */}
+      <View style={styles.tabBar}>
+        {(['Equity', 'Futures', 'Options'] as TradeType[]).map((tab) => (
+          <TouchableOpacity
+            key={tab}
+            style={[styles.tab, activeTab === tab && styles.activeTab]}
+            onPress={() => setActiveTab(tab)}
+          >
+            <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
+              {tab}
+            </Text>
+            <View style={[styles.countBubble, activeTab === tab && styles.activeCountBubble]}>
+              <Text style={[styles.countText, activeTab === tab && styles.activeCountText]}>
+                {counts[tab]}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Trade List */}
+      {loading ? (
+        <ActivityIndicator size="large" color="#1a3c6e" style={{ marginTop: 40 }} />
+      ) : filteredTrades.length === 0 ? (
+        <View style={styles.empty}>
+          <Ionicons name="bar-chart-outline" size={48} color="#d1d5db" />
+          <Text style={styles.emptyText}>No active {activeTab} trades</Text>
         </View>
       ) : (
         <FlatList
           data={filteredTrades}
-          renderItem={renderTradeCard}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => setRefreshing(true)}
-              colors={[Colors.primary]} tintColor={Colors.primary} />
-          }
+          renderItem={renderTrade}
+          contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
         />
       )}
     </View>
@@ -328,93 +263,110 @@ export default function ActiveTrades() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  centerContainer: { flex: 1, backgroundColor: Colors.background, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  listContent: { padding: 16 },
+  container: { flex: 1, backgroundColor: '#f3f4f6' },
 
-  // ── Subscription Banner ──
-  subBanner: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#dc2626',
-    paddingHorizontal: 16, paddingVertical: 10, gap: 8,
+  header: {
+    backgroundColor: '#1a3c6e',
+    paddingTop: 56,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
   },
-  subBannerText: { color: '#fff', fontSize: 13, fontWeight: '700', flex: 1 },
+  headerTitle: { color: '#fff', fontSize: 22, fontWeight: '700' },
 
-  // ── Tabs ──
-  tabRow: {
-    flexDirection: 'row', backgroundColor: '#fff', marginHorizontal: 16,
-    marginTop: 14, marginBottom: 8, borderRadius: 12, padding: 4,
-    elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06, shadowRadius: 4,
+  // ── Subscription Warning ──────────────────────────────────
+  subWarning: {
+    backgroundColor: '#ef4444',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
   },
-  tab: { flex: 1, paddingVertical: 9, alignItems: 'center', borderRadius: 9, flexDirection: 'row', justifyContent: 'center', gap: 4 },
-  tabActive: { backgroundColor: '#001F3F', elevation: 2 },
-  tabText: { fontSize: 13, fontWeight: '600', color: '#6B7280' },
-  tabTextActive: { color: '#fff' },
-  badge: { backgroundColor: '#E5E7EB', borderRadius: 10, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
-  badgeActive: { backgroundColor: 'rgba(255,255,255,0.25)' },
-  badgeText: { fontSize: 10, fontWeight: '700', color: '#374151' },
-  badgeTextActive: { color: '#fff' },
+  subWarningText: { color: '#fff', fontSize: 13, fontWeight: '600', flex: 1 },
 
-  // ── Trade Card ──
-  tradeCard: {
-    backgroundColor: Colors.cardBackground, borderRadius: 16, padding: 16, marginBottom: 16,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3,
+  // ── Tabs ──────────────────────────────────────────────────
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
+    marginTop: 14,
+    borderRadius: 14,
+    padding: 4,
+    elevation: 2,
   },
-  tradeHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-  stockInfo: { flex: 1 },
-  stockNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' },
-  stockName: { fontSize: 20, fontWeight: 'bold', color: Colors.text },
-  strikeBadge: { backgroundColor: '#EDE9FE', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 6 },
-  strikeText: { fontSize: 13, fontWeight: '700', color: '#6D28D9' },
-  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  typeBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 6 },
-  buyBadge: { backgroundColor: '#E8F5E9' },
-  sellBadge: { backgroundColor: '#FFEBEE' },
-  typeText: { fontSize: 12, fontWeight: 'bold' },
-  buyText: { color: '#2E7D32' },
-  sellText: { color: '#C62828' },
-  lotBadge: { backgroundColor: '#FEF3C7', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
-  lotText: { fontSize: 12, fontWeight: '600', color: '#92400E' },
-
-  // ── F&O Row ──
-  fnoRow: {
-    flexDirection: 'row', gap: 16, backgroundColor: '#FFFBEB',
-    borderRadius: 8, padding: 8, marginBottom: 12,
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
   },
-  fnoItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  fnoText: { fontSize: 12, color: '#92400E', fontWeight: '600' },
-
-  // ── Prices ──
-  priceGrid: {
-    flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16,
-    paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: Colors.border,
+  activeTab: { backgroundColor: '#1a3c6e' },
+  tabText: { fontSize: 13, fontWeight: '600', color: '#6b7280' },
+  activeTabText: { color: '#fff' },
+  countBubble: {
+    backgroundColor: '#e5e7eb',
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
   },
-  priceItem: { flex: 1, alignItems: 'center' },
-  priceLabel: { fontSize: 12, color: Colors.textSecondary, marginBottom: 4 },
-  priceValue: { fontSize: 16, fontWeight: 'bold', color: Colors.text },
-  targetPrice: { color: Colors.success },
-  stopLossText: { color: Colors.error },
+  activeCountBubble: { backgroundColor: 'rgba(255,255,255,0.25)' },
+  countText: { fontSize: 11, fontWeight: '700', color: '#374151' },
+  activeCountText: { color: '#fff' },
 
-  // ── Metrics ──
-  metricsRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 12 },
-  metric: { alignItems: 'center' },
-  metricLabel: { fontSize: 12, color: Colors.textSecondary, marginBottom: 4 },
-  metricValue: { fontSize: 18, fontWeight: 'bold' },
-  gainText: { color: Colors.success },
-  riskText: { color: Colors.error },
+  // ── Card ──────────────────────────────────────────────────
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 14,
+    elevation: 2,
+  },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  symbol: { fontSize: 20, fontWeight: '800', color: '#111827' },
 
-  dateContainer: { flexDirection: 'row', alignItems: 'center' },
-  dateText: { fontSize: 12, color: Colors.textSecondary, marginLeft: 4 },
+  badgeRow: { flexDirection: 'row', gap: 8, marginBottom: 8, flexWrap: 'wrap' },
+  badge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 6 },
+  buyBadge: { backgroundColor: '#dcfce7' },
+  sellBadge: { backgroundColor: '#fee2e2' },
+  badgeText: { fontSize: 12, fontWeight: '700' },
+  buyText: { color: '#16a34a' },
+  sellText: { color: '#dc2626' },
 
-  emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  emptyText: { fontSize: 18, fontWeight: '600', color: Colors.text, marginTop: 16, textAlign: 'center' },
-  emptySubtext: { fontSize: 14, color: Colors.textSecondary, marginTop: 8, textAlign: 'center' },
+  strikeBadge: { backgroundColor: '#ede9fe', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 6 },
+  strikeText: { fontSize: 12, fontWeight: '700', color: '#7c3aed' },
 
-  blockedTitle: { fontSize: 24, fontWeight: 'bold', color: Colors.error, marginTop: 24 },
-  blockedText: { fontSize: 16, color: Colors.textSecondary, textAlign: 'center', marginTop: 16 },
-  upgradeTitle: { fontSize: 24, fontWeight: 'bold', color: Colors.primary, marginTop: 24 },
-  upgradeText: { fontSize: 16, color: Colors.textSecondary, textAlign: 'center', marginTop: 16 },
-  featuresList: { marginTop: 32, alignSelf: 'stretch' },
-  featureItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  featureText: { fontSize: 16, color: Colors.text, marginLeft: 12 },
+  lotBadge: { backgroundColor: '#fef9c3', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 6 },
+  lotText: { fontSize: 12, fontWeight: '700', color: '#a16207' },
+
+  expiryRow: { flexDirection: 'row', gap: 8, marginBottom: 10, flexWrap: 'wrap' },
+  expiryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  expiryText: { fontSize: 11, color: '#b45309', fontWeight: '600' },
+
+  priceRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
+  priceCol: { flex: 1, alignItems: 'center' },
+  priceLabel: { fontSize: 11, color: '#9ca3af', marginBottom: 3 },
+  priceValue: { fontSize: 15, fontWeight: '700', color: '#111827' },
+
+  divider: { height: 1, backgroundColor: '#f3f4f6', marginBottom: 12 },
+
+  gainRow: { flexDirection: 'row', marginBottom: 10 },
+  gainCol: { flex: 1, alignItems: 'center' },
+  gainValue: { fontSize: 16, fontWeight: '800' },
+
+  timeRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  timeText: { fontSize: 12, color: '#9ca3af' },
+
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  emptyText: { fontSize: 15, color: '#9ca3af' },
 });
