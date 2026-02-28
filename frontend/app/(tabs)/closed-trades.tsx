@@ -4,8 +4,8 @@ import {
   ActivityIndicator, TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../../context/AuthContext';
-import { db } from '../../lib/firebase';
+import { useAuth } from '../contexts/AuthContext';
+import { db } from '../lib/firebase';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 
 type TradeType = 'Equity' | 'Futures' | 'Options';
