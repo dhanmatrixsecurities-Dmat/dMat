@@ -294,25 +294,27 @@ export default function ActiveTrades() {
         })}
       </View>
 
-      {filteredTrades.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="bar-chart-outline" size={80} color={Colors.textSecondary} />
-          <Text style={styles.emptyText}>No active {activeSegment} trades</Text>
-          <Text style={styles.emptySubtext}>Pull down to refresh and check for new trades</Text>
-        </View>
-      ) : (
-        <FlatList data={filteredTrades} renderItem={renderTradeCard} keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={[Colors.primary]}
-              tintColor={Colors.primary}
-            />
-          }
-        />
-      )}
+      <FlatList
+        data={filteredTrades}
+        renderItem={renderTradeCard}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={filteredTrades.length === 0 ? styles.emptyContainer : styles.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[Colors.primary]}
+            tintColor={Colors.primary}
+          />
+        }
+        ListEmptyComponent={
+          <View style={{ alignItems: 'center' }}>
+            <Ionicons name="bar-chart-outline" size={80} color={Colors.textSecondary} />
+            <Text style={styles.emptyText}>No active {activeSegment} trades</Text>
+            <Text style={styles.emptySubtext}>Pull down to refresh and check for new trades</Text>
+          </View>
+        }
+      />
     </View>
   );
 }
@@ -321,6 +323,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   centerContainer: { flex: 1, backgroundColor: Colors.background, alignItems: 'center', justifyContent: 'center', padding: 32 },
   listContent: { padding: 16 },
+  emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   subBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#dc2626', paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
   subBannerText: { color: '#fff', fontSize: 13, fontWeight: '700', flex: 1 },
   tabRow: { flexDirection: 'row', backgroundColor: '#fff', marginHorizontal: 16, marginTop: 14, marginBottom: 8, borderRadius: 12, padding: 4, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4 },
@@ -365,7 +368,6 @@ const styles = StyleSheet.create({
   riskText: { color: Colors.error },
   dateContainer: { flexDirection: 'row', alignItems: 'center' },
   dateText: { fontSize: 12, color: Colors.textSecondary, marginLeft: 4 },
-  emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   emptyText: { fontSize: 18, fontWeight: '600', color: Colors.text, marginTop: 16, textAlign: 'center' },
   emptySubtext: { fontSize: 14, color: Colors.textSecondary, marginTop: 8, textAlign: 'center' },
   blockedTitle: { fontSize: 24, fontWeight: 'bold', color: Colors.error, marginTop: 24 },
