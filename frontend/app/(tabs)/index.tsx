@@ -91,7 +91,7 @@ export default function HomeScreen() {
       {/* Overall Card */}
       <View style={s.overallCard}>
         <Text style={s.heading}>Overall Performance</Text>
-        <DonutGauge accuracy={overall.accuracy} size={200} strokeWidth={20} fillColor="#3b82f6" />
+        <DonutGauge accuracy={overall.accuracy} size={150} strokeWidth={15} fillColor="#3b82f6" />
         <View style={s.row}>
           <View style={s.stat}>
             <Text style={s.statLabel}>Winning Trades</Text>
@@ -106,11 +106,9 @@ export default function HomeScreen() {
 
       {/* Segment Cards */}
       <View style={s.segRow}>
-
-        {/* Equity */}
         <View style={[s.segCard, { borderTopColor: '#22c55e' }]}>
           <Text style={s.segTitle}>Equity Accuracy</Text>
-          <DonutGauge accuracy={equity.accuracy} size={110} strokeWidth={10} fillColor="#22c55e" />
+          <DonutGauge accuracy={equity.accuracy} size={95} strokeWidth={9} fillColor="#22c55e" />
           <View style={s.segStats}>
             <View style={s.segStat}>
               <Text style={s.segStatLabel}>Win</Text>
@@ -123,10 +121,9 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Futures */}
         <View style={[s.segCard, { borderTopColor: '#f59e0b' }]}>
           <Text style={s.segTitle}>Future Accuracy</Text>
-          <DonutGauge accuracy={futures.accuracy} size={110} strokeWidth={10} fillColor="#f59e0b" />
+          <DonutGauge accuracy={futures.accuracy} size={95} strokeWidth={9} fillColor="#f59e0b" />
           <View style={s.segStats}>
             <View style={s.segStat}>
               <Text style={s.segStatLabel}>Win</Text>
@@ -139,10 +136,9 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Options */}
         <View style={[s.segCard, { borderTopColor: '#a855f7' }]}>
           <Text style={s.segTitle}>Option Accuracy</Text>
-          <DonutGauge accuracy={options.accuracy} size={110} strokeWidth={10} fillColor="#a855f7" />
+          <DonutGauge accuracy={options.accuracy} size={95} strokeWidth={9} fillColor="#a855f7" />
           <View style={s.segStats}>
             <View style={s.segStat}>
               <Text style={s.segStatLabel}>Win</Text>
@@ -154,13 +150,12 @@ export default function HomeScreen() {
             </View>
           </View>
         </View>
-
       </View>
 
       {/* ── IPO & Mutual Fund Cards ── */}
       <View style={s.quickRow}>
 
-        {/* IPO Card */}
+        {/* IPO Card — opens NSE IPO page */}
         <TouchableOpacity
           style={[s.quickCard, { borderLeftColor: '#3b82f6' }]}
           onPress={() => Linking.openURL('https://www.nseindia.com/market-data/all-upcoming-issues-ipo')}
@@ -176,12 +171,8 @@ export default function HomeScreen() {
           <Text style={s.quickArrow}>›</Text>
         </TouchableOpacity>
 
-        {/* Mutual Fund Card */}
-        <TouchableOpacity
-          style={[s.quickCard, { borderLeftColor: '#22c55e' }]}
-          onPress={() => Linking.openURL('https://www.amfiindia.com/nav-history-download')}
-          activeOpacity={0.85}
-        >
+        {/* Mutual Fund Card — no link */}
+        <View style={[s.quickCard, { borderLeftColor: '#22c55e' }]}>
           <View style={s.quickIconBox}>
             <Text style={s.quickEmoji}>💼</Text>
           </View>
@@ -189,8 +180,7 @@ export default function HomeScreen() {
             <Text style={s.quickTitle}>Mutual Fund</Text>
             <Text style={s.quickSub}>Explore Mutual Funds</Text>
           </View>
-          <Text style={s.quickArrow}>›</Text>
-        </TouchableOpacity>
+        </View>
 
       </View>
 
@@ -201,52 +191,50 @@ export default function HomeScreen() {
 const s = StyleSheet.create({
   loading: { flex: 1, backgroundColor: '#e8edf5', alignItems: 'center', justifyContent: 'center' },
   scroll: { flex: 1, backgroundColor: '#e8edf5' },
-  content: { padding: 16, paddingBottom: 40, alignItems: 'center' },
+  content: { padding: 12, paddingBottom: 20, alignItems: 'center' },
   overallCard: {
-    backgroundColor: '#fff', borderRadius: 20, padding: 20, alignItems: 'center',
-    width: '100%', marginBottom: 16, elevation: 4,
+    backgroundColor: '#fff', borderRadius: 20, padding: 12, alignItems: 'center',
+    width: '100%', marginBottom: 10, elevation: 4,
     shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 },
   },
-  heading: { fontSize: 20, fontWeight: '800', color: '#1e3a5f', marginBottom: 16 },
+  heading: { fontSize: 16, fontWeight: '800', color: '#1e3a5f', marginBottom: 8 },
   row: {
-    flexDirection: 'row', marginTop: 16, width: '100%',
-    borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingTop: 16,
+    flexDirection: 'row', marginTop: 10, width: '100%',
+    borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingTop: 10,
   },
   stat: { flex: 1, alignItems: 'center' },
   divider: { borderLeftWidth: 1, borderLeftColor: '#e2e8f0' },
-  statLabel: { fontSize: 12, color: '#64748b', fontWeight: '600', marginBottom: 4 },
-  statVal: { fontSize: 32, fontWeight: '900' },
-  segRow: { flexDirection: 'row', gap: 8, width: '100%', marginBottom: 16 },
+  statLabel: { fontSize: 11, color: '#64748b', fontWeight: '600', marginBottom: 2 },
+  statVal: { fontSize: 26, fontWeight: '900' },
+  segRow: { flexDirection: 'row', gap: 6, width: '100%', marginBottom: 10 },
   segCard: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 10,
+    flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 8,
     alignItems: 'center', borderTopWidth: 4, elevation: 3,
     shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 3 },
   },
-  segTitle: { fontSize: 11, fontWeight: '800', color: '#1e3a5f', textAlign: 'center', marginBottom: 6 },
+  segTitle: { fontSize: 10, fontWeight: '800', color: '#1e3a5f', textAlign: 'center', marginBottom: 4 },
   segStats: {
-    flexDirection: 'row', marginTop: 8, width: '100%',
-    borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingTop: 8,
+    flexDirection: 'row', marginTop: 6, width: '100%',
+    borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingTop: 6,
   },
   segStat: { flex: 1, alignItems: 'center' },
   segDivider: { borderLeftWidth: 1, borderLeftColor: '#e2e8f0' },
-  segStatLabel: { fontSize: 10, color: '#64748b', fontWeight: '600', marginBottom: 2 },
-  segStatVal: { fontSize: 16, fontWeight: '900' },
-
-  // ── Quick Access Cards ──
-  quickRow: { width: '100%', gap: 10 },
+  segStatLabel: { fontSize: 9, color: '#64748b', fontWeight: '600', marginBottom: 2 },
+  segStatVal: { fontSize: 14, fontWeight: '900' },
+  quickRow: { width: '100%', gap: 8 },
   quickCard: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 16,
+    backgroundColor: '#fff', borderRadius: 16, padding: 14,
     flexDirection: 'row', alignItems: 'center', borderLeftWidth: 4,
     elevation: 3, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
   },
   quickIconBox: {
-    width: 44, height: 44, borderRadius: 12, backgroundColor: '#f1f5f9',
+    width: 40, height: 40, borderRadius: 10, backgroundColor: '#f1f5f9',
     alignItems: 'center', justifyContent: 'center', marginRight: 12,
   },
-  quickEmoji: { fontSize: 22 },
+  quickEmoji: { fontSize: 20 },
   quickText: { flex: 1 },
-  quickTitle: { fontSize: 15, fontWeight: '800', color: '#1e3a5f' },
-  quickSub: { fontSize: 12, color: '#64748b', marginTop: 2 },
+  quickTitle: { fontSize: 14, fontWeight: '800', color: '#1e3a5f' },
+  quickSub: { fontSize: 11, color: '#64748b', marginTop: 2 },
   quickArrow: { fontSize: 24, color: '#94a3b8', fontWeight: '300' },
 });
