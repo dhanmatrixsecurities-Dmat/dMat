@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, RefreshControl,
-  TouchableOpacity, ActivityIndicator, Animated,
+  TouchableOpacity, ActivityIndicator, Animated, ScrollView,
 } from 'react-native';
 import { collection, query, onSnapshot, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
@@ -75,6 +75,17 @@ export default function ActiveTrades() {
   const prevTradeIdsRef = useRef<Set<string>>(new Set());
   const isFirstLoadRef = useRef(true);
 
+  const fetchTrades = useCallback(async () => {
+    try {
+      const q = query(collection(db, 'activeTrades'), orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
+      const tradesData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Trade[];
+      setTrades(tradesData);
+    } catch (error) {
+      console.error('Fetch error:', error);
+    }
+  }, []);
+
   useEffect(() => {
     if (userData?.status !== 'ACTIVE') { setLoading(false); return; }
 
@@ -112,17 +123,9 @@ export default function ActiveTrades() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    try {
-      const q = query(collection(db, 'activeTrades'), orderBy('createdAt', 'desc'));
-      const snapshot = await getDocs(q);
-      const tradesData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Trade[];
-      setTrades(tradesData);
-    } catch (error) {
-      console.error('Refresh error:', error);
-    } finally {
-      setRefreshing(false);
-    }
-  }, []);
+    await fetchTrades();
+    setRefreshing(false);
+  }, [fetchTrades]);
 
   const normalizeSegment = (seg?: string): Segment => {
     if (seg === 'futures' || seg === 'options') return seg;
@@ -179,7 +182,7 @@ export default function ActiveTrades() {
               )}
             </View>
           </View>
-          <Ionicons name="pulse" size={24} color={Colors.primary} />
+          <Ionicons name="pulse-outline" size={24} color={Colors.primary} />
         </View>
 
         {isFnO && (item.expiryDate || item.duration) && (
