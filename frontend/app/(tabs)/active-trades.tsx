@@ -44,8 +44,8 @@ function SubscriptionBanner({ endDate }: { endDate?: string }) {
   useEffect(() => {
     const animation = Animated.loop(
       Animated.sequence([
-        Animated.timing(blinkAnim, { toValue: 0.2, duration: 600, useNativeDriver: true }),
-        Animated.timing(blinkAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.timing(blinkAnim, { toValue: 0.15, duration: 500, useNativeDriver: true }),
+        Animated.timing(blinkAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
       ])
     );
     animation.start();
@@ -53,18 +53,14 @@ function SubscriptionBanner({ endDate }: { endDate?: string }) {
   }, []);
 
   if (!endDate) return null;
-
-  const end = new Date(endDate);
-  const now = new Date();
-  const daysLeft = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-  if (daysLeft > 7 || daysLeft <= 0) return null;
+  const daysLeft = Math.ceil((new Date(endDate).getTime() - Date.now()) / 86400000);
+  if (daysLeft > 3 || daysLeft <= 0) return null;
 
   return (
     <Animated.View style={[styles.subBanner, { opacity: blinkAnim }]}>
       <Ionicons name="warning" size={16} color="#fff" />
       <Text style={styles.subBannerText}>
-        ⚠️ Subscription expires in {daysLeft} day{daysLeft !== 1 ? 's' : ''}! Contact admin to renew.
+        Subscription expires in {daysLeft} day{daysLeft !== 1 ? 's' : ''}! Contact admin to renew.
       </Text>
     </Animated.View>
   );
@@ -81,25 +77,21 @@ export default function ActiveTrades() {
   const isFirstLoadRef = useRef(true);
 
   useEffect(() => {
-    if (userData?.status !== 'ACTIVE') {
-      setLoading(false);
-      return;
-    }
+    if (userData?.status !== 'ACTIVE') { setLoading(false); return; }
 
     const q = query(collection(db, 'activeTrades'), orderBy('createdAt', 'desc'));
-
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const tradesData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Trade[];
 
       if (!isFirstLoadRef.current) {
         snapshot.docChanges().forEach((change) => {
           if (change.type === 'added') {
-            const newTrade = { id: change.doc.id, ...change.doc.data() } as Trade;
-            if (!prevTradeIdsRef.current.has(newTrade.id)) {
+            const t = { id: change.doc.id, ...change.doc.data() } as Trade;
+            if (!prevTradeIdsRef.current.has(t.id)) {
               Notifications.scheduleNotificationAsync({
                 content: {
-                  title: `🚨 New ${newTrade.type} Trade Alert!`,
-                  body: `${newTrade.stockName} | Entry: ₹${newTrade.entryPrice} | Target: ₹${newTrade.targetPrice}`,
+                  title: `New ${t.type} Trade Alert!`,
+                  body: `${t.stockName} | Entry: ₹${t.entryPrice} | Target: ₹${t.targetPrice}`,
                   sound: true,
                 },
                 trigger: null,
@@ -114,11 +106,7 @@ export default function ActiveTrades() {
       setTrades(tradesData);
       setLoading(false);
       setRefreshing(false);
-    }, (error) => {
-      console.error('Error fetching active trades:', error);
-      setLoading(false);
-      setRefreshing(false);
-    });
+    }, () => { setLoading(false); setRefreshing(false); });
 
     return () => unsubscribe();
   }, [userData]);
@@ -137,32 +125,25 @@ export default function ActiveTrades() {
     { key: 'options', label: 'Options' },
   ];
 
-  // ── Trade Card ──────────────────────────────────────────────────────────────
   const renderTradeCard = ({ item }: { item: Trade }) => {
     const isBuy = item.type === 'BUY';
     const entryPrice = Number(item.entryPrice) || 0;
     const targetPrice = Number(item.targetPrice) || 0;
     const stopLoss = Number(item.stopLoss) || 0;
     const seg = normalizeSegment(item.segment);
-
+    const isFnO = seg === 'options' || seg === 'futures';
     const potential = entryPrice > 0 ? ((targetPrice - entryPrice) / entryPrice) * 100 : 0;
     const risk = entryPrice > 0 ? ((entryPrice - stopLoss) / entryPrice) * 100 : 0;
 
-    const isFnO = seg === 'options' || seg === 'futures';
-
     return (
       <View style={styles.tradeCard}>
-        {/* ── Header ── */}
         <View style={styles.tradeHeader}>
           <View style={styles.stockInfo}>
             <View style={styles.stockNameRow}>
               <Text style={styles.stockName}>{item.stockName}</Text>
-              {/* Strike + CE/PE badge for options */}
               {seg === 'options' && item.strikePrice && (
                 <View style={styles.strikeBadge}>
-                  <Text style={styles.strikeText}>
-                    {item.strikePrice} {item.optionType || ''}
-                  </Text>
+                  <Text style={styles.strikeText}>{item.strikePrice} {item.optionType || ''}</Text>
                 </View>
               )}
             </View>
@@ -170,7 +151,6 @@ export default function ActiveTrades() {
               <View style={[styles.typeBadge, isBuy ? styles.buyBadge : styles.sellBadge]}>
                 <Text style={[styles.typeText, isBuy ? styles.buyText : styles.sellText]}>{item.type}</Text>
               </View>
-              {/* Lot size badge */}
               {isFnO && item.lotSize && (
                 <View style={styles.lotBadge}>
                   <Text style={styles.lotText}>Lot: {item.lotSize}</Text>
@@ -181,25 +161,23 @@ export default function ActiveTrades() {
           <Ionicons name="pulse" size={24} color={Colors.primary} />
         </View>
 
-        {/* ── F&O Info Row: Expiry + Duration ── */}
         {isFnO && (item.expiryDate || item.duration) && (
           <View style={styles.fnoRow}>
             {item.expiryDate && (
               <View style={styles.fnoItem}>
-                <Ionicons name="calendar-outline" size={13} color="#f59e0b" />
+                <Ionicons name="calendar-outline" size={13} color="#92400E" />
                 <Text style={styles.fnoText}>Expiry: {item.expiryDate}</Text>
               </View>
             )}
             {item.duration && (
               <View style={styles.fnoItem}>
-                <Ionicons name="time-outline" size={13} color="#f59e0b" />
+                <Ionicons name="time-outline" size={13} color="#92400E" />
                 <Text style={styles.fnoText}>{item.duration}</Text>
               </View>
             )}
           </View>
         )}
 
-        {/* ── Price Grid ── */}
         <View style={styles.priceGrid}>
           <View style={styles.priceItem}>
             <Text style={styles.priceLabel}>Entry Price</Text>
@@ -217,7 +195,6 @@ export default function ActiveTrades() {
           </View>
         </View>
 
-        {/* ── Metrics ── */}
         <View style={styles.metricsRow}>
           <View style={styles.metric}>
             <Text style={styles.metricLabel}>Potential Gain</Text>
@@ -231,7 +208,6 @@ export default function ActiveTrades() {
           </View>
         </View>
 
-        {/* ── Date ── */}
         <View style={styles.dateContainer}>
           <Ionicons name="time-outline" size={14} color={Colors.textSecondary} />
           <Text style={styles.dateText}>
@@ -244,9 +220,7 @@ export default function ActiveTrades() {
     );
   };
 
-  if (loading) {
-    return <View style={styles.centerContainer}><ActivityIndicator size="large" color={Colors.primary} /></View>;
-  }
+  if (loading) return <View style={styles.centerContainer}><ActivityIndicator size="large" color={Colors.primary} /></View>;
 
   if (userData?.status === 'BLOCKED') {
     return (
@@ -280,20 +254,15 @@ export default function ActiveTrades() {
 
   return (
     <View style={styles.container}>
-      {/* ── Subscription Blink Warning ── */}
       <SubscriptionBanner endDate={userData?.subscriptionEndDate} />
 
-      {/* ── Segment Tabs ── */}
       <View style={styles.tabRow}>
         {tabLabels.map(({ key, label }) => {
           const count = countBySegment(key);
           return (
-            <TouchableOpacity
-              key={key}
+            <TouchableOpacity key={key}
               style={[styles.tab, activeSegment === key && styles.tabActive]}
-              onPress={() => setActiveSegment(key)}
-              activeOpacity={0.8}
-            >
+              onPress={() => setActiveSegment(key)} activeOpacity={0.8}>
               <Text style={[styles.tabText, activeSegment === key && styles.tabTextActive]}>{label}</Text>
               {count > 0 && (
                 <View style={[styles.badge, activeSegment === key && styles.badgeActive]}>
@@ -312,16 +281,10 @@ export default function ActiveTrades() {
           <Text style={styles.emptySubtext}>Pull down to refresh and check for new trades</Text>
         </View>
       ) : (
-        <FlatList
-          data={filteredTrades}
-          renderItem={renderTradeCard}
-          keyExtractor={(item) => item.id}
+        <FlatList data={filteredTrades} renderItem={renderTradeCard} keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => setRefreshing(true)}
-              colors={[Colors.primary]} tintColor={Colors.primary} />
-          }
-        />
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => setRefreshing(true)}
+            colors={[Colors.primary]} tintColor={Colors.primary} />} />
       )}
     </View>
   );
@@ -331,21 +294,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   centerContainer: { flex: 1, backgroundColor: Colors.background, alignItems: 'center', justifyContent: 'center', padding: 32 },
   listContent: { padding: 16 },
-
-  // ── Subscription Banner ──
-  subBanner: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#dc2626',
-    paddingHorizontal: 16, paddingVertical: 10, gap: 8,
-  },
+  subBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#dc2626', paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
   subBannerText: { color: '#fff', fontSize: 13, fontWeight: '700', flex: 1 },
-
-  // ── Tabs ──
-  tabRow: {
-    flexDirection: 'row', backgroundColor: '#fff', marginHorizontal: 16,
-    marginTop: 14, marginBottom: 8, borderRadius: 12, padding: 4,
-    elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06, shadowRadius: 4,
-  },
+  tabRow: { flexDirection: 'row', backgroundColor: '#fff', marginHorizontal: 16, marginTop: 14, marginBottom: 8, borderRadius: 12, padding: 4, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4 },
   tab: { flex: 1, paddingVertical: 9, alignItems: 'center', borderRadius: 9, flexDirection: 'row', justifyContent: 'center', gap: 4 },
   tabActive: { backgroundColor: '#001F3F', elevation: 2 },
   tabText: { fontSize: 13, fontWeight: '600', color: '#6B7280' },
@@ -354,12 +305,7 @@ const styles = StyleSheet.create({
   badgeActive: { backgroundColor: 'rgba(255,255,255,0.25)' },
   badgeText: { fontSize: 10, fontWeight: '700', color: '#374151' },
   badgeTextActive: { color: '#fff' },
-
-  // ── Trade Card ──
-  tradeCard: {
-    backgroundColor: Colors.cardBackground, borderRadius: 16, padding: 16, marginBottom: 16,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3,
-  },
+  tradeCard: { backgroundColor: Colors.cardBackground, borderRadius: 16, padding: 16, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
   tradeHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
   stockInfo: { flex: 1 },
   stockNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' },
@@ -375,41 +321,26 @@ const styles = StyleSheet.create({
   sellText: { color: '#C62828' },
   lotBadge: { backgroundColor: '#FEF3C7', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
   lotText: { fontSize: 12, fontWeight: '600', color: '#92400E' },
-
-  // ── F&O Row ──
-  fnoRow: {
-    flexDirection: 'row', gap: 16, backgroundColor: '#FFFBEB',
-    borderRadius: 8, padding: 8, marginBottom: 12,
-  },
+  fnoRow: { flexDirection: 'row', gap: 16, backgroundColor: '#FFFBEB', borderRadius: 8, padding: 8, marginBottom: 12 },
   fnoItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   fnoText: { fontSize: 12, color: '#92400E', fontWeight: '600' },
-
-  // ── Prices ──
-  priceGrid: {
-    flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16,
-    paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: Colors.border,
-  },
+  priceGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: Colors.border },
   priceItem: { flex: 1, alignItems: 'center' },
   priceLabel: { fontSize: 12, color: Colors.textSecondary, marginBottom: 4 },
   priceValue: { fontSize: 16, fontWeight: 'bold', color: Colors.text },
   targetPrice: { color: Colors.success },
   stopLossText: { color: Colors.error },
-
-  // ── Metrics ──
   metricsRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 12 },
   metric: { alignItems: 'center' },
   metricLabel: { fontSize: 12, color: Colors.textSecondary, marginBottom: 4 },
   metricValue: { fontSize: 18, fontWeight: 'bold' },
   gainText: { color: Colors.success },
   riskText: { color: Colors.error },
-
   dateContainer: { flexDirection: 'row', alignItems: 'center' },
   dateText: { fontSize: 12, color: Colors.textSecondary, marginLeft: 4 },
-
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   emptyText: { fontSize: 18, fontWeight: '600', color: Colors.text, marginTop: 16, textAlign: 'center' },
   emptySubtext: { fontSize: 14, color: Colors.textSecondary, marginTop: 8, textAlign: 'center' },
-
   blockedTitle: { fontSize: 24, fontWeight: 'bold', color: Colors.error, marginTop: 24 },
   blockedText: { fontSize: 16, color: Colors.textSecondary, textAlign: 'center', marginTop: 16 },
   upgradeTitle: { fontSize: 24, fontWeight: 'bold', color: Colors.primary, marginTop: 24 },
