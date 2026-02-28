@@ -6,13 +6,12 @@ import {
   onAuthStateChanged,
   User
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/firebaseConfig';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
-// ✅ This tells the app how to handle notifications when the app is OPEN
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -49,13 +48,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Refs to store notification listeners so we can remove them on cleanup
   const notificationListener = useRef<Notifications.Subscription>();
   const responseListener = useRef<Notifications.Subscription>();
+  // ✅ Store real-time user listener ref
+  const userDataUnsubscribeRef = useRef<(() => void) | null>(null);
 
   const registerForPushNotifications = async () => {
     try {
-      // ✅ Android requires a notification channel
       if (Platform.OS === 'android') {
         await Notifications.setNotificationChannelAsync('default', {
           name: 'default',
@@ -74,26 +73,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         finalStatus = status;
       }
 
-      if (finalStatus !== 'granted') {
-        console.log('Push notification permission denied!');
-        return null;
-      }
+      if (finalStatus !== 'granted') return null;
 
-      // ✅ THE FIX — pass projectId explicitly
       const projectId =
         Constants.expoConfig?.extra?.eas?.projectId ??
         Constants.easConfig?.projectId;
 
-      if (!projectId) {
-        console.error('No projectId found! Add it to app.json under extra.eas.projectId');
-        return null;
-      }
+      if (!projectId) return null;
 
-      const token = (
-        await Notifications.getExpoPushTokenAsync({ projectId })
-      ).data;
-
-      console.log('Expo Push Token:', token);
+      const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
       return token;
     } catch (error) {
       console.error('Error getting push token:', error);
@@ -101,47 +89,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const fetchUserData = async (uid: string) => {
-    try {
-      const userDoc = await getDoc(doc(db, 'users', uid));
-      if (userDoc.exists()) {
-        return userDoc.data() as UserData;
-      }
-      return null;
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-      return null;
-    }
-  };
-
+  // ✅ Manual refresh still works for pull-to-refresh on profile
   const refreshUserData = async () => {
     if (user) {
-      const data = await fetchUserData(user.uid);
-      setUserData(data);
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      if (userDoc.exists()) setUserData(userDoc.data() as UserData);
     }
   };
 
-  // ✅ Set up notification listeners when app loads
-  useEffect(() => {
-    // Fires when a notification is received while app is open
-    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      console.log('Notification received:', notification);
-    });
+  // ✅ Real-time listener — fires automatically when admin changes status/subscription
+  const startUserDataListener = (uid: string) => {
+    if (userDataUnsubscribeRef.current) userDataUnsubscribeRef.current();
 
-    // Fires when user taps on a notification
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log('Notification tapped:', response);
-      // You can navigate to a screen here based on response.notification.request.content.data
+    const unsubscribe = onSnapshot(
+      doc(db, 'users', uid),
+      (docSnap) => {
+        if (docSnap.exists()) setUserData(docSnap.data() as UserData);
+        setLoading(false);
+      },
+      (error) => {
+        console.error('User data listener error:', error);
+        setLoading(false);
+      }
+    );
+
+    userDataUnsubscribeRef.current = unsubscribe;
+  };
+
+  useEffect(() => {
+    notificationListener.current = Notifications.addNotificationReceivedListener(n => {
+      console.log('Notification received:', n);
+    });
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(r => {
+      console.log('Notification tapped:', r);
     });
 
     return () => {
-      // ✅ Clean up listeners when component unmounts
-      if (notificationListener.current) {
-        Notifications.removeNotificationSubscription(notificationListener.current);
-      }
-      if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
-      }
+      if (notificationListener.current) Notifications.removeNotificationSubscription(notificationListener.current);
+      if (responseListener.current) Notifications.removeNotificationSubscription(responseListener.current);
     };
   }, []);
 
@@ -151,28 +136,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (firebaseUser) {
         const fcmToken = await registerForPushNotifications();
-        const data = await fetchUserData(firebaseUser.uid);
+        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
 
-        if (data) {
+        if (userDoc.exists()) {
+          const data = userDoc.data() as UserData;
           const updates: Partial<UserData> = {};
 
-          if (fcmToken && fcmToken !== data.fcmToken) {
-            updates.fcmToken = fcmToken;
-          }
+          if (fcmToken && fcmToken !== data.fcmToken) updates.fcmToken = fcmToken;
 
           const currentEmail = firebaseUser.email || '';
-          if (currentEmail && currentEmail !== data.email) {
-            updates.email = currentEmail;
-          }
+          if (currentEmail && currentEmail !== data.email) updates.email = currentEmail;
 
           if (Object.keys(updates).length > 0) {
             await updateDoc(doc(db, 'users', firebaseUser.uid), updates);
           }
-
-          setUserData({ ...data, ...updates });
         } else {
-          // New user — create document
-          const newUserData: UserData = {
+          // New user
+          await setDoc(doc(db, 'users', firebaseUser.uid), {
             phone: firebaseUser.phoneNumber || '',
             email: firebaseUser.email || '',
             status: 'FREE',
@@ -180,19 +160,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             createdAt: new Date().toISOString(),
             name: '',
             subscriptionEndDate: '',
-          };
-
-          await setDoc(doc(db, 'users', firebaseUser.uid), newUserData);
-          setUserData(newUserData);
+          });
         }
-      } else {
-        setUserData(null);
-      }
 
-      setLoading(false);
+        // ✅ Start real-time listener — updates instantly when admin changes anything
+        startUserDataListener(firebaseUser.uid);
+
+      } else {
+        // Logged out
+        if (userDataUnsubscribeRef.current) {
+          userDataUnsubscribeRef.current();
+          userDataUnsubscribeRef.current = null;
+        }
+        setUserData(null);
+        setLoading(false);
+      }
     });
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      if (userDataUnsubscribeRef.current) userDataUnsubscribeRef.current();
+    };
   }, []);
 
   const signInWithPhone = async (verificationId: string, code: string) => {
@@ -200,7 +188,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const credential = PhoneAuthProvider.credential(verificationId, code);
       await signInWithCredential(auth, credential);
     } catch (error) {
-      console.error('Error signing in with phone:', error);
+      console.error('Error signing in:', error);
       throw error;
     }
   };
@@ -217,16 +205,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        userData,
-        loading,
-        signInWithPhone,
-        signOut,
-        refreshUserData,
-      }}
-    >
+    <AuthContext.Provider value={{ user, userData, loading, signInWithPhone, signOut, refreshUserData }}>
       {children}
     </AuthContext.Provider>
   );
@@ -234,8 +213,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (context === undefined) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };
