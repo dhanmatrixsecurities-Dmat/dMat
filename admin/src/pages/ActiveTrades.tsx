@@ -1,92 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box,
-  Typography,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  MenuItem,
-  IconButton,
-  Chip,
-  Alert,
-  Snackbar,
-  CircularProgress,
+  Box, Typography, Paper, Table, TableBody, TableCell,
+  TableContainer, TableHead, TableRow, Button, Dialog,
+  DialogTitle, DialogContent, DialogActions, TextField,
+  MenuItem, IconButton, Chip, Alert, Snackbar, CircularProgress,
 } from '@mui/material';
 import { Add, Edit, Delete, Close as CloseIcon } from '@mui/icons-material';
 import {
-  collection,
-  query,
-  getDocs,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  orderBy,
-  where,
+  collection, query, getDocs, addDoc, updateDoc,
+  deleteDoc, doc, orderBy,
 } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { ActiveTrade } from '../types';
-
-// ✅ Send push notifications directly to Expo push API
-const sendPushNotifications = async (stockName: string, type: string) => {
-  try {
-    // ✅ Get all ACTIVE users who have an fcmToken
-    const usersSnapshot = await getDocs(
-      query(
-        collection(db, 'users'),
-        where('status', '==', 'ACTIVE')
-      )
-    );
-
-    const tokens: string[] = [];
-    usersSnapshot.forEach((doc) => {
-      const data = doc.data();
-      if (data.fcmToken && data.fcmToken.startsWith('ExponentPushToken')) {
-        tokens.push(data.fcmToken);
-      }
-    });
-
-    if (tokens.length === 0) {
-      console.log('No active users with push tokens found');
-      return;
-    }
-
-    console.log(`Sending notifications to ${tokens.length} users`);
-
-    // ✅ Send to Expo push API in batches of 100
-    const messages = tokens.map((token) => ({
-      to: token,
-      title: type === 'BUY' ? '📈 New BUY Trade' : '📉 New SELL Trade',
-      body: `${stockName} - ${type} signal added`,
-      sound: 'default',
-      priority: 'high',
-    }));
-
-    const response = await fetch('https://exp.host/--/api/v2/push/send', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify(messages),
-    });
-
-    const result = await response.json();
-    console.log('Push notification result:', result);
-  } catch (error) {
-    console.error('Error sending push notifications:', error);
-  }
-};
 
 const ActiveTrades: React.FC = () => {
   const [trades, setTrades] = useState<ActiveTrade[]>([]);
@@ -102,31 +27,28 @@ const ActiveTrades: React.FC = () => {
     entryPrice: '',
     targetPrice: '',
     stopLoss: '',
-    strikePrice: '',
     segment: 'equity' as 'equity' | 'futures' | 'options',
+    // Options / Futures specific
+    lotSize: '',
+    expiryDate: '',
+    strikePrice: '',
+    optionType: 'CE' as 'CE' | 'PE',
+    duration: '',
   });
   const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    message: string;
-    severity: 'success' | 'error';
+    open: boolean; message: string; severity: 'success' | 'error';
   }>({ open: false, message: '', severity: 'success' });
 
-  useEffect(() => {
-    fetchTrades();
-  }, []);
+  useEffect(() => { fetchTrades(); }, []);
 
   const fetchTrades = async () => {
     try {
       setLoading(true);
       const q = query(collection(db, 'activeTrades'), orderBy('createdAt', 'desc'));
       const snapshot = await getDocs(q);
-      const tradesData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as ActiveTrade[];
+      const tradesData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as ActiveTrade[];
       setTrades(tradesData);
     } catch (error) {
-      console.error('Error fetching trades:', error);
       showSnackbar('Error fetching trades', 'error');
     } finally {
       setLoading(false);
@@ -142,60 +64,60 @@ const ActiveTrades: React.FC = () => {
         entryPrice: trade.entryPrice.toString(),
         targetPrice: trade.targetPrice.toString(),
         stopLoss: trade.stopLoss.toString(),
-        strikePrice: (trade as any).strikePrice?.toString() || '',
         segment: (trade as any).segment || 'equity',
+        lotSize: (trade as any).lotSize?.toString() || '',
+        expiryDate: (trade as any).expiryDate || '',
+        strikePrice: (trade as any).strikePrice?.toString() || '',
+        optionType: (trade as any).optionType || 'CE',
+        duration: (trade as any).duration || '',
       });
     } else {
       setEditingTrade(null);
       setFormData({
-        stockName: '',
-        type: 'BUY',
-        entryPrice: '',
-        targetPrice: '',
-        stopLoss: '',
-        strikePrice: '',
-        segment: 'equity',
+        stockName: '', type: 'BUY', entryPrice: '', targetPrice: '',
+        stopLoss: '', segment: 'equity', lotSize: '', expiryDate: '',
+        strikePrice: '', optionType: 'CE', duration: '',
       });
     }
     setDialogOpen(true);
   };
 
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
-    setEditingTrade(null);
-  };
+  const handleCloseDialog = () => { setDialogOpen(false); setEditingTrade(null); };
 
   const handleSubmit = async () => {
     try {
-      const tradeData = {
+      const tradeData: any = {
         stockName: formData.stockName.toUpperCase(),
         type: formData.type,
         entryPrice: parseFloat(formData.entryPrice),
         targetPrice: parseFloat(formData.targetPrice),
         stopLoss: parseFloat(formData.stopLoss),
-        strikePrice: formData.strikePrice ? parseFloat(formData.strikePrice) : null,
         segment: formData.segment,
         status: 'Active',
         createdAt: new Date().toISOString(),
       };
 
+      // Add options/futures fields if applicable
+      if (formData.segment === 'options' || formData.segment === 'futures') {
+        if (formData.lotSize) tradeData.lotSize = parseInt(formData.lotSize);
+        if (formData.expiryDate) tradeData.expiryDate = formData.expiryDate;
+        if (formData.duration) tradeData.duration = formData.duration;
+      }
+      if (formData.segment === 'options') {
+        if (formData.strikePrice) tradeData.strikePrice = parseFloat(formData.strikePrice);
+        tradeData.optionType = formData.optionType;
+      }
+
       if (editingTrade) {
         await updateDoc(doc(db, 'activeTrades', editingTrade.id), tradeData);
         showSnackbar('Trade updated successfully', 'success');
       } else {
-        // ✅ Save trade to Firestore
         await addDoc(collection(db, 'activeTrades'), tradeData);
-
-        // ✅ Send push notifications to all ACTIVE users
-        await sendPushNotifications(tradeData.stockName, tradeData.type);
-
-        showSnackbar('Trade added & notifications sent!', 'success');
+        showSnackbar('Trade added successfully', 'success');
       }
-
       handleCloseDialog();
       fetchTrades();
     } catch (error) {
-      console.error('Error saving trade:', error);
       showSnackbar('Error saving trade', 'error');
     }
   };
@@ -207,26 +129,20 @@ const ActiveTrades: React.FC = () => {
         showSnackbar('Trade deleted successfully', 'success');
         fetchTrades();
       } catch (error) {
-        console.error('Error deleting trade:', error);
         showSnackbar('Error deleting trade', 'error');
       }
     }
   };
 
   const handleOpenCloseDialog = (trade: ActiveTrade) => {
-    setTradeToClose(trade);
-    setExitPrice('');
-    setCloseDialogOpen(true);
+    setTradeToClose(trade); setExitPrice(''); setCloseDialogOpen(true);
   };
 
   const handleCloseTrade = async () => {
     if (!tradeToClose || !exitPrice) return;
-
     try {
       const exitPriceNum = parseFloat(exitPrice);
-      const profitLossPercent =
-        ((exitPriceNum - tradeToClose.entryPrice) / tradeToClose.entryPrice) * 100;
-
+      const profitLossPercent = ((exitPriceNum - tradeToClose.entryPrice) / tradeToClose.entryPrice) * 100;
       await addDoc(collection(db, 'closedTrades'), {
         stockName: tradeToClose.stockName,
         type: tradeToClose.type,
@@ -234,17 +150,18 @@ const ActiveTrades: React.FC = () => {
         entryPrice: tradeToClose.entryPrice,
         exitPrice: exitPriceNum,
         profitLossPercent: parseFloat(profitLossPercent.toFixed(2)),
+        lotSize: (tradeToClose as any).lotSize || null,
+        expiryDate: (tradeToClose as any).expiryDate || null,
+        strikePrice: (tradeToClose as any).strikePrice || null,
+        optionType: (tradeToClose as any).optionType || null,
         closedAt: new Date().toISOString(),
       });
-
       await deleteDoc(doc(db, 'activeTrades', tradeToClose.id));
-
       showSnackbar('Trade closed successfully', 'success');
       setCloseDialogOpen(false);
       setTradeToClose(null);
       fetchTrades();
     } catch (error) {
-      console.error('Error closing trade:', error);
       showSnackbar('Error closing trade', 'error');
     }
   };
@@ -259,27 +176,21 @@ const ActiveTrades: React.FC = () => {
     return 'primary';
   };
 
+  const isFnO = formData.segment === 'options' || formData.segment === 'futures';
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Box>
-          <Typography variant="h4" fontWeight="bold" gutterBottom>
-            Active Trades
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Manage live trades for ACTIVE users
-          </Typography>
+          <Typography variant="h4" fontWeight="bold" gutterBottom>Active Trades</Typography>
+          <Typography variant="body1" color="text.secondary">Manage live trades for ACTIVE users</Typography>
         </Box>
-        <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenDialog()}>
-          Add Trade
-        </Button>
+        <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenDialog()}>Add Trade</Button>
       </Box>
 
       <Paper sx={{ p: 3, mt: 3 }}>
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress />
-          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
         ) : (
           <TableContainer>
             <Table>
@@ -291,6 +202,7 @@ const ActiveTrades: React.FC = () => {
                   <TableCell><strong>Entry</strong></TableCell>
                   <TableCell><strong>Target</strong></TableCell>
                   <TableCell><strong>Stop Loss</strong></TableCell>
+                  <TableCell><strong>Details</strong></TableCell>
                   <TableCell><strong>Created</strong></TableCell>
                   <TableCell><strong>Actions</strong></TableCell>
                 </TableRow>
@@ -298,7 +210,7 @@ const ActiveTrades: React.FC = () => {
               <TableBody>
                 {trades.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center">
+                    <TableCell colSpan={9} align="center">
                       <Typography color="text.secondary">No active trades</Typography>
                     </TableCell>
                   </TableRow>
@@ -314,39 +226,40 @@ const ActiveTrades: React.FC = () => {
                         />
                       </TableCell>
                       <TableCell>
-                        <Chip
-                          label={trade.type}
-                          color={trade.type === 'BUY' ? 'success' : 'error'}
-                          size="small"
-                        />
+                        <Chip label={trade.type} color={trade.type === 'BUY' ? 'success' : 'error'} size="small" />
                       </TableCell>
                       <TableCell>₹{trade.entryPrice.toFixed(2)}</TableCell>
                       <TableCell>₹{trade.targetPrice.toFixed(2)}</TableCell>
                       <TableCell>₹{trade.stopLoss.toFixed(2)}</TableCell>
                       <TableCell>
-                        {new Date(trade.createdAt).toLocaleDateString('en-IN', {
-                          day: 'numeric',
-                          month: 'short',
-                        })}
+                        {(trade as any).strikePrice && (
+                          <Typography variant="caption" display="block">
+                            Strike: ₹{(trade as any).strikePrice} {(trade as any).optionType}
+                          </Typography>
+                        )}
+                        {(trade as any).expiryDate && (
+                          <Typography variant="caption" display="block" color="text.secondary">
+                            Expiry: {(trade as any).expiryDate}
+                          </Typography>
+                        )}
+                        {(trade as any).lotSize && (
+                          <Typography variant="caption" display="block" color="text.secondary">
+                            Lot: {(trade as any).lotSize}
+                          </Typography>
+                        )}
+                        {(trade as any).duration && (
+                          <Typography variant="caption" display="block" color="text.secondary">
+                            {(trade as any).duration}
+                          </Typography>
+                        )}
                       </TableCell>
                       <TableCell>
-                        <IconButton size="small" onClick={() => handleOpenDialog(trade)}>
-                          <Edit fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          color="success"
-                          onClick={() => handleOpenCloseDialog(trade)}
-                        >
-                          <CloseIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => handleDelete(trade.id)}
-                        >
-                          <Delete fontSize="small" />
-                        </IconButton>
+                        {new Date(trade.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                      </TableCell>
+                      <TableCell>
+                        <IconButton size="small" onClick={() => handleOpenDialog(trade)}><Edit fontSize="small" /></IconButton>
+                        <IconButton size="small" color="success" onClick={() => handleOpenCloseDialog(trade)}><CloseIcon fontSize="small" /></IconButton>
+                        <IconButton size="small" color="error" onClick={() => handleDelete(trade.id)}><Delete fontSize="small" /></IconButton>
                       </TableCell>
                     </TableRow>
                   ))
@@ -357,85 +270,73 @@ const ActiveTrades: React.FC = () => {
         )}
       </Paper>
 
-      {/* Add/Edit Dialog */}
+      {/* ── Add/Edit Dialog ── */}
       <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <DialogTitle>{editingTrade ? 'Edit Trade' : 'Add New Trade'}</DialogTitle>
         <DialogContent>
-          <TextField
-            fullWidth
-            label="Stock Name (NSE)"
-            value={formData.stockName}
+          <TextField fullWidth label="Stock Name (NSE)" value={formData.stockName}
             onChange={(e) => setFormData({ ...formData, stockName: e.target.value })}
-            margin="normal"
-            placeholder="e.g., RELIANCE, TCS, INFY"
-          />
-          <TextField
-            fullWidth
-            select
-            label="Segment"
-            value={formData.segment}
-            onChange={(e) =>
-              setFormData({ ...formData, segment: e.target.value as 'equity' | 'futures' | 'options' })
-            }
-            margin="normal"
-          >
+            margin="normal" placeholder="e.g., NIFTY, RELIANCE, TCS" />
+
+          <TextField fullWidth select label="Segment" value={formData.segment}
+            onChange={(e) => setFormData({ ...formData, segment: e.target.value as any })}
+            margin="normal">
             <MenuItem value="equity">Equity</MenuItem>
             <MenuItem value="futures">Futures (F&O)</MenuItem>
             <MenuItem value="options">Options (F&O)</MenuItem>
           </TextField>
-          <TextField
-            fullWidth
-            select
-            label="Type"
-            value={formData.type}
+
+          <TextField fullWidth select label="Type" value={formData.type}
             onChange={(e) => setFormData({ ...formData, type: e.target.value as 'BUY' | 'SELL' })}
-            margin="normal"
-          >
+            margin="normal">
             <MenuItem value="BUY">BUY</MenuItem>
             <MenuItem value="SELL">SELL</MenuItem>
           </TextField>
-          <TextField
-            fullWidth
-            label="Entry Price"
-            type="number"
-            value={formData.entryPrice}
-            onChange={(e) => setFormData({ ...formData, entryPrice: e.target.value })}
-            margin="normal"
-          />
-          <TextField
-            fullWidth
-            label="Target Price"
-            type="number"
-            value={formData.targetPrice}
-            onChange={(e) => setFormData({ ...formData, targetPrice: e.target.value })}
-            margin="normal"
-          />
-          <TextField
-            fullWidth
-            label="Stop Loss"
-            type="number"
-            value={formData.stopLoss}
-            onChange={(e) => setFormData({ ...formData, stopLoss: e.target.value })}
-            margin="normal"
-          />
-          <TextField
-            fullWidth
-            label="Strike Price (optional, for options)"
-            type="number"
-            value={formData.strikePrice}
-            onChange={(e) => setFormData({ ...formData, strikePrice: e.target.value })}
-            margin="normal"
-          />
+
+          <TextField fullWidth label="Entry Price" type="number" value={formData.entryPrice}
+            onChange={(e) => setFormData({ ...formData, entryPrice: e.target.value })} margin="normal" />
+          <TextField fullWidth label="Target Price" type="number" value={formData.targetPrice}
+            onChange={(e) => setFormData({ ...formData, targetPrice: e.target.value })} margin="normal" />
+          <TextField fullWidth label="Stop Loss" type="number" value={formData.stopLoss}
+            onChange={(e) => setFormData({ ...formData, stopLoss: e.target.value })} margin="normal" />
+
+          {/* ── F&O Fields ── */}
+          {isFnO && (
+            <>
+              <TextField fullWidth label="Lot Size" type="number" value={formData.lotSize}
+                onChange={(e) => setFormData({ ...formData, lotSize: e.target.value })}
+                margin="normal" placeholder="e.g., 50" />
+              <TextField fullWidth label="Expiry Date" value={formData.expiryDate}
+                onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+                margin="normal" placeholder="e.g., 02 MAR 2025" />
+              <TextField fullWidth label="Duration" value={formData.duration}
+                onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                margin="normal" placeholder="e.g., 1-4 Days" />
+            </>
+          )}
+
+          {/* ── Options Only Fields ── */}
+          {formData.segment === 'options' && (
+            <>
+              <TextField fullWidth label="Strike Price" type="number" value={formData.strikePrice}
+                onChange={(e) => setFormData({ ...formData, strikePrice: e.target.value })}
+                margin="normal" placeholder="e.g., 25150" />
+              <TextField fullWidth select label="Option Type (CE/PE)" value={formData.optionType}
+                onChange={(e) => setFormData({ ...formData, optionType: e.target.value as 'CE' | 'PE' })}
+                margin="normal">
+                <MenuItem value="CE">CE (Call)</MenuItem>
+                <MenuItem value="PE">PE (Put)</MenuItem>
+              </TextField>
+            </>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained">
-            {editingTrade ? 'Update' : 'Add'}
-          </Button>
+          <Button onClick={handleSubmit} variant="contained">{editingTrade ? 'Update' : 'Add'}</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Close Trade Dialog */}
+      {/* ── Close Trade Dialog ── */}
       <Dialog open={closeDialogOpen} onClose={() => setCloseDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Close Trade</DialogTitle>
         <DialogContent>
@@ -447,25 +348,12 @@ const ActiveTrades: React.FC = () => {
               <Typography variant="body2" color="text.secondary" gutterBottom>
                 Entry Price: ₹{tradeToClose.entryPrice.toFixed(2)}
               </Typography>
-              <TextField
-                fullWidth
-                label="Exit Price"
-                type="number"
-                value={exitPrice}
-                onChange={(e) => setExitPrice(e.target.value)}
-                margin="normal"
-                autoFocus
-              />
+              <TextField fullWidth label="Exit Price" type="number" value={exitPrice}
+                onChange={(e) => setExitPrice(e.target.value)} margin="normal" autoFocus />
               {exitPrice && (
                 <Alert severity="info" sx={{ mt: 2 }}>
-                  Profit/Loss:{' '}
-                  <strong>
-                    {(
-                      ((parseFloat(exitPrice) - tradeToClose.entryPrice) /
-                        tradeToClose.entryPrice) *
-                      100
-                    ).toFixed(2)}
-                    %
+                  Profit/Loss: <strong>
+                    {(((parseFloat(exitPrice) - tradeToClose.entryPrice) / tradeToClose.entryPrice) * 100).toFixed(2)}%
                   </strong>
                 </Alert>
               )}
@@ -474,17 +362,12 @@ const ActiveTrades: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCloseDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleCloseTrade} variant="contained" color="success">
-            Close Trade
-          </Button>
+          <Button onClick={handleCloseTrade} variant="contained" color="success">Close Trade</Button>
         </DialogActions>
       </Dialog>
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      >
+      <Snackbar open={snackbar.open} autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}>
         <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })}>
           {snackbar.message}
         </Alert>
