@@ -13,10 +13,7 @@ interface ClosedTrade {
   segment?: 'equity' | 'futures' | 'options';
 }
 interface SegmentStats {
-  total: number;
-  profitable: number;
-  losing: number;
-  accuracy: number;
+  total: number; profitable: number; losing: number; accuracy: number;
 }
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -27,16 +24,13 @@ const DonutGauge = ({ accuracy, size = 100, strokeWidth = 10, fillColor = '#3b82
   const animValue = useRef(new Animated.Value(0)).current;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-
   useEffect(() => {
     Animated.timing(animValue, { toValue: accuracy, duration: 1200, useNativeDriver: false }).start();
   }, [accuracy]);
-
   const strokeDashoffset = animValue.interpolate({
     inputRange: [0, 100],
     outputRange: [circumference, circumference - (accuracy / 100) * circumference],
   });
-
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
       <Svg width={size} height={size}>
@@ -62,25 +56,20 @@ export default function HomeScreen() {
   const [equity, setEquity] = useState<SegmentStats>({ total: 0, profitable: 0, losing: 0, accuracy: 0 });
   const [futures, setFutures] = useState<SegmentStats>({ total: 0, profitable: 0, losing: 0, accuracy: 0 });
   const [options, setOptions] = useState<SegmentStats>({ total: 0, profitable: 0, losing: 0, accuracy: 0 });
-
   const crownAnim = useRef(new Animated.Value(0)).current;
 
   const calcStats = (trades: ClosedTrade[]): SegmentStats => {
     const total = trades.length;
     const profitable = trades.filter(t => t.profitLossPercent > 0).length;
-    const losing = total - profitable;
-    const accuracy = total > 0 ? Math.round((profitable / total) * 100) : 0;
-    return { total, profitable, losing, accuracy };
+    return { total, profitable, losing: total - profitable, accuracy: total > 0 ? Math.round((profitable / total) * 100) : 0 };
   };
 
   useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(crownAnim, { toValue: -4, duration: 400, useNativeDriver: true }),
-        Animated.timing(crownAnim, { toValue: 4, duration: 400, useNativeDriver: true }),
-        Animated.timing(crownAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
-      ])
-    ).start();
+    Animated.loop(Animated.sequence([
+      Animated.timing(crownAnim, { toValue: -4, duration: 400, useNativeDriver: true }),
+      Animated.timing(crownAnim, { toValue: 4, duration: 400, useNativeDriver: true }),
+      Animated.timing(crownAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
+    ])).start();
   }, []);
 
   useEffect(() => {
@@ -170,7 +159,7 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Subscription Card - only for FREE users */}
+      {/* Subscription Card - FREE users only */}
       {!isActive && (
         <View style={s.subCard}>
           <View style={s.subTop}>
@@ -186,11 +175,7 @@ export default function HomeScreen() {
           </View>
           <View style={s.subDivider} />
           <View style={s.features}>
-            {[
-              { icon: '📊', label: 'Swing Trade' },
-              { icon: '📈', label: 'Options' },
-              { icon: '🔮', label: 'Futures' },
-            ].map((f) => (
+            {[{ icon: '📊', label: 'Swing Trade' }, { icon: '📈', label: 'Options' }, { icon: '🔮', label: 'Futures' }].map((f) => (
               <View key={f.label} style={s.featurePill}>
                 <Text style={s.featureIcon}>{f.icon}</Text>
                 <Text style={s.featureLabel}>{f.label}</Text>
@@ -204,26 +189,20 @@ export default function HomeScreen() {
         </View>
       )}
 
+      {/* Active users — fill remaining space nicely */}
+      {isActive && <View style={s.activeFiller}>
+        <Text style={s.activeMsg}>🎯 You have full access to all trades!</Text>
+      </View>}
+
     </View>
   );
 }
 
 const s = StyleSheet.create({
   loading: { flex: 1, backgroundColor: '#e8edf5', alignItems: 'center', justifyContent: 'center' },
-  container: {
-    flex: 1,
-    backgroundColor: '#e8edf5',
-    paddingHorizontal: 10,
-    paddingTop: 8,
-    paddingBottom: 8,
-    gap: 8,
-  },
+  container: { flex: 1, backgroundColor: '#e8edf5', paddingHorizontal: 10, paddingTop: 8, paddingBottom: 8, gap: 8 },
 
-  // Overall
-  overallCard: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 10,
-    elevation: 3, shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 3 },
-  },
+  overallCard: { backgroundColor: '#fff', borderRadius: 16, padding: 10, elevation: 3, shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
   heading: { fontSize: 13, fontWeight: '800', color: '#1e3a5f', marginBottom: 6, textAlign: 'center' },
   overallInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around' },
   overallStats: { flexDirection: 'row', flex: 1, marginLeft: 10 },
@@ -231,38 +210,23 @@ const s = StyleSheet.create({
   statLabel: { fontSize: 10, color: '#64748b', fontWeight: '600', marginBottom: 2 },
   statVal: { fontSize: 24, fontWeight: '900' },
 
-  // Segments
   segRow: { flexDirection: 'row', gap: 6 },
-  segCard: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 6,
-    alignItems: 'center', borderTopWidth: 4, elevation: 2,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
-  },
+  segCard: { flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 6, alignItems: 'center', borderTopWidth: 4, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
   segTitle: { fontSize: 9, fontWeight: '800', color: '#1e3a5f', textAlign: 'center', marginBottom: 2 },
   segStats: { flexDirection: 'row', marginTop: 3, width: '100%', borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingTop: 3 },
   segStat: { flex: 1, alignItems: 'center' },
   segStatLabel: { fontSize: 9, color: '#64748b', fontWeight: '600' },
   segStatVal: { fontSize: 12, fontWeight: '900' },
 
-  // Quick cards
   quickRow: { flexDirection: 'row', gap: 6 },
-  quickCard: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 8,
-    flexDirection: 'row', alignItems: 'center', borderLeftWidth: 4,
-    elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
-  },
+  quickCard: { flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 10, flexDirection: 'row', alignItems: 'center', borderLeftWidth: 4, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
   quickEmoji: { fontSize: 20, marginRight: 8 },
   quickText: { flex: 1 },
   quickTitle: { fontSize: 12, fontWeight: '800', color: '#1e3a5f' },
   quickSub: { fontSize: 9, color: '#64748b', marginTop: 1 },
   quickArrow: { fontSize: 20, color: '#94a3b8' },
 
-  // Subscription
-  subCard: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 14, padding: 10,
-    borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
-  },
+  subCard: { flex: 1, backgroundColor: '#fff', borderRadius: 14, padding: 12, borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
   subTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   subTitleWrap: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   crown: { fontSize: 16 },
@@ -272,11 +236,14 @@ const s = StyleSheet.create({
   gst: { fontSize: 9, fontWeight: '700', color: '#16a34a', marginTop: 1 },
   planBadge: { backgroundColor: '#eef1f7', borderRadius: 20, paddingHorizontal: 6, paddingVertical: 2, marginTop: 2 },
   planBadgeText: { fontSize: 9, fontWeight: '700', color: '#1e3a5f' },
-  subDivider: { borderTopWidth: 1, borderTopColor: '#eee', marginVertical: 5 },
-  features: { flexDirection: 'row', gap: 6, marginBottom: 6 },
-  featurePill: { flex: 1, backgroundColor: '#f5f7fc', borderRadius: 8, padding: 5, alignItems: 'center' },
-  featureIcon: { fontSize: 12, marginBottom: 1 },
+  subDivider: { borderTopWidth: 1, borderTopColor: '#eee', marginVertical: 6 },
+  features: { flexDirection: 'row', gap: 6, marginBottom: 8 },
+  featurePill: { flex: 1, backgroundColor: '#f5f7fc', borderRadius: 8, padding: 6, alignItems: 'center' },
+  featureIcon: { fontSize: 14, marginBottom: 2 },
   featureLabel: { fontSize: 9, fontWeight: '700', color: '#1e3a5f' },
-  subBtn: { backgroundColor: '#3b82f6', borderRadius: 8, padding: 7, alignItems: 'center' },
+  subBtn: { backgroundColor: '#3b82f6', borderRadius: 8, padding: 9, alignItems: 'center' },
   subBtnText: { color: '#fff', fontSize: 12, fontWeight: '800' },
+
+  activeFiller: { flex: 1, backgroundColor: '#fff', borderRadius: 14, alignItems: 'center', justifyContent: 'center', elevation: 2 },
+  activeMsg: { fontSize: 14, fontWeight: '700', color: '#1e3a5f' },
 });
