@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ActivityIndicator, Animated, TouchableOpacity, Linking,
+  View, Text, StyleSheet, ScrollView, ActivityIndicator, Animated, TouchableOpacity, Linking,
 } from 'react-native';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
@@ -21,7 +21,7 @@ interface SegmentStats {
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-const DonutGauge = ({ accuracy, size = 100, strokeWidth = 10, fillColor = '#3b82f6' }: {
+const DonutGauge = ({ accuracy, size = 160, strokeWidth = 14, fillColor = '#3b82f6' }: {
   accuracy: number; size?: number; strokeWidth?: number; fillColor?: string;
 }) => {
   const animValue = useRef(new Animated.Value(0)).current;
@@ -63,8 +63,6 @@ export default function HomeScreen() {
   const [futures, setFutures] = useState<SegmentStats>({ total: 0, profitable: 0, losing: 0, accuracy: 0 });
   const [options, setOptions] = useState<SegmentStats>({ total: 0, profitable: 0, losing: 0, accuracy: 0 });
 
-  const crownAnim = useRef(new Animated.Value(0)).current;
-
   const calcStats = (trades: ClosedTrade[]): SegmentStats => {
     const total = trades.length;
     const profitable = trades.filter(t => t.profitLossPercent > 0).length;
@@ -72,16 +70,6 @@ export default function HomeScreen() {
     const accuracy = total > 0 ? Math.round((profitable / total) * 100) : 0;
     return { total, profitable, losing, accuracy };
   };
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(crownAnim, { toValue: -4, duration: 400, useNativeDriver: true }),
-        Animated.timing(crownAnim, { toValue: 4, duration: 400, useNativeDriver: true }),
-        Animated.timing(crownAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
-      ])
-    ).start();
-  }, []);
 
   useEffect(() => {
     (async () => {
@@ -102,12 +90,12 @@ export default function HomeScreen() {
   if (loading) return <View style={s.loading}><ActivityIndicator size="large" color="#3b82f6" /></View>;
 
   return (
-    <View style={s.container}>
+    <ScrollView style={s.scroll} contentContainerStyle={s.content}>
 
       {/* Overall Card */}
       <View style={s.overallCard}>
         <Text style={s.heading}>Overall Performance</Text>
-        <DonutGauge accuracy={overall.accuracy} size={90} strokeWidth={10} fillColor="#3b82f6" />
+        <DonutGauge accuracy={overall.accuracy} size={150} strokeWidth={15} fillColor="#3b82f6" />
         <View style={s.row}>
           <View style={s.stat}>
             <Text style={s.statLabel}>Winning Trades</Text>
@@ -122,36 +110,62 @@ export default function HomeScreen() {
 
       {/* Segment Cards */}
       <View style={s.segRow}>
-        {[
-          { label: 'Equity Accuracy', stats: equity, color: '#22c55e' },
-          { label: 'Future Accuracy', stats: futures, color: '#f59e0b' },
-          { label: 'Option Accuracy', stats: options, color: '#a855f7' },
-        ].map((seg) => (
-          <View key={seg.label} style={[s.segCard, { borderTopColor: seg.color }]}>
-            <Text style={s.segTitle}>{seg.label}</Text>
-            <DonutGauge accuracy={seg.stats.accuracy} size={68} strokeWidth={7} fillColor={seg.color} />
-            <View style={s.segStats}>
-              <View style={s.segStat}>
-                <Text style={s.segStatLabel}>Win</Text>
-                <Text style={[s.segStatVal, { color: '#22c55e' }]}>{seg.stats.profitable}</Text>
-              </View>
-              <View style={[s.segStat, s.segDivider]}>
-                <Text style={s.segStatLabel}>Loss</Text>
-                <Text style={[s.segStatVal, { color: '#ef4444' }]}>{seg.stats.losing}</Text>
-              </View>
+        <View style={[s.segCard, { borderTopColor: '#22c55e' }]}>
+          <Text style={s.segTitle}>Equity Accuracy</Text>
+          <DonutGauge accuracy={equity.accuracy} size={95} strokeWidth={9} fillColor="#22c55e" />
+          <View style={s.segStats}>
+            <View style={s.segStat}>
+              <Text style={s.segStatLabel}>Win</Text>
+              <Text style={[s.segStatVal, { color: '#22c55e' }]}>{equity.profitable}</Text>
+            </View>
+            <View style={[s.segStat, s.segDivider]}>
+              <Text style={s.segStatLabel}>Loss</Text>
+              <Text style={[s.segStatVal, { color: '#ef4444' }]}>{equity.losing}</Text>
             </View>
           </View>
-        ))}
+        </View>
+
+        <View style={[s.segCard, { borderTopColor: '#f59e0b' }]}>
+          <Text style={s.segTitle}>Future Accuracy</Text>
+          <DonutGauge accuracy={futures.accuracy} size={95} strokeWidth={9} fillColor="#f59e0b" />
+          <View style={s.segStats}>
+            <View style={s.segStat}>
+              <Text style={s.segStatLabel}>Win</Text>
+              <Text style={[s.segStatVal, { color: '#22c55e' }]}>{futures.profitable}</Text>
+            </View>
+            <View style={[s.segStat, s.segDivider]}>
+              <Text style={s.segStatLabel}>Loss</Text>
+              <Text style={[s.segStatVal, { color: '#ef4444' }]}>{futures.losing}</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={[s.segCard, { borderTopColor: '#a855f7' }]}>
+          <Text style={s.segTitle}>Option Accuracy</Text>
+          <DonutGauge accuracy={options.accuracy} size={95} strokeWidth={9} fillColor="#a855f7" />
+          <View style={s.segStats}>
+            <View style={s.segStat}>
+              <Text style={s.segStatLabel}>Win</Text>
+              <Text style={[s.segStatVal, { color: '#22c55e' }]}>{options.profitable}</Text>
+            </View>
+            <View style={[s.segStat, s.segDivider]}>
+              <Text style={s.segStatLabel}>Loss</Text>
+              <Text style={[s.segStatVal, { color: '#ef4444' }]}>{options.losing}</Text>
+            </View>
+          </View>
+        </View>
       </View>
 
-      {/* IPO & Mutual Fund */}
+      {/* IPO & Mutual Fund Cards */}
       <View style={s.quickRow}>
         <TouchableOpacity
           style={[s.quickCard, { borderLeftColor: '#3b82f6' }]}
           onPress={() => Linking.openURL('https://www.nseindia.com/market-data/all-upcoming-issues-ipo')}
           activeOpacity={0.85}
         >
-          <View style={s.quickIconBox}><Text style={s.quickEmoji}>📋</Text></View>
+          <View style={s.quickIconBox}>
+            <Text style={s.quickEmoji}>📋</Text>
+          </View>
           <View style={s.quickText}>
             <Text style={s.quickTitle}>IPO</Text>
             <Text style={s.quickSub}>View Upcoming IPOs</Text>
@@ -160,7 +174,9 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         <View style={[s.quickCard, { borderLeftColor: '#22c55e' }]}>
-          <View style={s.quickIconBox}><Text style={s.quickEmoji}>💼</Text></View>
+          <View style={s.quickIconBox}>
+            <Text style={s.quickEmoji}>💼</Text>
+          </View>
           <View style={s.quickText}>
             <Text style={s.quickTitle}>Mutual Fund</Text>
             <Text style={s.quickSub}>Explore Mutual Funds</Text>
@@ -168,12 +184,12 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Subscription Card - only for FREE users */}
+      {/* Subscription Card — only show if not active */}
       {!isActive && (
         <View style={s.subCard}>
           <View style={s.subTop}>
             <View style={s.subTitleWrap}>
-              <Animated.Text style={[s.crown, { transform: [{ translateY: crownAnim }] }]}>👑</Animated.Text>
+              <Text style={s.crown}>👑</Text>
               <Text style={s.subHeading}>Subscription Plan</Text>
             </View>
             <View style={{ alignItems: 'flex-end' }}>
@@ -182,7 +198,9 @@ export default function HomeScreen() {
               <View style={s.badge}><Text style={s.badgeText}>Quarterly · 3 Months</Text></View>
             </View>
           </View>
+
           <View style={s.subDivider} />
+
           <View style={s.features}>
             {[
               { icon: '📊', label: 'Swing Trade' },
@@ -195,95 +213,93 @@ export default function HomeScreen() {
               </View>
             ))}
           </View>
+
           <TouchableOpacity style={s.subBtn} activeOpacity={0.85}
-            onPress={() => Linking.openURL('https://wa.me/918383898886')}>
+            onPress={() => Linking.openURL('https://wa.me/919999999999')}>
             <Text style={s.subBtnText}>Subscribe Now  →</Text>
           </TouchableOpacity>
         </View>
       )}
 
-    </View>
+    </ScrollView>
   );
 }
 
 const s = StyleSheet.create({
   loading: { flex: 1, backgroundColor: '#e8edf5', alignItems: 'center', justifyContent: 'center' },
-  container: {
-    flex: 1,
-    backgroundColor: '#e8edf5',
-    padding: 10,
-    justifyContent: 'space-between',
-  },
+  scroll: { flex: 1, backgroundColor: '#e8edf5' },
+  content: { padding: 12, paddingBottom: 24, alignItems: 'center', gap: 10 },
   overallCard: {
-    backgroundColor: '#fff', borderRadius: 18, padding: 10, alignItems: 'center',
+    backgroundColor: '#fff', borderRadius: 20, padding: 12, alignItems: 'center',
     width: '100%', elevation: 4,
     shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 },
   },
-  heading: { fontSize: 14, fontWeight: '800', color: '#1e3a5f', marginBottom: 4 },
+  heading: { fontSize: 16, fontWeight: '800', color: '#1e3a5f', marginBottom: 8 },
   row: {
-    flexDirection: 'row', marginTop: 6, width: '100%',
-    borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingTop: 6,
+    flexDirection: 'row', marginTop: 10, width: '100%',
+    borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingTop: 10,
   },
   stat: { flex: 1, alignItems: 'center' },
   divider: { borderLeftWidth: 1, borderLeftColor: '#e2e8f0' },
-  statLabel: { fontSize: 10, color: '#64748b', fontWeight: '600', marginBottom: 1 },
-  statVal: { fontSize: 22, fontWeight: '900' },
+  statLabel: { fontSize: 11, color: '#64748b', fontWeight: '600', marginBottom: 2 },
+  statVal: { fontSize: 26, fontWeight: '900' },
   segRow: { flexDirection: 'row', gap: 6, width: '100%' },
   segCard: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 14, padding: 6,
+    flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 8,
     alignItems: 'center', borderTopWidth: 4, elevation: 3,
     shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 3 },
   },
-  segTitle: { fontSize: 9, fontWeight: '800', color: '#1e3a5f', textAlign: 'center', marginBottom: 3 },
+  segTitle: { fontSize: 10, fontWeight: '800', color: '#1e3a5f', textAlign: 'center', marginBottom: 4 },
   segStats: {
-    flexDirection: 'row', marginTop: 4, width: '100%',
-    borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingTop: 4,
+    flexDirection: 'row', marginTop: 6, width: '100%',
+    borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingTop: 6,
   },
   segStat: { flex: 1, alignItems: 'center' },
   segDivider: { borderLeftWidth: 1, borderLeftColor: '#e2e8f0' },
-  segStatLabel: { fontSize: 9, color: '#64748b', fontWeight: '600' },
-  segStatVal: { fontSize: 13, fontWeight: '900' },
-  quickRow: { width: '100%', gap: 6 },
+  segStatLabel: { fontSize: 9, color: '#64748b', fontWeight: '600', marginBottom: 2 },
+  segStatVal: { fontSize: 14, fontWeight: '900' },
+  quickRow: { width: '100%', gap: 8 },
   quickCard: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 10,
+    backgroundColor: '#fff', borderRadius: 16, padding: 14,
     flexDirection: 'row', alignItems: 'center', borderLeftWidth: 4,
     elevation: 3, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
   },
   quickIconBox: {
-    width: 36, height: 36, borderRadius: 9, backgroundColor: '#f1f5f9',
-    alignItems: 'center', justifyContent: 'center', marginRight: 10,
+    width: 40, height: 40, borderRadius: 10, backgroundColor: '#f1f5f9',
+    alignItems: 'center', justifyContent: 'center', marginRight: 12,
   },
-  quickEmoji: { fontSize: 18 },
+  quickEmoji: { fontSize: 20 },
   quickText: { flex: 1 },
-  quickTitle: { fontSize: 13, fontWeight: '800', color: '#1e3a5f' },
-  quickSub: { fontSize: 10, color: '#64748b', marginTop: 1 },
-  quickArrow: { fontSize: 22, color: '#94a3b8' },
+  quickTitle: { fontSize: 14, fontWeight: '800', color: '#1e3a5f' },
+  quickSub: { fontSize: 11, color: '#64748b', marginTop: 2 },
+  quickArrow: { fontSize: 24, color: '#94a3b8', fontWeight: '300' },
+  // Subscription Card
   subCard: {
-    width: '100%', backgroundColor: '#fff', borderRadius: 16, padding: 12,
+    width: '100%', backgroundColor: '#fff', borderRadius: 16, padding: 14,
     borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 3,
     shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 3 },
   },
-  subTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  subTitleWrap: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  crown: { fontSize: 18 },
-  subHeading: { fontSize: 14, fontWeight: '800', color: '#1e3a5f' },
-  price: { fontSize: 16, fontWeight: '900', color: '#1e3a5f' },
-  priceSmall: { fontSize: 11 },
-  gst: { fontSize: 10, fontWeight: '700', color: '#16a34a', marginTop: 1 },
-  badge: { backgroundColor: '#eef1f7', borderRadius: 20, paddingHorizontal: 7, paddingVertical: 2, marginTop: 2 },
-  badgeText: { fontSize: 9, fontWeight: '700', color: '#1e3a5f' },
-  subDivider: { borderTopWidth: 1, borderTopColor: '#eee', marginVertical: 6 },
-  features: { flexDirection: 'row', gap: 6, marginBottom: 8 },
+  subTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  subTitleWrap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  crown: { fontSize: 20 },
+  subHeading: { fontSize: 15, fontWeight: '800', color: '#1e3a5f' },
+  price: { fontSize: 18, fontWeight: '900', color: '#1e3a5f' },
+  priceSmall: { fontSize: 12 },
+  gst: { fontSize: 10, fontWeight: '700', color: '#16a34a', marginTop: 2 },
+  badge: { backgroundColor: '#eef1f7', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 2, marginTop: 3 },
+  badgeText: { fontSize: 10, fontWeight: '700', color: '#1e3a5f' },
+  subDivider: { borderTopWidth: 1, borderTopColor: '#eee', marginVertical: 8 },
+  features: { flexDirection: 'row', gap: 6, marginBottom: 10 },
   featurePill: {
     flex: 1, backgroundColor: '#f5f7fc', borderRadius: 10,
-    padding: 5, alignItems: 'center',
+    padding: 6, alignItems: 'center',
   },
-  featureIcon: { fontSize: 13, marginBottom: 1 },
-  featureLabel: { fontSize: 9, fontWeight: '700', color: '#1e3a5f' },
+  featureIcon: { fontSize: 14, marginBottom: 2 },
+  featureLabel: { fontSize: 10, fontWeight: '700', color: '#1e3a5f' },
   subBtn: {
-    backgroundColor: '#3b82f6', borderRadius: 10, padding: 8,
+    backgroundColor: '#3b82f6', borderRadius: 10, padding: 10,
     alignItems: 'center', justifyContent: 'center',
   },
-  subBtnText: { color: '#fff', fontSize: 12, fontWeight: '800' },
+  subBtnText: { color: '#fff', fontSize: 13, fontWeight: '800' },
 });
