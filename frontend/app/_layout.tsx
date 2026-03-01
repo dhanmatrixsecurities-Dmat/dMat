@@ -5,48 +5,42 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-try {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-    }),
-  });
-} catch (e) {}
+// Configure notification handler
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 async function setupNotifications() {
-  try {
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('default', {
-        name: 'Default',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#FF231F7C',
-        sound: 'default',
-        enableVibrate: true,
-        showBadge: true,
-      });
-    }
-  } catch (e) {}
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'Default',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#FF231F7C',
+      sound: 'default',
+      enableVibrate: true,
+      showBadge: true,
+    });
+  }
 }
 
 export default function RootLayout() {
   useEffect(() => {
     setupNotifications();
-    let subscription: any;
-    let responseSubscription: any;
-    try {
-      subscription = Notifications.addNotificationReceivedListener(notification => {
-        console.log('Notification received:', notification);
-      });
-      responseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
-        console.log('Notification response:', response);
-      });
-    } catch (e) {}
+
+    const subscription = Notifications.addNotificationReceivedListener(notification => {
+      console.log('Notification received:', notification);
+    });
+    const responseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
+      console.log('Notification response:', response);
+    });
     return () => {
-      try { subscription?.remove(); } catch (e) {}
-      try { responseSubscription?.remove(); } catch (e) {}
+      subscription.remove();
+      responseSubscription.remove();
     };
   }, []);
 
