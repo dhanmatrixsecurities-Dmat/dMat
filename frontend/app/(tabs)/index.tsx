@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, ActivityIndicator, Animated, TouchableOpacity, Linking,
+  View, Text, StyleSheet, ActivityIndicator, Animated, TouchableOpacity, Linking,
 } from 'react-native';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
@@ -102,7 +102,7 @@ export default function HomeScreen() {
   if (loading) return <View style={s.loading}><ActivityIndicator size="large" color="#3b82f6" /></View>;
 
   return (
-    <ScrollView style={s.scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+    <View style={s.container}>
 
       {/* Overall Card */}
       <View style={s.overallCard}>
@@ -202,14 +202,18 @@ export default function HomeScreen() {
         </View>
       )}
 
-    </ScrollView>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
   loading: { flex: 1, backgroundColor: '#e8edf5', alignItems: 'center', justifyContent: 'center' },
-  scroll: { flex: 1, backgroundColor: '#e8edf5' },
-  content: { padding: 10, paddingBottom: 0, alignItems: 'center', gap: 6 },
+  container: {
+    flex: 1,
+    backgroundColor: '#e8edf5',
+    padding: 10,
+    justifyContent: 'space-between',
+  },
   overallCard: {
     backgroundColor: '#fff', borderRadius: 18, padding: 10, alignItems: 'center',
     width: '100%', elevation: 4,
