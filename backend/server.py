@@ -58,10 +58,7 @@ async def send_notification(request: NotificationRequest):
             "to": token,
             "title": "New BUY Trade" if request.type == "BUY" else "New SELL Trade",
             "body": f"{request.stockName} - {request.type} signal added",
-            "sound": "default",
-            "priority": "high",
-            "channelId": "default",
-            "data": {"type": request.type, "stockName": request.stockName}
+            "sound": "default"
         }
         for token in request.tokens
     ]
