@@ -5,6 +5,7 @@ import {
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import Svg, { Circle, G } from 'react-native-svg';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ClosedTrade {
   id: string;
@@ -55,6 +56,7 @@ const DonutGauge = ({ accuracy, size = 160, strokeWidth = 14, fillColor = '#3b82
 };
 
 export default function HomeScreen() {
+  const { userData } = useAuth();
   const [loading, setLoading] = useState(true);
   const [overall, setOverall] = useState<SegmentStats>({ total: 0, profitable: 0, losing: 0, accuracy: 0 });
   const [equity, setEquity] = useState<SegmentStats>({ total: 0, profitable: 0, losing: 0, accuracy: 0 });
@@ -82,6 +84,8 @@ export default function HomeScreen() {
       finally { setLoading(false); }
     })();
   }, []);
+
+  const isActive = userData?.status === 'ACTIVE';
 
   if (loading) return <View style={s.loading}><ActivityIndicator size="large" color="#3b82f6" /></View>;
 
@@ -152,10 +156,8 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* ── IPO & Mutual Fund Cards ── */}
+      {/* IPO & Mutual Fund Cards */}
       <View style={s.quickRow}>
-
-        {/* IPO Card — opens NSE IPO page */}
         <TouchableOpacity
           style={[s.quickCard, { borderLeftColor: '#3b82f6' }]}
           onPress={() => Linking.openURL('https://www.nseindia.com/market-data/all-upcoming-issues-ipo')}
@@ -171,7 +173,6 @@ export default function HomeScreen() {
           <Text style={s.quickArrow}>›</Text>
         </TouchableOpacity>
 
-        {/* Mutual Fund Card — no link */}
         <View style={[s.quickCard, { borderLeftColor: '#22c55e' }]}>
           <View style={s.quickIconBox}>
             <Text style={s.quickEmoji}>💼</Text>
@@ -181,8 +182,44 @@ export default function HomeScreen() {
             <Text style={s.quickSub}>Explore Mutual Funds</Text>
           </View>
         </View>
-
       </View>
+
+      {/* Subscription Card — only show if not active */}
+      {!isActive && (
+        <View style={s.subCard}>
+          <View style={s.subTop}>
+            <View style={s.subTitleWrap}>
+              <Text style={s.crown}>👑</Text>
+              <Text style={s.subHeading}>Subscription Plan</Text>
+            </View>
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={s.price}><Text style={s.priceSmall}>₹</Text>5,000</Text>
+              <Text style={s.gst}>✅ Incl. of GST</Text>
+              <View style={s.badge}><Text style={s.badgeText}>Quarterly · 3 Months</Text></View>
+            </View>
+          </View>
+
+          <View style={s.subDivider} />
+
+          <View style={s.features}>
+            {[
+              { icon: '📊', label: 'Swing Trade' },
+              { icon: '📈', label: 'Option Trades' },
+              { icon: '🔮', label: 'Future Trades' },
+            ].map((f) => (
+              <View key={f.label} style={s.featurePill}>
+                <Text style={s.featureIcon}>{f.icon}</Text>
+                <Text style={s.featureLabel}>{f.label}</Text>
+              </View>
+            ))}
+          </View>
+
+          <TouchableOpacity style={s.subBtn} activeOpacity={0.85}
+            onPress={() => Linking.openURL('https://wa.me/919999999999')}>
+            <Text style={s.subBtnText}>Subscribe Now  →</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
     </ScrollView>
   );
@@ -191,10 +228,10 @@ export default function HomeScreen() {
 const s = StyleSheet.create({
   loading: { flex: 1, backgroundColor: '#e8edf5', alignItems: 'center', justifyContent: 'center' },
   scroll: { flex: 1, backgroundColor: '#e8edf5' },
-  content: { padding: 12, paddingBottom: 20, alignItems: 'center' },
+  content: { padding: 12, paddingBottom: 24, alignItems: 'center', gap: 10 },
   overallCard: {
     backgroundColor: '#fff', borderRadius: 20, padding: 12, alignItems: 'center',
-    width: '100%', marginBottom: 10, elevation: 4,
+    width: '100%', elevation: 4,
     shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 },
   },
   heading: { fontSize: 16, fontWeight: '800', color: '#1e3a5f', marginBottom: 8 },
@@ -206,7 +243,7 @@ const s = StyleSheet.create({
   divider: { borderLeftWidth: 1, borderLeftColor: '#e2e8f0' },
   statLabel: { fontSize: 11, color: '#64748b', fontWeight: '600', marginBottom: 2 },
   statVal: { fontSize: 26, fontWeight: '900' },
-  segRow: { flexDirection: 'row', gap: 6, width: '100%', marginBottom: 10 },
+  segRow: { flexDirection: 'row', gap: 6, width: '100%' },
   segCard: {
     flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 8,
     alignItems: 'center', borderTopWidth: 4, elevation: 3,
@@ -237,4 +274,32 @@ const s = StyleSheet.create({
   quickTitle: { fontSize: 14, fontWeight: '800', color: '#1e3a5f' },
   quickSub: { fontSize: 11, color: '#64748b', marginTop: 2 },
   quickArrow: { fontSize: 24, color: '#94a3b8', fontWeight: '300' },
+  // Subscription Card
+  subCard: {
+    width: '100%', backgroundColor: '#fff', borderRadius: 16, padding: 14,
+    borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 3,
+    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 3 },
+  },
+  subTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  subTitleWrap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  crown: { fontSize: 20 },
+  subHeading: { fontSize: 15, fontWeight: '800', color: '#1e3a5f' },
+  price: { fontSize: 18, fontWeight: '900', color: '#1e3a5f' },
+  priceSmall: { fontSize: 12 },
+  gst: { fontSize: 10, fontWeight: '700', color: '#16a34a', marginTop: 2 },
+  badge: { backgroundColor: '#eef1f7', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 2, marginTop: 3 },
+  badgeText: { fontSize: 10, fontWeight: '700', color: '#1e3a5f' },
+  subDivider: { borderTopWidth: 1, borderTopColor: '#eee', marginVertical: 8 },
+  features: { flexDirection: 'row', gap: 6, marginBottom: 10 },
+  featurePill: {
+    flex: 1, backgroundColor: '#f5f7fc', borderRadius: 10,
+    padding: 6, alignItems: 'center',
+  },
+  featureIcon: { fontSize: 14, marginBottom: 2 },
+  featureLabel: { fontSize: 10, fontWeight: '700', color: '#1e3a5f' },
+  subBtn: {
+    backgroundColor: '#3b82f6', borderRadius: 10, padding: 10,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  subBtnText: { color: '#fff', fontSize: 13, fontWeight: '800' },
 });
