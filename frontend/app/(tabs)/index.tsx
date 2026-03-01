@@ -65,10 +65,10 @@ export default function HomeScreen() {
   };
 
   useEffect(() => {
+    // Bouncing crown animation
     Animated.loop(Animated.sequence([
-      Animated.timing(crownAnim, { toValue: -4, duration: 400, useNativeDriver: true }),
-      Animated.timing(crownAnim, { toValue: 4, duration: 400, useNativeDriver: true }),
-      Animated.timing(crownAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
+      Animated.timing(crownAnim, { toValue: -5, duration: 350, useNativeDriver: true }),
+      Animated.timing(crownAnim, { toValue: 0, duration: 350, useNativeDriver: true }),
     ])).start();
   }, []);
 
@@ -93,25 +93,25 @@ export default function HomeScreen() {
   return (
     <View style={s.container}>
 
-      {/* Overall Card */}
+      {/* ── Overall Performance ── */}
       <View style={s.overallCard}>
-        <Text style={s.heading}>Overall Performance</Text>
-        <View style={s.overallInner}>
-          <DonutGauge accuracy={overall.accuracy} size={80} strokeWidth={9} fillColor="#3b82f6" />
-          <View style={s.overallStats}>
-            <View style={s.overallStat}>
-              <Text style={s.statLabel}>Winning Trades</Text>
-              <Text style={[s.statVal, { color: '#22c55e' }]}>{overall.profitable}</Text>
-            </View>
-            <View style={[s.overallStat, { borderLeftWidth: 1, borderLeftColor: '#e2e8f0' }]}>
-              <Text style={s.statLabel}>Losing Trades</Text>
-              <Text style={[s.statVal, { color: '#ef4444' }]}>{overall.losing}</Text>
-            </View>
+        <Text style={s.overallTitle}>Overall Performance</Text>
+        <DonutGauge accuracy={overall.accuracy} size={110} strokeWidth={12} fillColor="#3b82f6" />
+        <View style={s.overallDivider} />
+        <View style={s.overallRow}>
+          <View style={s.overallStat}>
+            <Text style={s.statLabel}>Winning Trades</Text>
+            <Text style={[s.statVal, { color: '#22c55e' }]}>{overall.profitable}</Text>
+          </View>
+          <View style={s.statSep} />
+          <View style={s.overallStat}>
+            <Text style={s.statLabel}>Losing Trades</Text>
+            <Text style={[s.statVal, { color: '#ef4444' }]}>{overall.losing}</Text>
           </View>
         </View>
       </View>
 
-      {/* Segment Cards */}
+      {/* ── Segment Cards ── */}
       <View style={s.segRow}>
         {[
           { label: 'Equity', stats: equity, color: '#22c55e' },
@@ -120,13 +120,15 @@ export default function HomeScreen() {
         ].map((seg) => (
           <View key={seg.label} style={[s.segCard, { borderTopColor: seg.color }]}>
             <Text style={s.segTitle}>{seg.label}</Text>
-            <DonutGauge accuracy={seg.stats.accuracy} size={60} strokeWidth={7} fillColor={seg.color} />
-            <View style={s.segStats}>
+            <DonutGauge accuracy={seg.stats.accuracy} size={72} strokeWidth={8} fillColor={seg.color} />
+            <View style={s.segDivider} />
+            <View style={s.segStatsRow}>
               <View style={s.segStat}>
                 <Text style={s.segStatLabel}>Win</Text>
                 <Text style={[s.segStatVal, { color: '#22c55e' }]}>{seg.stats.profitable}</Text>
               </View>
-              <View style={[s.segStat, { borderLeftWidth: 1, borderLeftColor: '#e2e8f0' }]}>
+              <View style={s.segStatSep} />
+              <View style={s.segStat}>
                 <Text style={s.segStatLabel}>Loss</Text>
                 <Text style={[s.segStatVal, { color: '#ef4444' }]}>{seg.stats.losing}</Text>
               </View>
@@ -135,14 +137,14 @@ export default function HomeScreen() {
         ))}
       </View>
 
-      {/* IPO & Mutual Fund */}
+      {/* ── IPO & Mutual Fund ── */}
       <View style={s.quickRow}>
         <TouchableOpacity
           style={[s.quickCard, { borderLeftColor: '#3b82f6' }]}
           onPress={() => Linking.openURL('https://www.nseindia.com/market-data/all-upcoming-issues-ipo')}
           activeOpacity={0.85}
         >
-          <Text style={s.quickEmoji}>📋</Text>
+          <View style={s.quickIcon}><Text style={s.quickEmoji}>📋</Text></View>
           <View style={s.quickText}>
             <Text style={s.quickTitle}>IPO</Text>
             <Text style={s.quickSub}>View Upcoming IPOs</Text>
@@ -150,16 +152,17 @@ export default function HomeScreen() {
           <Text style={s.quickArrow}>›</Text>
         </TouchableOpacity>
 
-        <View style={[s.quickCard, { borderLeftColor: '#22c55e' }]}>
-          <Text style={s.quickEmoji}>💼</Text>
+        <TouchableOpacity style={[s.quickCard, { borderLeftColor: '#22c55e' }]} activeOpacity={0.85}>
+          <View style={s.quickIcon}><Text style={s.quickEmoji}>💼</Text></View>
           <View style={s.quickText}>
             <Text style={s.quickTitle}>Mutual Fund</Text>
             <Text style={s.quickSub}>Explore Mutual Funds</Text>
           </View>
-        </View>
+          <Text style={s.quickArrow}>›</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Subscription Card - FREE users only */}
+      {/* ── Subscription Card (FREE users only) ── */}
       {!isActive && (
         <View style={s.subCard}>
           <View style={s.subTop}>
@@ -167,15 +170,19 @@ export default function HomeScreen() {
               <Animated.Text style={[s.crown, { transform: [{ translateY: crownAnim }] }]}>👑</Animated.Text>
               <Text style={s.subHeading}>Subscription Plan</Text>
             </View>
-            <View style={{ alignItems: 'flex-end' }}>
-              <Text style={s.price}><Text style={s.priceSmall}>₹</Text>5,000</Text>
-              <Text style={s.gst}>✅ Incl. of GST</Text>
-              <View style={s.planBadge}><Text style={s.planBadgeText}>Quarterly · 3 Months</Text></View>
+            <View style={s.priceWrap}>
+              <Text style={s.gst}>Incl. of GST  </Text>
+              <Text style={s.price}>₹5,000</Text>
             </View>
           </View>
+          <Text style={s.planLabel}>Quarterly · 3 Months</Text>
           <View style={s.subDivider} />
           <View style={s.features}>
-            {[{ icon: '📊', label: 'Swing Trade' }, { icon: '📈', label: 'Options' }, { icon: '🔮', label: 'Futures' }].map((f) => (
+            {[
+              { icon: '📊', label: 'Swing Trade' },
+              { icon: '📈', label: 'Option Trades' },
+              { icon: '🔮', label: 'Future Trades' },
+            ].map((f) => (
               <View key={f.label} style={s.featurePill}>
                 <Text style={s.featureIcon}>{f.icon}</Text>
                 <Text style={s.featureLabel}>{f.label}</Text>
@@ -189,61 +196,60 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Active users — fill remaining space nicely */}
-      {isActive && <View style={s.activeFiller}>
-        <Text style={s.activeMsg}>🎯 You have full access to all trades!</Text>
-      </View>}
-
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  loading: { flex: 1, backgroundColor: '#e8edf5', alignItems: 'center', justifyContent: 'center' },
-  container: { flex: 1, backgroundColor: '#e8edf5', paddingHorizontal: 10, paddingTop: 8, paddingBottom: 8, gap: 8 },
+  loading: { flex: 1, backgroundColor: '#eef1f8', alignItems: 'center', justifyContent: 'center' },
+  container: { flex: 1, backgroundColor: '#eef1f8', paddingHorizontal: 12, paddingTop: 10, paddingBottom: 10, gap: 10 },
 
-  overallCard: { backgroundColor: '#fff', borderRadius: 16, padding: 10, elevation: 3, shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
-  heading: { fontSize: 13, fontWeight: '800', color: '#1e3a5f', marginBottom: 6, textAlign: 'center' },
-  overallInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around' },
-  overallStats: { flexDirection: 'row', flex: 1, marginLeft: 10 },
+  // Overall
+  overallCard: { backgroundColor: '#fff', borderRadius: 18, padding: 14, alignItems: 'center', elevation: 3, shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
+  overallTitle: { fontSize: 16, fontWeight: '800', color: '#1e3a5f', marginBottom: 8 },
+  overallDivider: { width: '100%', height: 1, backgroundColor: '#e2e8f0', marginVertical: 8 },
+  overallRow: { flexDirection: 'row', width: '100%' },
   overallStat: { flex: 1, alignItems: 'center' },
-  statLabel: { fontSize: 10, color: '#64748b', fontWeight: '600', marginBottom: 2 },
-  statVal: { fontSize: 24, fontWeight: '900' },
+  statLabel: { fontSize: 11, color: '#64748b', fontWeight: '600', marginBottom: 2 },
+  statVal: { fontSize: 26, fontWeight: '900' },
+  statSep: { width: 1, backgroundColor: '#e2e8f0', marginHorizontal: 8 },
 
-  segRow: { flexDirection: 'row', gap: 6 },
-  segCard: { flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 6, alignItems: 'center', borderTopWidth: 4, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
-  segTitle: { fontSize: 9, fontWeight: '800', color: '#1e3a5f', textAlign: 'center', marginBottom: 2 },
-  segStats: { flexDirection: 'row', marginTop: 3, width: '100%', borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingTop: 3 },
+  // Segments
+  segRow: { flexDirection: 'row', gap: 8 },
+  segCard: { flex: 1, backgroundColor: '#fff', borderRadius: 14, padding: 8, alignItems: 'center', borderTopWidth: 4, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
+  segTitle: { fontSize: 10, fontWeight: '800', color: '#1e3a5f', textAlign: 'center', marginBottom: 4 },
+  segDivider: { width: '100%', height: 1, backgroundColor: '#e2e8f0', marginVertical: 5 },
+  segStatsRow: { flexDirection: 'row', width: '100%' },
   segStat: { flex: 1, alignItems: 'center' },
-  segStatLabel: { fontSize: 9, color: '#64748b', fontWeight: '600' },
-  segStatVal: { fontSize: 12, fontWeight: '900' },
+  segStatLabel: { fontSize: 10, color: '#64748b', fontWeight: '600' },
+  segStatVal: { fontSize: 14, fontWeight: '900' },
+  segStatSep: { width: 1, backgroundColor: '#e2e8f0' },
 
-  quickRow: { flexDirection: 'row', gap: 6 },
-  quickCard: { flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 10, flexDirection: 'row', alignItems: 'center', borderLeftWidth: 4, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
-  quickEmoji: { fontSize: 20, marginRight: 8 },
+  // Quick
+  quickRow: { flexDirection: 'row', gap: 8 },
+  quickCard: { flex: 1, backgroundColor: '#fff', borderRadius: 14, padding: 10, flexDirection: 'row', alignItems: 'center', borderLeftWidth: 4, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
+  quickIcon: { width: 36, height: 36, borderRadius: 9, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', marginRight: 8 },
+  quickEmoji: { fontSize: 18 },
   quickText: { flex: 1 },
-  quickTitle: { fontSize: 12, fontWeight: '800', color: '#1e3a5f' },
-  quickSub: { fontSize: 9, color: '#64748b', marginTop: 1 },
-  quickArrow: { fontSize: 20, color: '#94a3b8' },
+  quickTitle: { fontSize: 13, fontWeight: '800', color: '#1e3a5f' },
+  quickSub: { fontSize: 10, color: '#64748b', marginTop: 1 },
+  quickArrow: { fontSize: 22, color: '#94a3b8' },
 
-  subCard: { flex: 1, backgroundColor: '#fff', borderRadius: 14, padding: 12, borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
-  subTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  subTitleWrap: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  crown: { fontSize: 16 },
-  subHeading: { fontSize: 13, fontWeight: '800', color: '#1e3a5f' },
-  price: { fontSize: 15, fontWeight: '900', color: '#1e3a5f' },
-  priceSmall: { fontSize: 10 },
-  gst: { fontSize: 9, fontWeight: '700', color: '#16a34a', marginTop: 1 },
-  planBadge: { backgroundColor: '#eef1f7', borderRadius: 20, paddingHorizontal: 6, paddingVertical: 2, marginTop: 2 },
-  planBadgeText: { fontSize: 9, fontWeight: '700', color: '#1e3a5f' },
-  subDivider: { borderTopWidth: 1, borderTopColor: '#eee', marginVertical: 6 },
-  features: { flexDirection: 'row', gap: 6, marginBottom: 8 },
-  featurePill: { flex: 1, backgroundColor: '#f5f7fc', borderRadius: 8, padding: 6, alignItems: 'center' },
-  featureIcon: { fontSize: 14, marginBottom: 2 },
-  featureLabel: { fontSize: 9, fontWeight: '700', color: '#1e3a5f' },
-  subBtn: { backgroundColor: '#3b82f6', borderRadius: 8, padding: 9, alignItems: 'center' },
-  subBtnText: { color: '#fff', fontSize: 12, fontWeight: '800' },
-
-  activeFiller: { flex: 1, backgroundColor: '#fff', borderRadius: 14, alignItems: 'center', justifyContent: 'center', elevation: 2 },
-  activeMsg: { fontSize: 14, fontWeight: '700', color: '#1e3a5f' },
+  // Subscription
+  subCard: { backgroundColor: '#fff', borderRadius: 16, padding: 12, borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
+  subTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  subTitleWrap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  crown: { fontSize: 20 },
+  subHeading: { fontSize: 15, fontWeight: '800', color: '#1e3a5f' },
+  priceWrap: { flexDirection: 'row', alignItems: 'center' },
+  gst: { fontSize: 10, color: '#64748b', fontWeight: '600' },
+  price: { fontSize: 17, fontWeight: '900', color: '#1e3a5f' },
+  planLabel: { fontSize: 10, color: '#94a3b8', fontWeight: '600', marginTop: 2, marginBottom: 6 },
+  subDivider: { height: 1, backgroundColor: '#e2e8f0', marginBottom: 8 },
+  features: { flexDirection: 'row', gap: 8, marginBottom: 10 },
+  featurePill: { flex: 1, backgroundColor: '#f5f7fc', borderRadius: 10, padding: 8, alignItems: 'center' },
+  featureIcon: { fontSize: 16, marginBottom: 3 },
+  featureLabel: { fontSize: 10, fontWeight: '700', color: '#1e3a5f' },
+  subBtn: { backgroundColor: '#3b82f6', borderRadius: 10, padding: 11, alignItems: 'center' },
+  subBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
 });
