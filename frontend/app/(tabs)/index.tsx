@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator, Animated, TouchableOpacity,
-  Linking, Modal, TextInput, KeyboardAvoidingView, Platform, ScrollView,
+  Linking, Modal, TextInput, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
@@ -59,10 +59,9 @@ export default function HomeScreen() {
   const [options, setOptions] = useState<SegmentStats>({ total: 0, profitable: 0, losing: 0, accuracy: 0 });
   const crownAnim = useRef(new Animated.Value(0)).current;
 
-  // Portfolio form state
   const [showForm, setShowForm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [form, setForm] = useState({ name: '', whatsapp: '', stock: '', qty: '' });
+  const [form, setForm] = useState({ name: '', whatsapp: '', stock: '', buyingPrice: '', qty: '' });
 
   const calcStats = (trades: ClosedTrade[]): SegmentStats => {
     const total = trades.length;
@@ -92,12 +91,10 @@ export default function HomeScreen() {
   }, []);
 
   const handleSubmit = () => {
-    if (!form.name || !form.whatsapp || !form.stock || !form.qty) {
-      return;
-    }
+    if (!form.name || !form.whatsapp || !form.stock || !form.buyingPrice || !form.qty) return;
     setShowForm(false);
     setShowSuccess(true);
-    setForm({ name: '', whatsapp: '', stock: '', qty: '' });
+    setForm({ name: '', whatsapp: '', stock: '', buyingPrice: '', qty: '' });
   };
 
   const isActive = userData?.status === 'ACTIVE';
@@ -107,7 +104,7 @@ export default function HomeScreen() {
   return (
     <View style={s.container}>
 
-      {/* ── Overall Performance ── */}
+      {/* Overall */}
       <View style={s.overallCard}>
         <Text style={s.overallTitle}>Overall Performance</Text>
         <DonutGauge accuracy={overall.accuracy} size={90} strokeWidth={10} fillColor="#3b82f6" />
@@ -125,7 +122,7 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* ── Segment Cards ── */}
+      {/* Segments */}
       <View style={s.segRow}>
         {[
           { label: 'Equity', stats: equity, color: '#22c55e' },
@@ -151,7 +148,7 @@ export default function HomeScreen() {
         ))}
       </View>
 
-      {/* ── IPO & Mutual Fund ── */}
+      {/* IPO & Mutual Fund */}
       <View style={s.quickRow}>
         <TouchableOpacity style={[s.quickCard, { borderLeftColor: '#3b82f6' }]}
           onPress={() => Linking.openURL('https://www.nseindia.com/market-data/all-upcoming-issues-ipo')}
@@ -173,7 +170,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* ── FREE Portfolio Health Checkup (visible to ALL) ── */}
+      {/* Portfolio Checkup - ALL users */}
       <View style={s.portfolioCard}>
         <View style={s.portfolioLeft}>
           <Text style={s.portfolioEmoji}>🩺</Text>
@@ -187,7 +184,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* ── Subscription Card (FREE users only) ── */}
+      {/* FREE users → Subscription Card */}
       {!isActive && (
         <View style={s.subCard}>
           <View style={s.subTop}>
@@ -217,22 +214,41 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* ── Portfolio Form Modal ── */}
+      {/* ACTIVE users → DhanMatrix Welcome Card */}
+      {isActive && (
+        <View style={s.welcomeCard}>
+          <Text style={s.welcomeTitle}>
+            Welcome to <Text style={s.welcomeBrand}>DhanMatrix</Text> family! 🎉
+          </Text>
+          <View style={s.quoteBox}>
+            <Text style={s.quoteIcon}>"</Text>
+            <Text style={s.quoteText}>No loss is also a profit in trading</Text>
+            <Text style={s.quoteAuthor}>— DhanMatrix</Text>
+          </View>
+          <View style={s.quoteBox}>
+            <Text style={s.quoteIcon}>"</Text>
+            <Text style={s.quoteText}>When everyone is greedy be <Text style={{ fontWeight: '900' }}>fearful</Text>, and when everyone is fearful be <Text style={{ fontWeight: '900' }}>greedy</Text></Text>
+            <Text style={s.quoteAuthor}>— Warren Buffett</Text>
+          </View>
+        </View>
+      )}
+
+      {/* Portfolio Form Modal */}
       <Modal visible={showForm} transparent animationType="slide">
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.modalOverlay}>
           <View style={s.modalBox}>
             <Text style={s.modalTitle}>🩺 Portfolio Health Checkup</Text>
-            <Text style={s.modalSub}>Fill in details and we'll analyze your portfolio</Text>
-
+            <Text style={s.modalSub}>Fill in details — we'll send you a free analysis on WhatsApp</Text>
             <TextInput style={s.input} placeholder="Your Name" placeholderTextColor="#94a3b8"
               value={form.name} onChangeText={v => setForm({ ...form, name: v })} />
             <TextInput style={s.input} placeholder="WhatsApp Number" placeholderTextColor="#94a3b8"
               keyboardType="phone-pad" value={form.whatsapp} onChangeText={v => setForm({ ...form, whatsapp: v })} />
             <TextInput style={s.input} placeholder="Stock Name (e.g. RELIANCE)" placeholderTextColor="#94a3b8"
               value={form.stock} onChangeText={v => setForm({ ...form, stock: v })} />
+            <TextInput style={s.input} placeholder="Buying Price (₹)" placeholderTextColor="#94a3b8"
+              keyboardType="numeric" value={form.buyingPrice} onChangeText={v => setForm({ ...form, buyingPrice: v })} />
             <TextInput style={s.input} placeholder="Quantity Bought" placeholderTextColor="#94a3b8"
               keyboardType="numeric" value={form.qty} onChangeText={v => setForm({ ...form, qty: v })} />
-
             <TouchableOpacity style={s.submitBtn} onPress={handleSubmit} activeOpacity={0.85}>
               <Text style={s.submitBtnText}>Submit</Text>
             </TouchableOpacity>
@@ -243,7 +259,7 @@ export default function HomeScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* ── Success Modal ── */}
+      {/* Success Modal */}
       <Modal visible={showSuccess} transparent animationType="fade">
         <View style={s.modalOverlay}>
           <View style={s.successBox}>
@@ -267,7 +283,6 @@ const s = StyleSheet.create({
   loading: { flex: 1, backgroundColor: '#eef1f8', alignItems: 'center', justifyContent: 'center' },
   container: { flex: 1, backgroundColor: '#eef1f8', padding: 10, gap: 8 },
 
-  // Overall
   overallCard: { backgroundColor: '#fff', borderRadius: 16, padding: 10, alignItems: 'center', elevation: 3, shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
   overallTitle: { fontSize: 15, fontWeight: '800', color: '#1e3a5f', marginBottom: 6 },
   divider: { width: '100%', height: 1, backgroundColor: '#e2e8f0', marginVertical: 6 },
@@ -277,7 +292,6 @@ const s = StyleSheet.create({
   statVal: { fontSize: 24, fontWeight: '900' },
   sep: { width: 1, backgroundColor: '#e2e8f0' },
 
-  // Segments
   segRow: { flexDirection: 'row', gap: 7 },
   segCard: { flex: 1, backgroundColor: '#fff', borderRadius: 13, padding: 7, alignItems: 'center', borderTopWidth: 4, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
   segTitle: { fontSize: 10, fontWeight: '800', color: '#1e3a5f', marginBottom: 3 },
@@ -288,7 +302,6 @@ const s = StyleSheet.create({
   segStatVal: { fontSize: 14, fontWeight: '900' },
   segSep: { width: 1, backgroundColor: '#e2e8f0' },
 
-  // Quick
   quickRow: { flexDirection: 'row', gap: 7 },
   quickCard: { flex: 1, backgroundColor: '#fff', borderRadius: 13, padding: 9, flexDirection: 'row', alignItems: 'center', borderLeftWidth: 4, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
   quickIcon: { width: 34, height: 34, borderRadius: 8, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', marginRight: 7 },
@@ -298,18 +311,17 @@ const s = StyleSheet.create({
   quickSub: { fontSize: 10, color: '#64748b', marginTop: 1 },
   quickArrow: { fontSize: 22, color: '#94a3b8' },
 
-  // Portfolio Checkup
   portfolioCard: { backgroundColor: '#eef3ff', borderRadius: 14, padding: 12, flexDirection: 'row', alignItems: 'center', borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
   portfolioLeft: { marginRight: 10 },
-  portfolioEmoji: { fontSize: 32 },
+  portfolioEmoji: { fontSize: 30 },
   portfolioText: { flex: 1 },
   portfolioTitle: { fontSize: 13, fontWeight: '800', color: '#1e3a5f' },
   portfolioSub: { fontSize: 10, color: '#64748b', marginTop: 2 },
   checkBtn: { backgroundColor: '#3b82f6', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
   checkBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
 
-  // Subscription
-  subCard: { backgroundColor: '#fff', borderRadius: 15, padding: 11, borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
+  // Subscription card
+  subCard: { flex: 1, backgroundColor: '#fff', borderRadius: 15, padding: 11, borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
   subTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   subLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   crown: { fontSize: 20 },
@@ -326,7 +338,16 @@ const s = StyleSheet.create({
   subBtn: { backgroundColor: '#3b82f6', borderRadius: 10, padding: 10, alignItems: 'center' },
   subBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
 
-  // Modal
+  // Welcome card for active users
+  welcomeCard: { flex: 1, backgroundColor: '#fff', borderRadius: 15, padding: 12, borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, justifyContent: 'center' },
+  welcomeTitle: { fontSize: 14, fontWeight: '700', color: '#1e3a5f', marginBottom: 10, textAlign: 'center' },
+  welcomeBrand: { fontSize: 14, fontWeight: '900', color: '#3b82f6' },
+  quoteBox: { backgroundColor: '#f0f4ff', borderRadius: 10, padding: 10, marginBottom: 8 },
+  quoteIcon: { fontSize: 22, color: '#f59e0b', fontWeight: '900', lineHeight: 24 },
+  quoteText: { fontSize: 12, color: '#1e3a5f', fontWeight: '600', lineHeight: 18, marginTop: 2 },
+  quoteAuthor: { fontSize: 11, color: '#64748b', fontWeight: '600', marginTop: 4, textAlign: 'right' },
+
+  // Modals
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalBox: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 36 },
   modalTitle: { fontSize: 17, fontWeight: '800', color: '#1e3a5f', marginBottom: 4 },
@@ -334,8 +355,6 @@ const s = StyleSheet.create({
   input: { borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, color: '#1e3a5f', marginBottom: 10, backgroundColor: '#f8fafc' },
   submitBtn: { backgroundColor: '#3b82f6', borderRadius: 10, padding: 13, alignItems: 'center', marginTop: 4 },
   submitBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
-
-  // Success
   successBox: { backgroundColor: '#fff', borderRadius: 20, padding: 28, margin: 30, alignItems: 'center' },
   successEmoji: { fontSize: 48, marginBottom: 12 },
   successTitle: { fontSize: 18, fontWeight: '800', color: '#1e3a5f', marginBottom: 8 },
