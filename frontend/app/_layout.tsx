@@ -3,23 +3,9 @@ import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { AuthProvider } from '@/contexts/AuthContext';
 import * as Notifications from 'expo-notifications';
-import * as TaskManager from 'expo-task-manager';
 import { Platform } from 'react-native';
 
-const BACKGROUND_NOTIFICATION_TASK = 'BACKGROUND-NOTIFICATION-TASK';
-
-// MUST be outside component at top level
-TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, ({ data, error }: any) => {
-  if (error) {
-    console.error('Background notification error:', error);
-    return;
-  }
-  if (data) {
-    console.log('Background notification received:', data);
-  }
-});
-
-// Foreground handler
+// Configure notification handler
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -29,14 +15,6 @@ Notifications.setNotificationHandler({
 });
 
 async function setupNotifications() {
-  // Request permissions
-  const { status } = await Notifications.requestPermissionsAsync();
-  if (status !== 'granted') {
-    console.log('Notification permission denied');
-    return;
-  }
-
-  // Android channel
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
       name: 'Default',
@@ -48,13 +26,6 @@ async function setupNotifications() {
       showBadge: true,
     });
   }
-
-  // Register background task
-  await Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK);
-
-  // Get push token
-  const token = await Notifications.getExpoPushTokenAsync();
-  console.log('Expo Push Token:', token.data);
 }
 
 export default function RootLayout() {
@@ -62,13 +33,11 @@ export default function RootLayout() {
     setupNotifications();
 
     const subscription = Notifications.addNotificationReceivedListener(notification => {
-      console.log('Foreground notification:', notification);
+      console.log('Notification received:', notification);
     });
-
     const responseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log('Notification tapped:', response);
+      console.log('Notification response:', response);
     });
-
     return () => {
       subscription.remove();
       responseSubscription.remove();
