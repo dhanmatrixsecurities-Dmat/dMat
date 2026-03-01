@@ -5,7 +5,6 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-// Configure notification handler
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -31,7 +30,6 @@ async function setupNotifications() {
 export default function RootLayout() {
   useEffect(() => {
     setupNotifications();
-
     const subscription = Notifications.addNotificationReceivedListener(notification => {
       console.log('Notification received:', notification);
     });
