@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
-import Svg, { Circle, G } from 'react-native-svg';
+import Svg, { Circle, G, Ellipse, Polygon, Rect, Line, Defs, LinearGradient, Stop, Filter, FeGaussianBlur } from 'react-native-svg';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface ClosedTrade {
@@ -50,6 +50,52 @@ const DonutGauge = ({ accuracy, size = 100, strokeWidth = 10, fillColor = '#3b82
   );
 };
 
+const RoadIllustration = () => (
+  <Svg width="100%" height="90" viewBox="0 0 300 90">
+    <Defs>
+      <LinearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+        <Stop offset="0%" stopColor="#b8cce8" />
+        <Stop offset="100%" stopColor="#dce8f5" />
+      </LinearGradient>
+      <LinearGradient id="rd1" x1="0" y1="0" x2="0" y2="1">
+        <Stop offset="0%" stopColor="#8899aa" />
+        <Stop offset="100%" stopColor="#aabbcc" />
+      </LinearGradient>
+      <LinearGradient id="rd2" x1="0" y1="0" x2="0" y2="1">
+        <Stop offset="0%" stopColor="#aabbcc" />
+        <Stop offset="100%" stopColor="#bbccdd" />
+      </LinearGradient>
+    </Defs>
+    <Rect width="300" height="90" fill="url(#sky)" />
+    <Ellipse cx="150" cy="32" rx="55" ry="22" fill="white" opacity="0.7" />
+    <Ellipse cx="150" cy="32" rx="25" ry="10" fill="white" opacity="0.9" />
+    {/* Left road */}
+    <Polygon points="0,90 105,90 150,32 70,32" fill="url(#rd1)" opacity="0.85" />
+    <Line x1="0" y1="90" x2="150" y2="32" stroke="white" strokeWidth="1" opacity="0.5" />
+    <Line x1="105" y1="90" x2="150" y2="32" stroke="white" strokeWidth="1" opacity="0.5" />
+    {/* Right road */}
+    <Polygon points="195,90 300,90 230,32 150,32" fill="url(#rd2)" opacity="0.85" />
+    <Line x1="195" y1="90" x2="150" y2="32" stroke="white" strokeWidth="1" opacity="0.5" />
+    <Line x1="300" y1="90" x2="230" y2="32" stroke="white" strokeWidth="1" opacity="0.5" />
+    {/* Crowd - row back */}
+    <G opacity="0.55">
+      <Circle cx="95" cy="48" r="2.5" fill="#556688"/><Rect x="92.5" y="50.5" width="5" height="7" rx="1" fill="#445577"/>
+      <Circle cx="105" cy="49" r="2.5" fill="#667799"/><Rect x="102.5" y="51.5" width="5" height="7" rx="1" fill="#556688"/>
+      <Circle cx="115" cy="48" r="2.5" fill="#556688"/><Rect x="112.5" y="50.5" width="5" height="7" rx="1" fill="#445577"/>
+    </G>
+    {/* Crowd - row front */}
+    <G opacity="0.8">
+      <Circle cx="60" cy="68" r="3.5" fill="#334466"/><Rect x="56.5" y="71.5" width="7" height="10" rx="1" fill="#223355"/>
+      <Circle cx="73" cy="69" r="3.5" fill="#556688"/><Rect x="69.5" y="72.5" width="7" height="10" rx="1" fill="#445577"/>
+      <Circle cx="86" cy="68" r="3.5" fill="#334466"/><Rect x="82.5" y="71.5" width="7" height="10" rx="1" fill="#223355"/>
+      <Circle cx="99" cy="70" r="3.5" fill="#667799"/><Rect x="95.5" y="73.5" width="7" height="10" rx="1" fill="#556688"/>
+    </G>
+    {/* Lone person */}
+    <Circle cx="210" cy="58" r="4.5" fill="#1a2a4a"/>
+    <Rect x="205.5" y="62.5" width="9" height="13" rx="2" fill="#1a2a4a"/>
+  </Svg>
+);
+
 export default function HomeScreen() {
   const { userData } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -58,7 +104,6 @@ export default function HomeScreen() {
   const [futures, setFutures] = useState<SegmentStats>({ total: 0, profitable: 0, losing: 0, accuracy: 0 });
   const [options, setOptions] = useState<SegmentStats>({ total: 0, profitable: 0, losing: 0, accuracy: 0 });
   const crownAnim = useRef(new Animated.Value(0)).current;
-
   const [showForm, setShowForm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [form, setForm] = useState({ name: '', whatsapp: '', stock: '', buyingPrice: '', qty: '' });
@@ -98,7 +143,6 @@ export default function HomeScreen() {
   };
 
   const isActive = userData?.status === 'ACTIVE';
-
   if (loading) return <View style={s.loading}><ActivityIndicator size="large" color="#3b82f6" /></View>;
 
   return (
@@ -170,11 +214,9 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Portfolio Checkup - ALL users */}
+      {/* Portfolio Checkup */}
       <View style={s.portfolioCard}>
-        <View style={s.portfolioLeft}>
-          <Text style={s.portfolioEmoji}>🩺</Text>
-        </View>
+        <Text style={s.portfolioEmoji}>🩺</Text>
         <View style={s.portfolioText}>
           <Text style={s.portfolioTitle}>FREE Portfolio Health Checkup</Text>
           <Text style={s.portfolioSub}>Analyze your investment portfolio for free!</Text>
@@ -184,7 +226,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* FREE users → Subscription Card */}
+      {/* FREE → Subscription Card */}
       {!isActive && (
         <View style={s.subCard}>
           <View style={s.subTop}>
@@ -214,21 +256,28 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* ACTIVE users → DhanMatrix Welcome Card */}
+      {/* ACTIVE → DhanMatrix Welcome Poster Card */}
       {isActive && (
         <View style={s.welcomeCard}>
-          <Text style={s.welcomeTitle}>
-            Welcome to <Text style={s.welcomeBrand}>DhanMatrix</Text> family! 🎉
-          </Text>
-          <View style={s.quoteBox}>
-            <Text style={s.quoteIcon}>"</Text>
-            <Text style={s.quoteText}>No loss is also a profit in trading</Text>
-            <Text style={s.quoteAuthor}>— DhanMatrix</Text>
+          {/* Blue gradient top with road */}
+          <View style={s.welcomeTop}>
+            <RoadIllustration />
           </View>
-          <View style={s.quoteBox}>
-            <Text style={s.quoteIcon}>"</Text>
-            <Text style={s.quoteText}>When everyone is greedy be <Text style={{ fontWeight: '900' }}>fearful</Text>, and when everyone is fearful be <Text style={{ fontWeight: '900' }}>greedy</Text></Text>
-            <Text style={s.quoteAuthor}>— Warren Buffett</Text>
+          {/* Content */}
+          <View style={s.welcomeContent}>
+            <Text style={s.welcomeTitle}>
+              Welcome to <Text style={s.welcomeBrand}>DhanMatrix</Text> family!
+            </Text>
+            <View style={s.quoteBox}>
+              <Text style={s.quoteIcon}>❝</Text>
+              <Text style={s.quoteText}>"No loss is also a profit in trading"</Text>
+              <Text style={s.quoteAuthor}>— DhanMatrix</Text>
+            </View>
+            <View style={[s.quoteBox, { marginBottom: 0 }]}>
+              <Text style={s.quoteIcon}>❝</Text>
+              <Text style={s.quoteText}>"When everyone is greedy be <Text style={{ fontWeight: '900' }}>fearful</Text>, and when everyone is fearful be <Text style={{ fontWeight: '900' }}>greedy</Text>"</Text>
+              <Text style={s.quoteAuthor}>— Warren Buffett</Text>
+            </View>
           </View>
         </View>
       )}
@@ -238,17 +287,12 @@ export default function HomeScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.modalOverlay}>
           <View style={s.modalBox}>
             <Text style={s.modalTitle}>🩺 Portfolio Health Checkup</Text>
-            <Text style={s.modalSub}>Fill in details — we'll send you a free analysis on WhatsApp</Text>
-            <TextInput style={s.input} placeholder="Your Name" placeholderTextColor="#94a3b8"
-              value={form.name} onChangeText={v => setForm({ ...form, name: v })} />
-            <TextInput style={s.input} placeholder="WhatsApp Number" placeholderTextColor="#94a3b8"
-              keyboardType="phone-pad" value={form.whatsapp} onChangeText={v => setForm({ ...form, whatsapp: v })} />
-            <TextInput style={s.input} placeholder="Stock Name (e.g. RELIANCE)" placeholderTextColor="#94a3b8"
-              value={form.stock} onChangeText={v => setForm({ ...form, stock: v })} />
-            <TextInput style={s.input} placeholder="Buying Price (₹)" placeholderTextColor="#94a3b8"
-              keyboardType="numeric" value={form.buyingPrice} onChangeText={v => setForm({ ...form, buyingPrice: v })} />
-            <TextInput style={s.input} placeholder="Quantity Bought" placeholderTextColor="#94a3b8"
-              keyboardType="numeric" value={form.qty} onChangeText={v => setForm({ ...form, qty: v })} />
+            <Text style={s.modalSub}>Fill in details — we'll send a free analysis on WhatsApp</Text>
+            <TextInput style={s.input} placeholder="Your Name" placeholderTextColor="#94a3b8" value={form.name} onChangeText={v => setForm({ ...form, name: v })} />
+            <TextInput style={s.input} placeholder="WhatsApp Number" placeholderTextColor="#94a3b8" keyboardType="phone-pad" value={form.whatsapp} onChangeText={v => setForm({ ...form, whatsapp: v })} />
+            <TextInput style={s.input} placeholder="Stock Name (e.g. RELIANCE)" placeholderTextColor="#94a3b8" value={form.stock} onChangeText={v => setForm({ ...form, stock: v })} />
+            <TextInput style={s.input} placeholder="Buying Price (₹)" placeholderTextColor="#94a3b8" keyboardType="numeric" value={form.buyingPrice} onChangeText={v => setForm({ ...form, buyingPrice: v })} />
+            <TextInput style={s.input} placeholder="Quantity Bought" placeholderTextColor="#94a3b8" keyboardType="numeric" value={form.qty} onChangeText={v => setForm({ ...form, qty: v })} />
             <TouchableOpacity style={s.submitBtn} onPress={handleSubmit} activeOpacity={0.85}>
               <Text style={s.submitBtnText}>Submit</Text>
             </TouchableOpacity>
@@ -265,9 +309,7 @@ export default function HomeScreen() {
           <View style={s.successBox}>
             <Text style={s.successEmoji}>✅</Text>
             <Text style={s.successTitle}>Request Received!</Text>
-            <Text style={s.successMsg}>
-              We'll research your portfolio and send you a detailed report on WhatsApp within 24 hours.
-            </Text>
+            <Text style={s.successMsg}>We'll research your portfolio and send you a detailed report on WhatsApp within 24 hours.</Text>
             <TouchableOpacity style={s.submitBtn} onPress={() => setShowSuccess(false)} activeOpacity={0.85}>
               <Text style={s.submitBtnText}>Done</Text>
             </TouchableOpacity>
@@ -311,16 +353,14 @@ const s = StyleSheet.create({
   quickSub: { fontSize: 10, color: '#64748b', marginTop: 1 },
   quickArrow: { fontSize: 22, color: '#94a3b8' },
 
-  portfolioCard: { backgroundColor: '#eef3ff', borderRadius: 14, padding: 12, flexDirection: 'row', alignItems: 'center', borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
-  portfolioLeft: { marginRight: 10 },
-  portfolioEmoji: { fontSize: 30 },
+  portfolioCard: { backgroundColor: '#eef3ff', borderRadius: 14, padding: 11, flexDirection: 'row', alignItems: 'center', borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
+  portfolioEmoji: { fontSize: 28, marginRight: 10 },
   portfolioText: { flex: 1 },
-  portfolioTitle: { fontSize: 13, fontWeight: '800', color: '#1e3a5f' },
+  portfolioTitle: { fontSize: 12, fontWeight: '800', color: '#1e3a5f' },
   portfolioSub: { fontSize: 10, color: '#64748b', marginTop: 2 },
-  checkBtn: { backgroundColor: '#3b82f6', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
+  checkBtn: { backgroundColor: '#3b82f6', borderRadius: 8, paddingHorizontal: 11, paddingVertical: 7 },
   checkBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
 
-  // Subscription card
   subCard: { flex: 1, backgroundColor: '#fff', borderRadius: 15, padding: 11, borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
   subTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   subLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -338,16 +378,17 @@ const s = StyleSheet.create({
   subBtn: { backgroundColor: '#3b82f6', borderRadius: 10, padding: 10, alignItems: 'center' },
   subBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
 
-  // Welcome card for active users
-  welcomeCard: { flex: 1, backgroundColor: '#fff', borderRadius: 15, padding: 12, borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, justifyContent: 'center' },
-  welcomeTitle: { fontSize: 14, fontWeight: '700', color: '#1e3a5f', marginBottom: 10, textAlign: 'center' },
-  welcomeBrand: { fontSize: 14, fontWeight: '900', color: '#3b82f6' },
-  quoteBox: { backgroundColor: '#f0f4ff', borderRadius: 10, padding: 10, marginBottom: 8 },
-  quoteIcon: { fontSize: 22, color: '#f59e0b', fontWeight: '900', lineHeight: 24 },
-  quoteText: { fontSize: 12, color: '#1e3a5f', fontWeight: '600', lineHeight: 18, marginTop: 2 },
-  quoteAuthor: { fontSize: 11, color: '#64748b', fontWeight: '600', marginTop: 4, textAlign: 'right' },
+  // Welcome poster card
+  welcomeCard: { flex: 1, backgroundColor: '#fff', borderRadius: 15, overflow: 'hidden', borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
+  welcomeTop: { backgroundColor: '#c8d8f0', width: '100%' },
+  welcomeContent: { padding: 10 },
+  welcomeTitle: { fontSize: 13, fontWeight: '700', color: '#1e3a5f', textAlign: 'center', marginBottom: 8 },
+  welcomeBrand: { fontSize: 13, fontWeight: '900', color: '#1e3a5f' },
+  quoteBox: { backgroundColor: '#eef2ff', borderRadius: 10, padding: 8, marginBottom: 6 },
+  quoteIcon: { fontSize: 18, color: '#f59e0b', fontWeight: '900', lineHeight: 20 },
+  quoteText: { fontSize: 11, color: '#1e3a5f', fontWeight: '600', lineHeight: 16, textAlign: 'center', marginTop: 2 },
+  quoteAuthor: { fontSize: 10, color: '#64748b', fontWeight: '600', textAlign: 'right', marginTop: 4 },
 
-  // Modals
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalBox: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 36 },
   modalTitle: { fontSize: 17, fontWeight: '800', color: '#1e3a5f', marginBottom: 4 },
