@@ -57,46 +57,34 @@ const DonutGauge = ({ accuracy, size = 100, strokeWidth = 10, fillColor = '#3b82
   );
 };
 
-const RotatingDiamond = () => {
-  const spinAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-
+// Evil Eye / Nazar component
+const EvilEye = () => {
+  const swayAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.loop(
-      Animated.timing(spinAnim, { toValue: 1, duration: 2500, useNativeDriver: true })
-    ).start();
-    Animated.loop(
       Animated.sequence([
-        Animated.timing(scaleAnim, { toValue: 1.15, duration: 900, useNativeDriver: true }),
-        Animated.timing(scaleAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
+        Animated.timing(swayAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+        Animated.timing(swayAnim, { toValue: -1, duration: 800, useNativeDriver: true }),
+        Animated.timing(swayAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
       ])
     ).start();
   }, []);
-
-  const spin = spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
-
+  const rotate = swayAnim.interpolate({ inputRange: [-1, 1], outputRange: ['-15deg', '15deg'] });
   return (
-    <Animated.View style={{ transform: [{ rotate: spin }, { scale: scaleAnim }] }}>
-      <Svg width={52} height={52} viewBox="0 0 54 54">
-        <Defs>
-          <LinearGradient id="dTop" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0%" stopColor="#a5f3fc" />
-            <Stop offset="100%" stopColor="#3b82f6" />
-          </LinearGradient>
-          <LinearGradient id="dLeft" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0%" stopColor="#1d4ed8" />
-            <Stop offset="100%" stopColor="#6366f1" />
-          </LinearGradient>
-          <LinearGradient id="dRight" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0%" stopColor="#60a5fa" />
-            <Stop offset="100%" stopColor="#93c5fd" />
-          </LinearGradient>
-        </Defs>
-        <Polygon points="27,4 10,22 27,28 44,22" fill="url(#dTop)" opacity="0.95" />
-        <Polygon points="10,22 27,28 27,50" fill="url(#dLeft)" opacity="0.9" />
-        <Polygon points="44,22 27,28 27,50" fill="url(#dRight)" opacity="0.85" />
-        <Polygon points="27,4 10,22 18,14" fill="#bfdbfe" opacity="0.5" />
-        <Polygon points="20,14 27,4 34,14 27,18" fill="white" opacity="0.35" />
+    <Animated.View style={{ transform: [{ rotate }], marginLeft: 5 }}>
+      <Svg width={22} height={22} viewBox="0 0 100 100">
+        {/* Outer dark blue eye shape */}
+        <Ellipse cx="50" cy="50" rx="46" ry="30" fill="#1565C0" />
+        {/* White of eye */}
+        <Ellipse cx="50" cy="50" rx="34" ry="22" fill="#ffffff" />
+        {/* Light blue iris */}
+        <Ellipse cx="50" cy="50" rx="24" ry="16" fill="#42A5F5" />
+        {/* Dark pupil */}
+        <Ellipse cx="50" cy="50" rx="13" ry="13" fill="#1a237e" />
+        {/* Pupil shine */}
+        <Ellipse cx="44" cy="44" rx="4" ry="4" fill="white" opacity="0.85" />
+        {/* Gold top arch highlight */}
+        <Ellipse cx="50" cy="24" rx="10" ry="5" fill="#FFD700" opacity="0.7" />
       </Svg>
     </Animated.View>
   );
@@ -124,18 +112,20 @@ const RoadSVG = () => (
     <Polygon points="192,110 300,110 238,38 150,38" fill="url(#rd2)" opacity="0.85" />
     <Line x1="192" y1="110" x2="150" y2="38" stroke="white" strokeWidth="1" opacity="0.4" />
     <Line x1="300" y1="110" x2="238" y2="38" stroke="white" strokeWidth="1" opacity="0.4" />
+    {/* Small crowd far */}
     <G opacity="0.5">
       <Circle cx="100" cy="55" r="2.5" fill="#556688"/><Rect x="98" y="57.5" width="5" height="7" rx="1" fill="#445577"/>
       <Circle cx="110" cy="56" r="2.5" fill="#667799"/><Rect x="108" y="58.5" width="5" height="7" rx="1" fill="#556688"/>
       <Circle cx="120" cy="55" r="2.5" fill="#556688"/><Rect x="118" y="57.5" width="5" height="7" rx="1" fill="#445577"/>
     </G>
+    {/* Bigger crowd bottom left */}
     <G opacity="0.85">
       <Circle cx="55" cy="80" r="3.5" fill="#334466"/><Rect x="51.5" y="83.5" width="7" height="10" rx="1" fill="#223355"/>
       <Circle cx="68" cy="81" r="3.5" fill="#556688"/><Rect x="64.5" y="84.5" width="7" height="10" rx="1" fill="#445577"/>
       <Circle cx="81" cy="80" r="3.5" fill="#334466"/><Rect x="77.5" y="83.5" width="7" height="10" rx="1" fill="#223355"/>
       <Circle cx="94" cy="81" r="3.5" fill="#667799"/><Rect x="90.5" y="84.5" width="7" height="10" rx="1" fill="#556688"/>
     </G>
-    {/* Diamond placed where person figure was */}
+    {/* Single person on right — original */}
     <Circle cx="212" cy="64" r="4.5" fill="#1a2a4a"/>
     <Rect x="207.5" y="68.5" width="9" height="13" rx="2" fill="#1a2a4a"/>
   </Svg>
@@ -303,27 +293,30 @@ export default function HomeScreen() {
       {/* ACTIVE → DhanMatrix Welcome Card */}
       {isActive && (
         <View style={s.welcomeCard}>
-          {/* Road SVG with diamond floating on top of it */}
-          <View style={s.roadWrapper}>
+          {/* Road — no diamond, person on right stays */}
+          <View style={s.roadTop}>
             <RoadSVG />
-            {/* Diamond overlaid on the road, centered */}
-            <View style={s.diamondOnRoad} pointerEvents="none">
-              <RotatingDiamond />
-            </View>
           </View>
-
           <View style={s.welcomeContent}>
-            <Text style={s.welcomeTitle}>
-              Welcome to <Text style={s.welcomeBrand}>DhanMatrix</Text> family!
-            </Text>
+            {/* Title row with evil eye right after "family!" */}
+            <View style={s.titleRow}>
+              <Text style={s.welcomeTitle}>
+                Welcome to <Text style={s.welcomeBrand}>DhanMatrix</Text> family!
+              </Text>
+              <EvilEye />
+            </View>
             <View style={s.quoteBox}>
               <Text style={s.quoteIcon}>❝</Text>
-              <Text style={s.quoteText}>"No loss is also a profit in trading"</Text>
+              <Text style={s.quoteText}>
+                "<Text style={{ fontWeight: '900' }}>No loss</Text> is also a <Text style={{ fontWeight: '900' }}>profit</Text> in trading"
+              </Text>
               <Text style={s.quoteAuthor}>— DhanMatrix</Text>
             </View>
             <View style={s.quoteBox}>
               <Text style={s.quoteIcon}>❝</Text>
-              <Text style={s.quoteText}>"When everyone is greedy be <Text style={{ fontWeight: '900' }}>fearful</Text>, and when everyone is fearful be <Text style={{ fontWeight: '900' }}>greedy</Text>"</Text>
+              <Text style={s.quoteText}>
+                "When everyone is greedy be <Text style={{ fontWeight: '900' }}>fearful</Text>, and when everyone is fearful be <Text style={{ fontWeight: '900' }}>greedy</Text>"
+              </Text>
               <Text style={s.quoteAuthor}>— Warren Buffett</Text>
             </View>
           </View>
@@ -420,20 +413,16 @@ const s = StyleSheet.create({
   featureLabel: { fontSize: 10, fontWeight: '700', color: '#1e3a5f' },
   subBtn: { backgroundColor: '#3b82f6', borderRadius: 10, padding: 10, alignItems: 'center' },
   subBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
-
-  // Welcome card
   welcomeCard: { borderRadius: 15, overflow: 'hidden', borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
-  roadWrapper: { height: 110, backgroundColor: '#c8d8f0' },
-  // Diamond absolutely centered over the road
-  diamondOnRoad: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
+  roadTop: { backgroundColor: '#c8d8f0', overflow: 'hidden', height: 110 },
   welcomeContent: { backgroundColor: '#fff', padding: 12 },
-  welcomeTitle: { fontSize: 15, fontWeight: '700', color: '#1e3a5f', textAlign: 'center', marginBottom: 10 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 10, flexWrap: 'wrap' },
+  welcomeTitle: { fontSize: 15, fontWeight: '700', color: '#1e3a5f', textAlign: 'center' },
   welcomeBrand: { fontSize: 15, fontWeight: '900', color: '#3b82f6' },
   quoteBox: { backgroundColor: '#eef2ff', borderRadius: 10, padding: 9, marginBottom: 7 },
   quoteIcon: { fontSize: 20, color: '#f59e0b', fontWeight: '900' },
   quoteText: { fontSize: 14, color: '#1e3a5f', fontWeight: '600', lineHeight: 20, textAlign: 'center', marginTop: 3 },
   quoteAuthor: { fontSize: 12, color: '#64748b', fontWeight: '600', textAlign: 'right', marginTop: 4 },
-
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalBox: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 36 },
   modalTitle: { fontSize: 17, fontWeight: '800', color: '#1e3a5f', marginBottom: 4 },
