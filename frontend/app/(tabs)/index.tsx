@@ -15,7 +15,6 @@ interface SegmentStats {
   total: number; profitable: number; losing: number; accuracy: number;
 }
 
-// ── Auto expiry check ──────────────────────────────────────────────────────
 function isSubscriptionActive(userData: any): boolean {
   if (!userData) return false;
   if (userData.status !== 'ACTIVE') return false;
@@ -24,7 +23,6 @@ function isSubscriptionActive(userData: any): boolean {
   end.setHours(23, 59, 59, 999);
   return end >= new Date();
 }
-// ───────────────────────────────────────────────────────────────────────────
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -60,45 +58,99 @@ const DonutGauge = ({ accuracy, size = 100, strokeWidth = 10, fillColor = '#3b82
 };
 
 const RoadSVG = () => (
-  <Svg width="100%" height="80" viewBox="0 0 300 80">
+  <Svg width="100%" height="110" viewBox="0 0 300 110" preserveAspectRatio="xMidYMid slice">
     <Defs>
       <LinearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-        <Stop offset="0%" stopColor="#b8cce8" />
-        <Stop offset="100%" stopColor="#dce8f5" />
+        <Stop offset="0%" stopColor="#b8cce8" /><Stop offset="100%" stopColor="#dce8f5" />
       </LinearGradient>
       <LinearGradient id="rd1" x1="0" y1="0" x2="0" y2="1">
-        <Stop offset="0%" stopColor="#8899aa" />
-        <Stop offset="100%" stopColor="#aabbcc" />
+        <Stop offset="0%" stopColor="#8899aa" /><Stop offset="100%" stopColor="#aabbcc" />
       </LinearGradient>
       <LinearGradient id="rd2" x1="0" y1="0" x2="0" y2="1">
-        <Stop offset="0%" stopColor="#aabbcc" />
-        <Stop offset="100%" stopColor="#bbccdd" />
+        <Stop offset="0%" stopColor="#aabbcc" /><Stop offset="100%" stopColor="#bbccdd" />
       </LinearGradient>
     </Defs>
-    <Rect width="300" height="80" fill="url(#sky)" />
-    <Ellipse cx="150" cy="28" rx="50" ry="18" fill="white" opacity="0.7" />
-    <Ellipse cx="150" cy="28" rx="22" ry="9" fill="white" opacity="0.9" />
-    <Polygon points="0,80 100,80 150,28 65,28" fill="url(#rd1)" opacity="0.85" />
-    <Line x1="0" y1="80" x2="150" y2="28" stroke="white" strokeWidth="1" opacity="0.4" />
-    <Line x1="100" y1="80" x2="150" y2="28" stroke="white" strokeWidth="1" opacity="0.4" />
-    <Polygon points="200,80 300,80 235,28 150,28" fill="url(#rd2)" opacity="0.85" />
-    <Line x1="200" y1="80" x2="150" y2="28" stroke="white" strokeWidth="1" opacity="0.4" />
-    <Line x1="300" y1="80" x2="235" y2="28" stroke="white" strokeWidth="1" opacity="0.4" />
+    <Rect width="300" height="110" fill="url(#sky)" />
+    <Ellipse cx="150" cy="38" rx="55" ry="22" fill="white" opacity="0.7" />
+    <Ellipse cx="150" cy="38" rx="25" ry="10" fill="white" opacity="0.9" />
+    <Polygon points="0,110 108,110 150,38 62,38" fill="url(#rd1)" opacity="0.85" />
+    <Line x1="0" y1="110" x2="150" y2="38" stroke="white" strokeWidth="1" opacity="0.4" />
+    <Line x1="108" y1="110" x2="150" y2="38" stroke="white" strokeWidth="1" opacity="0.4" />
+    <Polygon points="192,110 300,110 238,38 150,38" fill="url(#rd2)" opacity="0.85" />
+    <Line x1="192" y1="110" x2="150" y2="38" stroke="white" strokeWidth="1" opacity="0.4" />
+    <Line x1="300" y1="110" x2="238" y2="38" stroke="white" strokeWidth="1" opacity="0.4" />
     <G opacity="0.5">
-      <Circle cx="92" cy="42" r="2" fill="#556688"/><Rect x="90" y="44" width="4" height="6" rx="1" fill="#445577"/>
-      <Circle cx="100" cy="43" r="2" fill="#667799"/><Rect x="98" y="45" width="4" height="6" rx="1" fill="#556688"/>
-      <Circle cx="108" cy="42" r="2" fill="#556688"/><Rect x="106" y="44" width="4" height="6" rx="1" fill="#445577"/>
+      <Circle cx="100" cy="55" r="2.5" fill="#556688"/><Rect x="98" y="57.5" width="5" height="7" rx="1" fill="#445577"/>
+      <Circle cx="110" cy="56" r="2.5" fill="#667799"/><Rect x="108" y="58.5" width="5" height="7" rx="1" fill="#556688"/>
+      <Circle cx="120" cy="55" r="2.5" fill="#556688"/><Rect x="118" y="57.5" width="5" height="7" rx="1" fill="#445577"/>
     </G>
     <G opacity="0.85">
-      <Circle cx="52" cy="62" r="3" fill="#334466"/><Rect x="49" y="65" width="6" height="9" rx="1" fill="#223355"/>
-      <Circle cx="63" cy="63" r="3" fill="#556688"/><Rect x="60" y="66" width="6" height="9" rx="1" fill="#445577"/>
-      <Circle cx="74" cy="62" r="3" fill="#334466"/><Rect x="71" y="65" width="6" height="9" rx="1" fill="#223355"/>
-      <Circle cx="85" cy="63" r="3" fill="#667799"/><Rect x="82" y="66" width="6" height="9" rx="1" fill="#556688"/>
+      <Circle cx="55" cy="80" r="3.5" fill="#334466"/><Rect x="51.5" y="83.5" width="7" height="10" rx="1" fill="#223355"/>
+      <Circle cx="68" cy="81" r="3.5" fill="#556688"/><Rect x="64.5" y="84.5" width="7" height="10" rx="1" fill="#445577"/>
+      <Circle cx="81" cy="80" r="3.5" fill="#334466"/><Rect x="77.5" y="83.5" width="7" height="10" rx="1" fill="#223355"/>
+      <Circle cx="94" cy="81" r="3.5" fill="#667799"/><Rect x="90.5" y="84.5" width="7" height="10" rx="1" fill="#556688"/>
     </G>
-    <Circle cx="206" cy="50" r="4" fill="#1a2a4a"/>
-    <Rect x="202" y="54" width="8" height="12" rx="1.5" fill="#1a2a4a"/>
+    <Circle cx="212" cy="64" r="4.5" fill="#1a2a4a"/>
+    <Rect x="207.5" y="68.5" width="9" height="13" rx="2" fill="#1a2a4a"/>
   </Svg>
 );
+
+const RotatingDiamond = () => {
+  const spinAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(spinAnim, {
+        toValue: 1,
+        duration: 2500,
+        useNativeDriver: true,
+      })
+    ).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(scaleAnim, { toValue: 1.18, duration: 800, useNativeDriver: true }),
+        Animated.timing(scaleAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+
+  const spin = spinAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  return (
+    <Animated.View style={{ transform: [{ rotate: spin }, { scale: scaleAnim }] }}>
+      <Svg width={54} height={54} viewBox="0 0 54 54">
+        <Defs>
+          <LinearGradient id="dTop" x1="0" y1="0" x2="1" y2="1">
+            <Stop offset="0%" stopColor="#a5f3fc" />
+            <Stop offset="100%" stopColor="#3b82f6" />
+          </LinearGradient>
+          <LinearGradient id="dLeft" x1="0" y1="0" x2="1" y2="1">
+            <Stop offset="0%" stopColor="#1d4ed8" />
+            <Stop offset="100%" stopColor="#6366f1" />
+          </LinearGradient>
+          <LinearGradient id="dRight" x1="0" y1="0" x2="1" y2="1">
+            <Stop offset="0%" stopColor="#60a5fa" />
+            <Stop offset="100%" stopColor="#93c5fd" />
+          </LinearGradient>
+          <LinearGradient id="dBottom" x1="0" y1="0" x2="1" y2="1">
+            <Stop offset="0%" stopColor="#1e3a8a" />
+            <Stop offset="100%" stopColor="#3b82f6" />
+          </LinearGradient>
+        </Defs>
+        <Polygon points="27,4 10,22 27,28 44,22" fill="url(#dTop)" opacity="0.95" />
+        <Polygon points="10,22 27,28 27,50" fill="url(#dLeft)" opacity="0.9" />
+        <Polygon points="44,22 27,28 27,50" fill="url(#dRight)" opacity="0.85" />
+        <Polygon points="27,4 10,22 18,14" fill="#bfdbfe" opacity="0.5" />
+        <Polygon points="20,14 27,4 34,14 27,18" fill="white" opacity="0.35" />
+      </Svg>
+    </Animated.View>
+  );
+};
 
 export default function HomeScreen() {
   const { userData } = useAuth();
@@ -147,7 +199,6 @@ export default function HomeScreen() {
   };
 
   const isActive = isSubscriptionActive(userData);
-
   if (loading) return <View style={s.loading}><ActivityIndicator size="large" color="#3b82f6" /></View>;
 
   return (
@@ -230,7 +281,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* FREE / EXPIRED → Subscription Card */}
+      {/* FREE / EXPIRED → Subscription */}
       {!isActive && (
         <View style={s.subCard}>
           <View style={s.subTop}>
@@ -260,13 +311,16 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* ACTIVE → DhanMatrix Poster Card */}
+      {/* ACTIVE → DhanMatrix Welcome Card */}
       {isActive && (
         <View style={s.welcomeCard}>
           <View style={s.roadTop}>
             <RoadSVG />
           </View>
           <View style={s.welcomeContent}>
+            <View style={s.diamondWrapper}>
+              <RotatingDiamond />
+            </View>
             <Text style={s.welcomeTitle}>
               Welcome to <Text style={s.welcomeBrand}>DhanMatrix</Text> family!
             </Text>
@@ -375,13 +429,14 @@ const s = StyleSheet.create({
   subBtn: { backgroundColor: '#3b82f6', borderRadius: 10, padding: 10, alignItems: 'center' },
   subBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
   welcomeCard: { flex: 1, borderRadius: 15, overflow: 'hidden', borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
-  roadTop: { backgroundColor: '#c8d8f0' },
-  welcomeContent: { flex: 1, backgroundColor: '#fff', padding: 10, justifyContent: 'center' },
-  welcomeTitle: { fontSize: 14, fontWeight: '700', color: '#1e3a5f', textAlign: 'center', marginBottom: 7 },
-  welcomeBrand: { fontSize: 14, fontWeight: '900', color: '#3b82f6' },
-  quoteBox: { backgroundColor: '#eef2ff', borderRadius: 10, padding: 9, marginBottom: 6 },
+  roadTop: { backgroundColor: '#c8d8f0', overflow: 'hidden', height: 110 },
+  welcomeContent: { flex: 1, backgroundColor: '#fff', padding: 12 },
+  diamondWrapper: { alignItems: 'center', marginBottom: 8, marginTop: 2 },
+  welcomeTitle: { fontSize: 15, fontWeight: '700', color: '#1e3a5f', textAlign: 'center', marginBottom: 10 },
+  welcomeBrand: { fontSize: 15, fontWeight: '900', color: '#3b82f6' },
+  quoteBox: { backgroundColor: '#eef2ff', borderRadius: 10, padding: 9, marginBottom: 7 },
   quoteIcon: { fontSize: 20, color: '#f59e0b', fontWeight: '900' },
-  quoteText: { fontSize: 13, color: '#1e3a5f', fontWeight: '600', lineHeight: 19, textAlign: 'center', marginTop: 3 },
+  quoteText: { fontSize: 14, color: '#1e3a5f', fontWeight: '600', lineHeight: 20, textAlign: 'center', marginTop: 3 },
   quoteAuthor: { fontSize: 12, color: '#64748b', fontWeight: '600', textAlign: 'right', marginTop: 4 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalBox: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 36 },
