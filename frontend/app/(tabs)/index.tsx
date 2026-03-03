@@ -57,6 +57,51 @@ const DonutGauge = ({ accuracy, size = 100, strokeWidth = 10, fillColor = '#3b82
   );
 };
 
+const RotatingDiamond = () => {
+  const spinAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(spinAnim, { toValue: 1, duration: 2500, useNativeDriver: true })
+    ).start();
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(scaleAnim, { toValue: 1.15, duration: 900, useNativeDriver: true }),
+        Animated.timing(scaleAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+
+  const spin = spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+
+  return (
+    <Animated.View style={{ transform: [{ rotate: spin }, { scale: scaleAnim }] }}>
+      <Svg width={52} height={52} viewBox="0 0 54 54">
+        <Defs>
+          <LinearGradient id="dTop" x1="0" y1="0" x2="1" y2="1">
+            <Stop offset="0%" stopColor="#a5f3fc" />
+            <Stop offset="100%" stopColor="#3b82f6" />
+          </LinearGradient>
+          <LinearGradient id="dLeft" x1="0" y1="0" x2="1" y2="1">
+            <Stop offset="0%" stopColor="#1d4ed8" />
+            <Stop offset="100%" stopColor="#6366f1" />
+          </LinearGradient>
+          <LinearGradient id="dRight" x1="0" y1="0" x2="1" y2="1">
+            <Stop offset="0%" stopColor="#60a5fa" />
+            <Stop offset="100%" stopColor="#93c5fd" />
+          </LinearGradient>
+        </Defs>
+        <Polygon points="27,4 10,22 27,28 44,22" fill="url(#dTop)" opacity="0.95" />
+        <Polygon points="10,22 27,28 27,50" fill="url(#dLeft)" opacity="0.9" />
+        <Polygon points="44,22 27,28 27,50" fill="url(#dRight)" opacity="0.85" />
+        <Polygon points="27,4 10,22 18,14" fill="#bfdbfe" opacity="0.5" />
+        <Polygon points="20,14 27,4 34,14 27,18" fill="white" opacity="0.35" />
+      </Svg>
+    </Animated.View>
+  );
+};
+
 const RoadSVG = () => (
   <Svg width="100%" height="110" viewBox="0 0 300 110" preserveAspectRatio="xMidYMid slice">
     <Defs>
@@ -90,6 +135,7 @@ const RoadSVG = () => (
       <Circle cx="81" cy="80" r="3.5" fill="#334466"/><Rect x="77.5" y="83.5" width="7" height="10" rx="1" fill="#223355"/>
       <Circle cx="94" cy="81" r="3.5" fill="#667799"/><Rect x="90.5" y="84.5" width="7" height="10" rx="1" fill="#556688"/>
     </G>
+    {/* Diamond placed where person figure was */}
     <Circle cx="212" cy="64" r="4.5" fill="#1a2a4a"/>
     <Rect x="207.5" y="68.5" width="9" height="13" rx="2" fill="#1a2a4a"/>
   </Svg>
@@ -257,19 +303,25 @@ export default function HomeScreen() {
       {/* ACTIVE → DhanMatrix Welcome Card */}
       {isActive && (
         <View style={s.welcomeCard}>
-          <View style={s.roadTop}>
+          {/* Road SVG with diamond floating on top of it */}
+          <View style={s.roadWrapper}>
             <RoadSVG />
+            {/* Diamond overlaid on the road, centered */}
+            <View style={s.diamondOnRoad} pointerEvents="none">
+              <RotatingDiamond />
+            </View>
           </View>
+
           <View style={s.welcomeContent}>
             <Text style={s.welcomeTitle}>
-              Welcome to <Text style={s.welcomeBrand}>DhanMatrix</Text> family! 💎
+              Welcome to <Text style={s.welcomeBrand}>DhanMatrix</Text> family!
             </Text>
             <View style={s.quoteBox}>
               <Text style={s.quoteIcon}>❝</Text>
               <Text style={s.quoteText}>"No loss is also a profit in trading"</Text>
               <Text style={s.quoteAuthor}>— DhanMatrix</Text>
             </View>
-            <View style={[s.quoteBox, { marginBottom: 0 }]}>
+            <View style={s.quoteBox}>
               <Text style={s.quoteIcon}>❝</Text>
               <Text style={s.quoteText}>"When everyone is greedy be <Text style={{ fontWeight: '900' }}>fearful</Text>, and when everyone is fearful be <Text style={{ fontWeight: '900' }}>greedy</Text>"</Text>
               <Text style={s.quoteAuthor}>— Warren Buffett</Text>
@@ -368,15 +420,20 @@ const s = StyleSheet.create({
   featureLabel: { fontSize: 10, fontWeight: '700', color: '#1e3a5f' },
   subBtn: { backgroundColor: '#3b82f6', borderRadius: 10, padding: 10, alignItems: 'center' },
   subBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
-  welcomeCard: { flex: 1, borderRadius: 15, overflow: 'hidden', borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
-  roadTop: { backgroundColor: '#c8d8f0', overflow: 'hidden', height: 110 },
-  welcomeContent: { flex: 1, backgroundColor: '#fff', padding: 12 },
+
+  // Welcome card
+  welcomeCard: { borderRadius: 15, overflow: 'hidden', borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
+  roadWrapper: { height: 110, backgroundColor: '#c8d8f0' },
+  // Diamond absolutely centered over the road
+  diamondOnRoad: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
+  welcomeContent: { backgroundColor: '#fff', padding: 12 },
   welcomeTitle: { fontSize: 15, fontWeight: '700', color: '#1e3a5f', textAlign: 'center', marginBottom: 10 },
   welcomeBrand: { fontSize: 15, fontWeight: '900', color: '#3b82f6' },
   quoteBox: { backgroundColor: '#eef2ff', borderRadius: 10, padding: 9, marginBottom: 7 },
   quoteIcon: { fontSize: 20, color: '#f59e0b', fontWeight: '900' },
   quoteText: { fontSize: 14, color: '#1e3a5f', fontWeight: '600', lineHeight: 20, textAlign: 'center', marginTop: 3 },
   quoteAuthor: { fontSize: 12, color: '#64748b', fontWeight: '600', textAlign: 'right', marginTop: 4 },
+
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalBox: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 36 },
   modalTitle: { fontSize: 17, fontWeight: '800', color: '#1e3a5f', marginBottom: 4 },
