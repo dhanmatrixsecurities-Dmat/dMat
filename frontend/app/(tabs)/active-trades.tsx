@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, RefreshControl,
-  TouchableOpacity, ActivityIndicator, Animated, ScrollView,
+  TouchableOpacity, ActivityIndicator, Animated,
 } from 'react-native';
 import { collection, query, onSnapshot, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
@@ -36,6 +36,17 @@ interface Trade {
   createdAt: string;
   segment?: Segment;
 }
+
+// ── Auto expiry check ──────────────────────────────────────────────────────
+function isSubscriptionActive(userData: any): boolean {
+  if (!userData) return false;
+  if (userData.status !== 'ACTIVE') return false;
+  if (!userData.subscriptionEndDate) return false;
+  const end = new Date(userData.subscriptionEndDate);
+  end.setHours(23, 59, 59, 999);
+  return end >= new Date();
+}
+// ───────────────────────────────────────────────────────────────────────────
 
 function SubscriptionBanner({ endDate }: { endDate?: string }) {
   const blinkAnim = useRef(new Animated.Value(1)).current;
@@ -87,7 +98,7 @@ export default function ActiveTrades() {
   }, []);
 
   useEffect(() => {
-    if (userData?.status !== 'ACTIVE') { setLoading(false); return; }
+    if (!isSubscriptionActive(userData)) { setLoading(false); return; }
 
     const q = query(collection(db, 'activeTrades'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -256,7 +267,7 @@ export default function ActiveTrades() {
     );
   }
 
-  if (userData?.status === 'FREE') {
+  if (!isSubscriptionActive(userData)) {
     return (
       <View style={styles.centerContainer}>
         <Ionicons name="star" size={80} color={Colors.warning} />
