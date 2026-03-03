@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator, Animated, TouchableOpacity,
-  Linking, Modal, TextInput, KeyboardAvoidingView, Platform,
+  Linking, Modal, TextInput, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
@@ -57,33 +57,26 @@ const DonutGauge = ({ accuracy, size = 100, strokeWidth = 10, fillColor = '#3b82
   );
 };
 
-// Evil Eye / Nazar component
 const EvilEye = () => {
   const swayAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(swayAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
-        Animated.timing(swayAnim, { toValue: -1, duration: 800, useNativeDriver: true }),
-        Animated.timing(swayAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
+        Animated.timing(swayAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(swayAnim, { toValue: -1, duration: 700, useNativeDriver: true }),
+        Animated.timing(swayAnim, { toValue: 0, duration: 350, useNativeDriver: true }),
       ])
     ).start();
   }, []);
   const rotate = swayAnim.interpolate({ inputRange: [-1, 1], outputRange: ['-15deg', '15deg'] });
   return (
-    <Animated.View style={{ transform: [{ rotate }], marginLeft: 5 }}>
+    <Animated.View style={{ transform: [{ rotate }], marginLeft: 4 }}>
       <Svg width={22} height={22} viewBox="0 0 100 100">
-        {/* Outer dark blue eye shape */}
         <Ellipse cx="50" cy="50" rx="46" ry="30" fill="#1565C0" />
-        {/* White of eye */}
         <Ellipse cx="50" cy="50" rx="34" ry="22" fill="#ffffff" />
-        {/* Light blue iris */}
         <Ellipse cx="50" cy="50" rx="24" ry="16" fill="#42A5F5" />
-        {/* Dark pupil */}
         <Ellipse cx="50" cy="50" rx="13" ry="13" fill="#1a237e" />
-        {/* Pupil shine */}
         <Ellipse cx="44" cy="44" rx="4" ry="4" fill="white" opacity="0.85" />
-        {/* Gold top arch highlight */}
         <Ellipse cx="50" cy="24" rx="10" ry="5" fill="#FFD700" opacity="0.7" />
       </Svg>
     </Animated.View>
@@ -112,20 +105,18 @@ const RoadSVG = () => (
     <Polygon points="192,110 300,110 238,38 150,38" fill="url(#rd2)" opacity="0.85" />
     <Line x1="192" y1="110" x2="150" y2="38" stroke="white" strokeWidth="1" opacity="0.4" />
     <Line x1="300" y1="110" x2="238" y2="38" stroke="white" strokeWidth="1" opacity="0.4" />
-    {/* Small crowd far */}
     <G opacity="0.5">
       <Circle cx="100" cy="55" r="2.5" fill="#556688"/><Rect x="98" y="57.5" width="5" height="7" rx="1" fill="#445577"/>
       <Circle cx="110" cy="56" r="2.5" fill="#667799"/><Rect x="108" y="58.5" width="5" height="7" rx="1" fill="#556688"/>
       <Circle cx="120" cy="55" r="2.5" fill="#556688"/><Rect x="118" y="57.5" width="5" height="7" rx="1" fill="#445577"/>
     </G>
-    {/* Bigger crowd bottom left */}
     <G opacity="0.85">
       <Circle cx="55" cy="80" r="3.5" fill="#334466"/><Rect x="51.5" y="83.5" width="7" height="10" rx="1" fill="#223355"/>
       <Circle cx="68" cy="81" r="3.5" fill="#556688"/><Rect x="64.5" y="84.5" width="7" height="10" rx="1" fill="#445577"/>
       <Circle cx="81" cy="80" r="3.5" fill="#334466"/><Rect x="77.5" y="83.5" width="7" height="10" rx="1" fill="#223355"/>
       <Circle cx="94" cy="81" r="3.5" fill="#667799"/><Rect x="90.5" y="84.5" width="7" height="10" rx="1" fill="#556688"/>
     </G>
-    {/* Single person on right — original */}
+    {/* Single person on right */}
     <Circle cx="212" cy="64" r="4.5" fill="#1a2a4a"/>
     <Rect x="207.5" y="68.5" width="9" height="13" rx="2" fill="#1a2a4a"/>
   </Svg>
@@ -181,7 +172,7 @@ export default function HomeScreen() {
   if (loading) return <View style={s.loading}><ActivityIndicator size="large" color="#3b82f6" /></View>;
 
   return (
-    <View style={s.container}>
+    <ScrollView style={{ flex: 1, backgroundColor: '#eef1f8' }} contentContainerStyle={s.container} showsVerticalScrollIndicator={false}>
 
       {/* Overall */}
       <View style={s.overallCard}>
@@ -293,18 +284,19 @@ export default function HomeScreen() {
       {/* ACTIVE → DhanMatrix Welcome Card */}
       {isActive && (
         <View style={s.welcomeCard}>
-          {/* Road — no diamond, person on right stays */}
           <View style={s.roadTop}>
             <RoadSVG />
           </View>
           <View style={s.welcomeContent}>
-            {/* Title row with evil eye right after "family!" */}
+            {/* Title + evil eye */}
             <View style={s.titleRow}>
               <Text style={s.welcomeTitle}>
                 Welcome to <Text style={s.welcomeBrand}>DhanMatrix</Text> family!
               </Text>
               <EvilEye />
             </View>
+
+            {/* Quote 1 */}
             <View style={s.quoteBox}>
               <Text style={s.quoteIcon}>❝</Text>
               <Text style={s.quoteText}>
@@ -312,6 +304,8 @@ export default function HomeScreen() {
               </Text>
               <Text style={s.quoteAuthor}>— DhanMatrix</Text>
             </View>
+
+            {/* Quote 2 */}
             <View style={s.quoteBox}>
               <Text style={s.quoteIcon}>❝</Text>
               <Text style={s.quoteText}>
@@ -322,6 +316,9 @@ export default function HomeScreen() {
           </View>
         </View>
       )}
+
+      {/* Bottom padding */}
+      <View style={{ height: 16 }} />
 
       {/* Form Modal */}
       <Modal visible={showForm} transparent animationType="slide">
@@ -358,13 +355,14 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
-    </View>
+    </ScrollView>
   );
 }
 
 const s = StyleSheet.create({
   loading: { flex: 1, backgroundColor: '#eef1f8', alignItems: 'center', justifyContent: 'center' },
-  container: { flex: 1, backgroundColor: '#eef1f8', padding: 10, gap: 8 },
+  container: { backgroundColor: '#eef1f8', padding: 10, gap: 8 },
+
   overallCard: { backgroundColor: '#fff', borderRadius: 16, padding: 10, alignItems: 'center', elevation: 3, shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
   overallTitle: { fontSize: 15, fontWeight: '800', color: '#1e3a5f', marginBottom: 6 },
   divider: { width: '100%', height: 1, backgroundColor: '#e2e8f0', marginVertical: 6 },
@@ -373,6 +371,7 @@ const s = StyleSheet.create({
   statLabel: { fontSize: 11, color: '#64748b', fontWeight: '600', marginBottom: 1 },
   statVal: { fontSize: 24, fontWeight: '900' },
   sep: { width: 1, backgroundColor: '#e2e8f0' },
+
   segRow: { flexDirection: 'row', gap: 7 },
   segCard: { flex: 1, backgroundColor: '#fff', borderRadius: 13, padding: 7, alignItems: 'center', borderTopWidth: 4, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
   segTitle: { fontSize: 10, fontWeight: '800', color: '#1e3a5f', marginBottom: 3 },
@@ -382,6 +381,7 @@ const s = StyleSheet.create({
   segStatLabel: { fontSize: 10, color: '#64748b', fontWeight: '600' },
   segStatVal: { fontSize: 14, fontWeight: '900' },
   segSep: { width: 1, backgroundColor: '#e2e8f0' },
+
   quickRow: { flexDirection: 'row', gap: 7 },
   quickCard: { flex: 1, backgroundColor: '#fff', borderRadius: 13, padding: 9, flexDirection: 'row', alignItems: 'center', borderLeftWidth: 4, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
   quickIcon: { width: 34, height: 34, borderRadius: 8, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', marginRight: 7 },
@@ -390,6 +390,7 @@ const s = StyleSheet.create({
   quickTitle: { fontSize: 13, fontWeight: '800', color: '#1e3a5f' },
   quickSub: { fontSize: 10, color: '#64748b', marginTop: 1 },
   quickArrow: { fontSize: 22, color: '#94a3b8' },
+
   portfolioCard: { backgroundColor: '#eef3ff', borderRadius: 14, padding: 11, flexDirection: 'row', alignItems: 'center', borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
   portfolioEmoji: { fontSize: 28, marginRight: 10 },
   portfolioText: { flex: 1 },
@@ -397,7 +398,8 @@ const s = StyleSheet.create({
   portfolioSub: { fontSize: 10, color: '#64748b', marginTop: 2 },
   checkBtn: { backgroundColor: '#3b82f6', borderRadius: 8, paddingHorizontal: 11, paddingVertical: 7 },
   checkBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  subCard: { flex: 1, backgroundColor: '#fff', borderRadius: 15, padding: 11, borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
+
+  subCard: { backgroundColor: '#fff', borderRadius: 15, padding: 11, borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
   subTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   subLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   crown: { fontSize: 20 },
@@ -413,9 +415,11 @@ const s = StyleSheet.create({
   featureLabel: { fontSize: 10, fontWeight: '700', color: '#1e3a5f' },
   subBtn: { backgroundColor: '#3b82f6', borderRadius: 10, padding: 10, alignItems: 'center' },
   subBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
-  welcomeCard: { borderRadius: 15, overflow: 'hidden', borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
-  roadTop: { backgroundColor: '#c8d8f0', overflow: 'hidden', height: 110 },
-  welcomeContent: { backgroundColor: '#fff', padding: 12 },
+
+  // ✅ KEY FIX: no flex:1, no overflow:hidden — card sizes to content
+  welcomeCard: { borderRadius: 15, borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
+  roadTop: { backgroundColor: '#c8d8f0', overflow: 'hidden', height: 110, borderTopLeftRadius: 15, borderTopRightRadius: 15 },
+  welcomeContent: { backgroundColor: '#fff', padding: 12, borderBottomLeftRadius: 15, borderBottomRightRadius: 15 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 10, flexWrap: 'wrap' },
   welcomeTitle: { fontSize: 15, fontWeight: '700', color: '#1e3a5f', textAlign: 'center' },
   welcomeBrand: { fontSize: 15, fontWeight: '900', color: '#3b82f6' },
@@ -423,6 +427,7 @@ const s = StyleSheet.create({
   quoteIcon: { fontSize: 20, color: '#f59e0b', fontWeight: '900' },
   quoteText: { fontSize: 14, color: '#1e3a5f', fontWeight: '600', lineHeight: 20, textAlign: 'center', marginTop: 3 },
   quoteAuthor: { fontSize: 12, color: '#64748b', fontWeight: '600', textAlign: 'right', marginTop: 4 },
+
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalBox: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 36 },
   modalTitle: { fontSize: 17, fontWeight: '800', color: '#1e3a5f', marginBottom: 4 },
