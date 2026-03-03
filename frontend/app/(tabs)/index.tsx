@@ -84,7 +84,7 @@ const EvilEye = () => {
 };
 
 const RoadSVG = () => (
-  <Svg width="100%" height="80" viewBox="0 0 300 110" preserveAspectRatio="xMidYMid slice">
+  <Svg width="100%" height="75" viewBox="0 0 300 110" preserveAspectRatio="xMidYMid slice">
     <Defs>
       <LinearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
         <Stop offset="0%" stopColor="#b8cce8" /><Stop offset="100%" stopColor="#dce8f5" />
@@ -173,10 +173,10 @@ export default function HomeScreen() {
   return (
     <View style={s.container}>
 
-      {/* Overall */}
+      {/* Overall — ORIGINAL SIZE */}
       <View style={s.overallCard}>
         <Text style={s.overallTitle}>Overall Performance</Text>
-        <DonutGauge accuracy={overall.accuracy} size={85} strokeWidth={9} fillColor="#3b82f6" />
+        <DonutGauge accuracy={overall.accuracy} size={90} strokeWidth={10} fillColor="#3b82f6" />
         <View style={s.divider} />
         <View style={s.overallRow}>
           <View style={s.overallStat}>
@@ -191,7 +191,7 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Segments */}
+      {/* Segments — ORIGINAL SIZE */}
       <View style={s.segRow}>
         {[
           { label: 'Equity', stats: equity, color: '#22c55e' },
@@ -200,7 +200,7 @@ export default function HomeScreen() {
         ].map((seg) => (
           <View key={seg.label} style={[s.segCard, { borderTopColor: seg.color }]}>
             <Text style={s.segTitle}>{seg.label}</Text>
-            <DonutGauge accuracy={seg.stats.accuracy} size={60} strokeWidth={7} fillColor={seg.color} />
+            <DonutGauge accuracy={seg.stats.accuracy} size={65} strokeWidth={7} fillColor={seg.color} />
             <View style={s.segDivider} />
             <View style={s.segRow2}>
               <View style={s.segStat}>
@@ -217,7 +217,7 @@ export default function HomeScreen() {
         ))}
       </View>
 
-      {/* IPO & Mutual Fund */}
+      {/* IPO & Mutual Fund — ORIGINAL SIZE */}
       <View style={s.quickRow}>
         <TouchableOpacity style={[s.quickCard, { borderLeftColor: '#3b82f6' }]}
           onPress={() => Linking.openURL('https://www.nseindia.com/market-data/all-upcoming-issues-ipo')} activeOpacity={0.85}>
@@ -238,7 +238,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Portfolio Checkup */}
+      {/* Portfolio Checkup — ORIGINAL SIZE */}
       <View style={s.portfolioCard}>
         <Text style={s.portfolioEmoji}>🩺</Text>
         <View style={s.portfolioText}>
@@ -280,14 +280,12 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* ACTIVE → DhanMatrix Welcome Card */}
+      {/* ACTIVE → Welcome Card — flex:1 fills only remaining space */}
       {isActive && (
         <View style={s.welcomeCard}>
-          {/* Road */}
           <View style={s.roadTop}>
             <RoadSVG />
           </View>
-          {/* Content */}
           <View style={s.welcomeContent}>
             <View style={s.titleRow}>
               <Text style={s.welcomeTitle}>
@@ -354,45 +352,46 @@ export default function HomeScreen() {
 
 const s = StyleSheet.create({
   loading: { flex: 1, backgroundColor: '#eef1f8', alignItems: 'center', justifyContent: 'center' },
-  container: { flex: 1, backgroundColor: '#eef1f8', padding: 8, gap: 6 },
+  container: { flex: 1, backgroundColor: '#eef1f8', padding: 10, gap: 8 },
 
-  overallCard: { backgroundColor: '#fff', borderRadius: 14, padding: 8, alignItems: 'center', elevation: 3, shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
-  overallTitle: { fontSize: 14, fontWeight: '800', color: '#1e3a5f', marginBottom: 4 },
-  divider: { width: '100%', height: 1, backgroundColor: '#e2e8f0', marginVertical: 4 },
+  // ── ORIGINAL sizes for all top cards ──
+  overallCard: { backgroundColor: '#fff', borderRadius: 16, padding: 10, alignItems: 'center', elevation: 3, shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
+  overallTitle: { fontSize: 15, fontWeight: '800', color: '#1e3a5f', marginBottom: 6 },
+  divider: { width: '100%', height: 1, backgroundColor: '#e2e8f0', marginVertical: 6 },
   overallRow: { flexDirection: 'row', width: '100%' },
   overallStat: { flex: 1, alignItems: 'center' },
   statLabel: { fontSize: 11, color: '#64748b', fontWeight: '600', marginBottom: 1 },
-  statVal: { fontSize: 22, fontWeight: '900' },
+  statVal: { fontSize: 24, fontWeight: '900' },
   sep: { width: 1, backgroundColor: '#e2e8f0' },
 
-  segRow: { flexDirection: 'row', gap: 6 },
-  segCard: { flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 6, alignItems: 'center', borderTopWidth: 4, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
-  segTitle: { fontSize: 10, fontWeight: '800', color: '#1e3a5f', marginBottom: 2 },
-  segDivider: { width: '100%', height: 1, backgroundColor: '#e2e8f0', marginVertical: 3 },
+  segRow: { flexDirection: 'row', gap: 7 },
+  segCard: { flex: 1, backgroundColor: '#fff', borderRadius: 13, padding: 7, alignItems: 'center', borderTopWidth: 4, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
+  segTitle: { fontSize: 10, fontWeight: '800', color: '#1e3a5f', marginBottom: 3 },
+  segDivider: { width: '100%', height: 1, backgroundColor: '#e2e8f0', marginVertical: 4 },
   segRow2: { flexDirection: 'row', width: '100%' },
   segStat: { flex: 1, alignItems: 'center' },
   segStatLabel: { fontSize: 10, color: '#64748b', fontWeight: '600' },
-  segStatVal: { fontSize: 13, fontWeight: '900' },
+  segStatVal: { fontSize: 14, fontWeight: '900' },
   segSep: { width: 1, backgroundColor: '#e2e8f0' },
 
-  quickRow: { flexDirection: 'row', gap: 6 },
-  quickCard: { flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 8, flexDirection: 'row', alignItems: 'center', borderLeftWidth: 4, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
-  quickIcon: { width: 30, height: 30, borderRadius: 7, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', marginRight: 6 },
-  quickEmoji: { fontSize: 15 },
+  quickRow: { flexDirection: 'row', gap: 7 },
+  quickCard: { flex: 1, backgroundColor: '#fff', borderRadius: 13, padding: 9, flexDirection: 'row', alignItems: 'center', borderLeftWidth: 4, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
+  quickIcon: { width: 34, height: 34, borderRadius: 8, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', marginRight: 7 },
+  quickEmoji: { fontSize: 17 },
   quickText: { flex: 1 },
-  quickTitle: { fontSize: 12, fontWeight: '800', color: '#1e3a5f' },
-  quickSub: { fontSize: 9, color: '#64748b', marginTop: 1 },
-  quickArrow: { fontSize: 20, color: '#94a3b8' },
+  quickTitle: { fontSize: 13, fontWeight: '800', color: '#1e3a5f' },
+  quickSub: { fontSize: 10, color: '#64748b', marginTop: 1 },
+  quickArrow: { fontSize: 22, color: '#94a3b8' },
 
-  portfolioCard: { backgroundColor: '#eef3ff', borderRadius: 12, padding: 9, flexDirection: 'row', alignItems: 'center', borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
-  portfolioEmoji: { fontSize: 24, marginRight: 8 },
+  portfolioCard: { backgroundColor: '#eef3ff', borderRadius: 14, padding: 11, flexDirection: 'row', alignItems: 'center', borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
+  portfolioEmoji: { fontSize: 28, marginRight: 10 },
   portfolioText: { flex: 1 },
-  portfolioTitle: { fontSize: 11, fontWeight: '800', color: '#1e3a5f' },
-  portfolioSub: { fontSize: 9, color: '#64748b', marginTop: 1 },
-  checkBtn: { backgroundColor: '#3b82f6', borderRadius: 7, paddingHorizontal: 10, paddingVertical: 6 },
-  checkBtnText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  portfolioTitle: { fontSize: 12, fontWeight: '800', color: '#1e3a5f' },
+  portfolioSub: { fontSize: 10, color: '#64748b', marginTop: 2 },
+  checkBtn: { backgroundColor: '#3b82f6', borderRadius: 8, paddingHorizontal: 11, paddingVertical: 7 },
+  checkBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
 
-  subCard: { flex: 1, backgroundColor: '#fff', borderRadius: 13, padding: 10, borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
+  subCard: { flex: 1, backgroundColor: '#fff', borderRadius: 15, padding: 11, borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
   subTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   subLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   crown: { fontSize: 20 },
@@ -400,26 +399,25 @@ const s = StyleSheet.create({
   subRight: { flexDirection: 'row', alignItems: 'center' },
   gst: { fontSize: 10, color: '#64748b', fontWeight: '600' },
   price: { fontSize: 17, fontWeight: '900', color: '#1e3a5f' },
-  planLabel: { fontSize: 10, color: '#94a3b8', fontWeight: '600', marginTop: 2, marginBottom: 6 },
-  subDivider: { height: 1, backgroundColor: '#e2e8f0', marginBottom: 7 },
-  features: { flexDirection: 'row', gap: 6, marginBottom: 8 },
-  featurePill: { flex: 1, backgroundColor: '#f5f7fc', borderRadius: 8, padding: 6, alignItems: 'center' },
-  featureIcon: { fontSize: 14, marginBottom: 2 },
+  planLabel: { fontSize: 10, color: '#94a3b8', fontWeight: '600', marginTop: 2, marginBottom: 7 },
+  subDivider: { height: 1, backgroundColor: '#e2e8f0', marginBottom: 8 },
+  features: { flexDirection: 'row', gap: 7, marginBottom: 9 },
+  featurePill: { flex: 1, backgroundColor: '#f5f7fc', borderRadius: 9, padding: 7, alignItems: 'center' },
+  featureIcon: { fontSize: 15, marginBottom: 3 },
   featureLabel: { fontSize: 10, fontWeight: '700', color: '#1e3a5f' },
   subBtn: { backgroundColor: '#3b82f6', borderRadius: 10, padding: 10, alignItems: 'center' },
   subBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
 
-  // ✅ flex:1 fills remaining space, overflow:hidden clips road corners
+  // ── Welcome card: flex:1 fills ONLY leftover space, content is compact ──
   welcomeCard: { flex: 1, borderRadius: 13, overflow: 'hidden', borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
-  roadTop: { height: 80, backgroundColor: '#c8d8f0' },
-  // ✅ flex:1 + justifyContent space-evenly = both quotes always visible, never clipped
-  welcomeContent: { flex: 1, backgroundColor: '#fff', padding: 8, justifyContent: 'space-evenly' },
+  roadTop: { height: 75, backgroundColor: '#c8d8f0' },
+  welcomeContent: { flex: 1, backgroundColor: '#fff', paddingHorizontal: 10, paddingVertical: 6, justifyContent: 'space-evenly' },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' },
   welcomeTitle: { fontSize: 13, fontWeight: '700', color: '#1e3a5f', textAlign: 'center' },
   welcomeBrand: { fontSize: 13, fontWeight: '900', color: '#3b82f6' },
-  quoteBox: { backgroundColor: '#eef2ff', borderRadius: 8, padding: 7 },
-  quoteIcon: { fontSize: 14, color: '#f59e0b' },
-  quoteText: { fontSize: 11, color: '#1e3a5f', fontWeight: '600', lineHeight: 16, textAlign: 'center', marginTop: 2 },
+  quoteBox: { backgroundColor: '#eef2ff', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5 },
+  quoteIcon: { fontSize: 13, color: '#f59e0b' },
+  quoteText: { fontSize: 11, color: '#1e3a5f', fontWeight: '600', lineHeight: 15, textAlign: 'center', marginTop: 1 },
   quoteAuthor: { fontSize: 10, color: '#64748b', fontWeight: '600', textAlign: 'right', marginTop: 2 },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
