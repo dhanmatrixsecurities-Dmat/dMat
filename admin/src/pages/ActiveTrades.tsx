@@ -10,7 +10,6 @@ import {
   query,
   orderBy,
   serverTimestamp,
-  getDocs,
 } from 'firebase/firestore';
 
 type TradeType = 'Equity' | 'Futures' | 'Options';
@@ -49,61 +48,15 @@ const emptyForm = {
   status: 'active',
 };
 
-// ✅ Send push notification to all users via Expo Push API (FREE - no backend needed)
-const sendPushNotification = async (
-  symbol: string,
-  action: string,
-  entryPrice: string,
-  targetPrice: string
-) => {
-  try {
-    const usersSnapshot = await getDocs(collection(db, 'users'));
-    const tokens = usersSnapshot.docs
-      .map((d) => d.data().fcmToken)
-      .filter((t) => t && t.startsWith('ExponentPushToken'));
-
-    if (tokens.length === 0) {
-      console.log('No tokens found');
-      return;
-    }
-
-    const messages = tokens.map((token) => ({
-      to: token,
-      title: `New ${action} Trade Alert! 🚀`,
-      body: `${symbol} | Entry: ₹${entryPrice} | Target: ₹${targetPrice}`,
-      sound: 'default',
-      priority: 'high',
-      channelId: 'default',
-    }));
-
-    const response = await fetch('https://exp.host/--/api/v2/push/send', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Accept-Encoding': 'gzip, deflate',
-      },
-      body: JSON.stringify(messages),
-    });
-
-    const result = await response.json();
-    console.log(`✅ Notifications sent to ${tokens.length} users`, result);
-  } catch (err) {
-    console.error('Notification error:', err);
-  }
-};
-
 export default function AdminActiveTrades() {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'active' | 'all'>('active');
-  const [notifStatus, setNotifStatus] = useState<string>('');
 
   useEffect(() => {
-    // ✅ FIXED: Listen to activeTrades collection (same as frontend)
-    const q = query(collection(db, 'activeTrades'), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, 'trades'), orderBy('createdAt', 'desc'));
     const unsub = onSnapshot(q, (snap) => {
       setTrades(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Trade)));
     });
@@ -116,7 +69,6 @@ export default function AdminActiveTrades() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setNotifStatus('');
     try {
       const payload: any = {
         symbol: form.symbol.toUpperCase(),
@@ -135,29 +87,15 @@ export default function AdminActiveTrades() {
       if (isOptions) payload.optionType = form.optionType;
 
       if (editId) {
-        // ✅ FIXED: Update in activeTrades collection
-        await updateDoc(doc(db, 'activeTrades', editId), payload);
+        await updateDoc(doc(db, 'trades', editId), payload);
         setEditId(null);
       } else {
-        // ✅ FIXED: Add to activeTrades collection
         payload.createdAt = serverTimestamp();
-        await addDoc(collection(db, 'activeTrades'), payload);
-
-        // ✅ Send push notification to all users
-        setNotifStatus('Sending notifications...');
-        await sendPushNotification(
-          form.symbol.toUpperCase(),
-          form.action,
-          form.entryPrice,
-          form.targetPrice
-        );
-        setNotifStatus('✅ Notifications sent!');
-        setTimeout(() => setNotifStatus(''), 3000);
+        await addDoc(collection(db, 'trades'), payload);
       }
       setForm(emptyForm);
     } catch (err) {
       console.error(err);
-      setNotifStatus('❌ Error occurred');
     }
     setLoading(false);
   };
@@ -183,13 +121,11 @@ export default function AdminActiveTrades() {
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Delete this trade?')) return;
-    // ✅ FIXED: Delete from activeTrades collection
-    await deleteDoc(doc(db, 'activeTrades', id));
+    await deleteDoc(doc(db, 'trades', id));
   };
 
   const handleClose = async (id: string) => {
-    // ✅ FIXED: Update in activeTrades collection
-    await updateDoc(doc(db, 'activeTrades', id), { status: 'closed' });
+    await updateDoc(doc(db, 'trades', id), { status: 'closed' });
   };
 
   const displayTrades = activeTab === 'active'
@@ -204,12 +140,14 @@ export default function AdminActiveTrades() {
       <div className="max-w-6xl mx-auto">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">📊 Manage Active Trades</h1>
 
+        {/* ── FORM ─────────────────────────────────────────── */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
           <h2 className="text-lg font-bold text-gray-800 mb-5">
             {editId ? '✏️ Edit Trade' : '➕ Add New Trade'}
           </h2>
 
           <form onSubmit={handleSubmit}>
+            {/* Row 1: Symbol, Type, Action */}
             <div className="grid grid-cols-3 gap-4 mb-4">
               <div>
                 <label className={labelCls}>Symbol *</label>
@@ -246,6 +184,7 @@ export default function AdminActiveTrades() {
               </div>
             </div>
 
+            {/* Row 2: Prices */}
             <div className="grid grid-cols-3 gap-4 mb-4">
               <div>
                 <label className={labelCls}>Entry Price *</label>
@@ -282,12 +221,14 @@ export default function AdminActiveTrades() {
               </div>
             </div>
 
+            {/* ── FUTURES & OPTIONS FIELDS ─────────────────── */}
             {isFutOpt && (
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
                 <p className="text-xs font-bold text-blue-700 mb-3 uppercase tracking-wide">
                   {form.tradeType} Fields
                 </p>
                 <div className="grid grid-cols-3 gap-4">
+                  {/* Lot Size */}
                   <div>
                     <label className={labelCls}>Lot Size</label>
                     <input
@@ -298,6 +239,8 @@ export default function AdminActiveTrades() {
                       onChange={(e) => setForm({ ...form, lotSize: e.target.value })}
                     />
                   </div>
+
+                  {/* Expiry Date */}
                   <div>
                     <label className={labelCls}>Expiry Date</label>
                     <input
@@ -307,6 +250,8 @@ export default function AdminActiveTrades() {
                       onChange={(e) => setForm({ ...form, expiryDate: e.target.value })}
                     />
                   </div>
+
+                  {/* Duration */}
                   <div>
                     <label className={labelCls}>Duration</label>
                     <input
@@ -317,6 +262,8 @@ export default function AdminActiveTrades() {
                     />
                   </div>
                 </div>
+
+                {/* OPTIONS ONLY: Strike + CE/PE */}
                 {isOptions && (
                   <div className="grid grid-cols-2 gap-4 mt-4">
                     <div>
@@ -345,6 +292,7 @@ export default function AdminActiveTrades() {
               </div>
             )}
 
+            {/* Status */}
             <div className="grid grid-cols-3 gap-4 mb-5">
               <div>
                 <label className={labelCls}>Status</label>
@@ -359,12 +307,7 @@ export default function AdminActiveTrades() {
               </div>
             </div>
 
-            {notifStatus && (
-              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm font-semibold text-blue-700">
-                {notifStatus}
-              </div>
-            )}
-
+            {/* Buttons */}
             <div className="flex gap-3">
               <button
                 type="submit"
@@ -386,6 +329,7 @@ export default function AdminActiveTrades() {
           </form>
         </div>
 
+        {/* ── TRADE LIST ───────────────────────────────────── */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-lg font-bold text-gray-800">Trades</h2>
