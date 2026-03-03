@@ -95,63 +95,6 @@ const RoadSVG = () => (
   </Svg>
 );
 
-const RotatingDiamond = () => {
-  const spinAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.timing(spinAnim, {
-        toValue: 1,
-        duration: 2500,
-        useNativeDriver: true,
-      })
-    ).start();
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(scaleAnim, { toValue: 1.18, duration: 800, useNativeDriver: true }),
-        Animated.timing(scaleAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
-      ])
-    ).start();
-  }, []);
-
-  const spin = spinAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
-
-  return (
-    <Animated.View style={{ transform: [{ rotate: spin }, { scale: scaleAnim }] }}>
-      <Svg width={54} height={54} viewBox="0 0 54 54">
-        <Defs>
-          <LinearGradient id="dTop" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0%" stopColor="#a5f3fc" />
-            <Stop offset="100%" stopColor="#3b82f6" />
-          </LinearGradient>
-          <LinearGradient id="dLeft" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0%" stopColor="#1d4ed8" />
-            <Stop offset="100%" stopColor="#6366f1" />
-          </LinearGradient>
-          <LinearGradient id="dRight" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0%" stopColor="#60a5fa" />
-            <Stop offset="100%" stopColor="#93c5fd" />
-          </LinearGradient>
-          <LinearGradient id="dBottom" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0%" stopColor="#1e3a8a" />
-            <Stop offset="100%" stopColor="#3b82f6" />
-          </LinearGradient>
-        </Defs>
-        <Polygon points="27,4 10,22 27,28 44,22" fill="url(#dTop)" opacity="0.95" />
-        <Polygon points="10,22 27,28 27,50" fill="url(#dLeft)" opacity="0.9" />
-        <Polygon points="44,22 27,28 27,50" fill="url(#dRight)" opacity="0.85" />
-        <Polygon points="27,4 10,22 18,14" fill="#bfdbfe" opacity="0.5" />
-        <Polygon points="20,14 27,4 34,14 27,18" fill="white" opacity="0.35" />
-      </Svg>
-    </Animated.View>
-  );
-};
-
 export default function HomeScreen() {
   const { userData } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -318,11 +261,8 @@ export default function HomeScreen() {
             <RoadSVG />
           </View>
           <View style={s.welcomeContent}>
-            <View style={s.diamondWrapper}>
-              <RotatingDiamond />
-            </View>
             <Text style={s.welcomeTitle}>
-              Welcome to <Text style={s.welcomeBrand}>DhanMatrix</Text> family!
+              Welcome to <Text style={s.welcomeBrand}>DhanMatrix</Text> family! 💎
             </Text>
             <View style={s.quoteBox}>
               <Text style={s.quoteIcon}>❝</Text>
@@ -431,7 +371,6 @@ const s = StyleSheet.create({
   welcomeCard: { flex: 1, borderRadius: 15, overflow: 'hidden', borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
   roadTop: { backgroundColor: '#c8d8f0', overflow: 'hidden', height: 110 },
   welcomeContent: { flex: 1, backgroundColor: '#fff', padding: 12 },
-  diamondWrapper: { alignItems: 'center', marginBottom: 8, marginTop: 2 },
   welcomeTitle: { fontSize: 15, fontWeight: '700', color: '#1e3a5f', textAlign: 'center', marginBottom: 10 },
   welcomeBrand: { fontSize: 15, fontWeight: '900', color: '#3b82f6' },
   quoteBox: { backgroundColor: '#eef2ff', borderRadius: 10, padding: 9, marginBottom: 7 },
