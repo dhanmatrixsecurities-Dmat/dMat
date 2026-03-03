@@ -15,6 +15,17 @@ interface SegmentStats {
   total: number; profitable: number; losing: number; accuracy: number;
 }
 
+// ── Auto expiry check ──────────────────────────────────────────────────────
+function isSubscriptionActive(userData: any): boolean {
+  if (!userData) return false;
+  if (userData.status !== 'ACTIVE') return false;
+  if (!userData.subscriptionEndDate) return false;
+  const end = new Date(userData.subscriptionEndDate);
+  end.setHours(23, 59, 59, 999);
+  return end >= new Date();
+}
+// ───────────────────────────────────────────────────────────────────────────
+
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 const DonutGauge = ({ accuracy, size = 100, strokeWidth = 10, fillColor = '#3b82f6' }: {
@@ -135,7 +146,8 @@ export default function HomeScreen() {
     setForm({ name: '', whatsapp: '', stock: '', buyingPrice: '', qty: '' });
   };
 
-  const isActive = userData?.status === 'ACTIVE';
+  const isActive = isSubscriptionActive(userData);
+
   if (loading) return <View style={s.loading}><ActivityIndicator size="large" color="#3b82f6" /></View>;
 
   return (
@@ -218,7 +230,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* FREE → Subscription */}
+      {/* FREE / EXPIRED → Subscription Card */}
       {!isActive && (
         <View style={s.subCard}>
           <View style={s.subTop}>
@@ -365,12 +377,12 @@ const s = StyleSheet.create({
   welcomeCard: { flex: 1, borderRadius: 15, overflow: 'hidden', borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
   roadTop: { backgroundColor: '#c8d8f0' },
   welcomeContent: { flex: 1, backgroundColor: '#fff', padding: 10, justifyContent: 'center' },
-  welcomeTitle: { fontSize: 13, fontWeight: '700', color: '#1e3a5f', textAlign: 'center', marginBottom: 7 },
-  welcomeBrand: { fontSize: 13, fontWeight: '900', color: '#3b82f6' },
-  quoteBox: { backgroundColor: '#eef2ff', borderRadius: 10, padding: 8, marginBottom: 6 },
-  quoteIcon: { fontSize: 16, color: '#f59e0b', fontWeight: '900' },
-  quoteText: { fontSize: 11, color: '#1e3a5f', fontWeight: '600', lineHeight: 16, textAlign: 'center', marginTop: 2 },
-  quoteAuthor: { fontSize: 10, color: '#64748b', fontWeight: '600', textAlign: 'right', marginTop: 3 },
+  welcomeTitle: { fontSize: 14, fontWeight: '700', color: '#1e3a5f', textAlign: 'center', marginBottom: 7 },
+  welcomeBrand: { fontSize: 14, fontWeight: '900', color: '#3b82f6' },
+  quoteBox: { backgroundColor: '#eef2ff', borderRadius: 10, padding: 9, marginBottom: 6 },
+  quoteIcon: { fontSize: 20, color: '#f59e0b', fontWeight: '900' },
+  quoteText: { fontSize: 13, color: '#1e3a5f', fontWeight: '600', lineHeight: 19, textAlign: 'center', marginTop: 3 },
+  quoteAuthor: { fontSize: 12, color: '#64748b', fontWeight: '600', textAlign: 'right', marginTop: 4 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalBox: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 36 },
   modalTitle: { fontSize: 17, fontWeight: '800', color: '#1e3a5f', marginBottom: 4 },
