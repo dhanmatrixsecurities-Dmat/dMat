@@ -129,7 +129,8 @@ const Users: React.FC = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     endDate.setHours(0, 0, 0, 0);
-    return Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    // +1 so end date itself counts as 1 day remaining
+    return Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
   };
 
   // Total days from registration → subscription end date
@@ -146,6 +147,7 @@ const Users: React.FC = () => {
 
   const getDaysColor = (days: number | null): 'success' | 'warning' | 'error' | 'default' => {
     if (days === null) return 'default';
+    if (days < 1) return 'error';
     if (days <= 7) return 'error';
     if (days <= 15) return 'warning';
     return 'success';
@@ -307,7 +309,7 @@ const Users: React.FC = () => {
                               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                                 {user.status === 'ACTIVE' && daysLeft !== null ? (
                                   <Chip
-                                    label={daysLeft <= 0 ? 'Expired' : `${daysLeft} days left`}
+                                    label={daysLeft < 1 ? 'Expired' : `${daysLeft} days left`}
                                     color={getDaysColor(daysLeft)}
                                     size="small"
                                     variant={daysLeft <= 7 ? 'filled' : 'outlined'}
