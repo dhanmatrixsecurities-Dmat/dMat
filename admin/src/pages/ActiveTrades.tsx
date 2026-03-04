@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../lib/firebase';
+import { db } from '../firebaseConfig';
 import {
   collection,
   addDoc,
@@ -10,7 +10,6 @@ import {
   query,
   orderBy,
   serverTimestamp,
-  getDocs,
 } from 'firebase/firestore';
 
 type TradeType = 'Equity' | 'Futures' | 'Options';
@@ -49,61 +48,15 @@ const emptyForm = {
   status: 'active',
 };
 
-// ✅ Send push notification to all users via Expo Push API (FREE - no backend needed)
-const sendPushNotification = async (
-  symbol: string,
-  action: string,
-  entryPrice: string,
-  targetPrice: string
-) => {
-  try {
-    const usersSnapshot = await getDocs(collection(db, 'users'));
-    const tokens = usersSnapshot.docs
-      .map((d) => d.data().fcmToken)
-      .filter((t) => t && t.startsWith('ExponentPushToken'));
-
-    if (tokens.length === 0) {
-      console.log('No tokens found');
-      return;
-    }
-
-    const messages = tokens.map((token) => ({
-      to: token,
-      title: `New ${action} Trade Alert! 🚀`,
-      body: `${symbol} | Entry: ₹${entryPrice} | Target: ₹${targetPrice}`,
-      sound: 'default',
-      priority: 'high',
-      channelId: 'default',
-    }));
-
-    const response = await fetch('https://exp.host/--/api/v2/push/send', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Accept-Encoding': 'gzip, deflate',
-      },
-      body: JSON.stringify(messages),
-    });
-
-    const result = await response.json();
-    console.log(`✅ Notifications sent to ${tokens.length} users`, result);
-  } catch (err) {
-    console.error('Notification error:', err);
-  }
-};
-
 export default function AdminActiveTrades() {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'active' | 'all'>('active');
-  const [notifStatus, setNotifStatus] = useState<string>('');
 
   useEffect(() => {
-    // ✅ FIXED: Listen to activeTrades collection (same as frontend)
-    const q = query(collection(db, 'activeTrades'), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, 'trades'), orderBy('createdAt', 'desc'));
     const unsub = onSnapshot(q, (snap) => {
       setTrades(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Trade)));
     });
@@ -116,7 +69,6 @@ export default function AdminActiveTrades() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setNotifStatus('');
     try {
       const payload: any = {
         symbol: form.symbol.toUpperCase(),
@@ -135,29 +87,15 @@ export default function AdminActiveTrades() {
       if (isOptions) payload.optionType = form.optionType;
 
       if (editId) {
-        // ✅ FIXED: Update in activeTrades collection
-        await updateDoc(doc(db, 'activeTrades', editId), payload);
+        await updateDoc(doc(db, 'trades', editId), payload);
         setEditId(null);
       } else {
-        // ✅ FIXED: Add to activeTrades collection
         payload.createdAt = serverTimestamp();
-        await addDoc(collection(db, 'activeTrades'), payload);
-
-        // ✅ Send push notification to all users
-        setNotifStatus('Sending notifications...');
-        await sendPushNotification(
-          form.symbol.toUpperCase(),
-          form.action,
-          form.entryPrice,
-          form.targetPrice
-        );
-        setNotifStatus('✅ Notifications sent!');
-        setTimeout(() => setNotifStatus(''), 3000);
+        await addDoc(collection(db, 'trades'), payload);
       }
       setForm(emptyForm);
     } catch (err) {
       console.error(err);
-      setNotifStatus('❌ Error occurred');
     }
     setLoading(false);
   };
@@ -183,13 +121,11 @@ export default function AdminActiveTrades() {
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Delete this trade?')) return;
-    // ✅ FIXED: Delete from activeTrades collection
-    await deleteDoc(doc(db, 'activeTrades', id));
+    await deleteDoc(doc(db, 'trades', id));
   };
 
   const handleClose = async (id: string) => {
-    // ✅ FIXED: Update in activeTrades collection
-    await updateDoc(doc(db, 'activeTrades', id), { status: 'closed' });
+    await updateDoc(doc(db, 'trades', id), { status: 'closed' });
   };
 
   const displayTrades = activeTab === 'active'
@@ -249,36 +185,18 @@ export default function AdminActiveTrades() {
             <div className="grid grid-cols-3 gap-4 mb-4">
               <div>
                 <label className={labelCls}>Entry Price *</label>
-                <input
-                  className={inputCls}
-                  type="number"
-                  placeholder="0.00"
-                  value={form.entryPrice}
-                  onChange={(e) => setForm({ ...form, entryPrice: e.target.value })}
-                  required
-                />
+                <input className={inputCls} type="number" placeholder="0.00" value={form.entryPrice}
+                  onChange={(e) => setForm({ ...form, entryPrice: e.target.value })} required />
               </div>
               <div>
                 <label className={labelCls}>Target Price *</label>
-                <input
-                  className={inputCls}
-                  type="number"
-                  placeholder="0.00"
-                  value={form.targetPrice}
-                  onChange={(e) => setForm({ ...form, targetPrice: e.target.value })}
-                  required
-                />
+                <input className={inputCls} type="number" placeholder="0.00" value={form.targetPrice}
+                  onChange={(e) => setForm({ ...form, targetPrice: e.target.value })} required />
               </div>
               <div>
                 <label className={labelCls}>Stop Loss *</label>
-                <input
-                  className={inputCls}
-                  type="number"
-                  placeholder="0.00"
-                  value={form.stopLoss}
-                  onChange={(e) => setForm({ ...form, stopLoss: e.target.value })}
-                  required
-                />
+                <input className={inputCls} type="number" placeholder="0.00" value={form.stopLoss}
+                  onChange={(e) => setForm({ ...form, stopLoss: e.target.value })} required />
               </div>
             </div>
 
@@ -290,52 +208,31 @@ export default function AdminActiveTrades() {
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className={labelCls}>Lot Size</label>
-                    <input
-                      className={inputCls}
-                      type="number"
-                      placeholder="e.g. 50"
-                      value={form.lotSize}
-                      onChange={(e) => setForm({ ...form, lotSize: e.target.value })}
-                    />
+                    <input className={inputCls} type="number" placeholder="e.g. 50" value={form.lotSize}
+                      onChange={(e) => setForm({ ...form, lotSize: e.target.value })} />
                   </div>
                   <div>
                     <label className={labelCls}>Expiry Date</label>
-                    <input
-                      className={inputCls}
-                      type="date"
-                      value={form.expiryDate}
-                      onChange={(e) => setForm({ ...form, expiryDate: e.target.value })}
-                    />
+                    <input className={inputCls} type="date" value={form.expiryDate}
+                      onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} />
                   </div>
                   <div>
                     <label className={labelCls}>Duration</label>
-                    <input
-                      className={inputCls}
-                      placeholder="e.g. Weekly, Monthly"
-                      value={form.duration}
-                      onChange={(e) => setForm({ ...form, duration: e.target.value })}
-                    />
+                    <input className={inputCls} placeholder="e.g. Weekly, Monthly" value={form.duration}
+                      onChange={(e) => setForm({ ...form, duration: e.target.value })} />
                   </div>
                 </div>
                 {isOptions && (
                   <div className="grid grid-cols-2 gap-4 mt-4">
                     <div>
                       <label className={labelCls}>Strike Price</label>
-                      <input
-                        className={inputCls}
-                        type="number"
-                        placeholder="e.g. 25150"
-                        value={form.strikePrice}
-                        onChange={(e) => setForm({ ...form, strikePrice: e.target.value })}
-                      />
+                      <input className={inputCls} type="number" placeholder="e.g. 25150" value={form.strikePrice}
+                        onChange={(e) => setForm({ ...form, strikePrice: e.target.value })} />
                     </div>
                     <div>
                       <label className={labelCls}>Option Type (CE / PE)</label>
-                      <select
-                        className={inputCls}
-                        value={form.optionType}
-                        onChange={(e) => setForm({ ...form, optionType: e.target.value as OptionType })}
-                      >
+                      <select className={inputCls} value={form.optionType}
+                        onChange={(e) => setForm({ ...form, optionType: e.target.value as OptionType })}>
                         <option value="CE">CE — Call Option</option>
                         <option value="PE">PE — Put Option</option>
                       </select>
@@ -348,37 +245,22 @@ export default function AdminActiveTrades() {
             <div className="grid grid-cols-3 gap-4 mb-5">
               <div>
                 <label className={labelCls}>Status</label>
-                <select
-                  className={inputCls}
-                  value={form.status}
-                  onChange={(e) => setForm({ ...form, status: e.target.value })}
-                >
+                <select className={inputCls} value={form.status}
+                  onChange={(e) => setForm({ ...form, status: e.target.value })}>
                   <option value="active">Active</option>
                   <option value="closed">Closed</option>
                 </select>
               </div>
             </div>
 
-            {notifStatus && (
-              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm font-semibold text-blue-700">
-                {notifStatus}
-              </div>
-            )}
-
             <div className="flex gap-3">
-              <button
-                type="submit"
-                disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg text-sm transition disabled:opacity-50"
-              >
+              <button type="submit" disabled={loading}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg text-sm transition disabled:opacity-50">
                 {loading ? 'Saving…' : editId ? 'Update Trade' : 'Add Trade'}
               </button>
               {editId && (
-                <button
-                  type="button"
-                  onClick={() => { setEditId(null); setForm(emptyForm); }}
-                  className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-6 py-2.5 rounded-lg text-sm transition"
-                >
+                <button type="button" onClick={() => { setEditId(null); setForm(emptyForm); }}
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-6 py-2.5 rounded-lg text-sm transition">
                   Cancel
                 </button>
               )}
@@ -391,15 +273,10 @@ export default function AdminActiveTrades() {
             <h2 className="text-lg font-bold text-gray-800">Trades</h2>
             <div className="flex gap-2">
               {(['active', 'all'] as const).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setActiveTab(t)}
+                <button key={t} onClick={() => setActiveTab(t)}
                   className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition ${
-                    activeTab === t
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
+                    activeTab === t ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}>
                   {t === 'active' ? 'Active' : 'All'}
                 </button>
               ))}
@@ -410,10 +287,8 @@ export default function AdminActiveTrades() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100">
-                  {['Symbol', 'Type', 'Action', 'Entry', 'Target', 'SL', 'Lot', 'Strike', 'Expiry', 'Duration', 'Status', 'Actions'].map((h) => (
-                    <th key={h} className="text-left text-xs font-semibold text-gray-500 pb-3 pr-4 whitespace-nowrap">
-                      {h}
-                    </th>
+                  {['Symbol','Type','Action','Entry','Target','SL','Lot','Strike','Expiry','Duration','Status','Actions'].map((h) => (
+                    <th key={h} className="text-left text-xs font-semibold text-gray-500 pb-3 pr-4 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -424,18 +299,13 @@ export default function AdminActiveTrades() {
                     <td className="py-3 pr-4">
                       <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
                         trade.tradeType === 'Options' ? 'bg-purple-100 text-purple-700' :
-                        trade.tradeType === 'Futures' ? 'bg-blue-100 text-blue-700' :
-                        'bg-green-100 text-green-700'
-                      }`}>
-                        {trade.tradeType}
-                      </span>
+                        trade.tradeType === 'Futures' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                      }`}>{trade.tradeType}</span>
                     </td>
                     <td className="py-3 pr-4">
                       <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
                         trade.action === 'BUY' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                      }`}>
-                        {trade.action}
-                      </span>
+                      }`}>{trade.action}</span>
                     </td>
                     <td className="py-3 pr-4 text-gray-700">₹{trade.entryPrice}</td>
                     <td className="py-3 pr-4 text-green-600 font-semibold">₹{trade.targetPrice}</td>
@@ -443,9 +313,7 @@ export default function AdminActiveTrades() {
                     <td className="py-3 pr-4 text-gray-500">{trade.lotSize || '—'}</td>
                     <td className="py-3 pr-4">
                       {trade.strikePrice && trade.optionType ? (
-                        <span className="text-purple-700 font-semibold">
-                          {trade.strikePrice} {trade.optionType}
-                        </span>
+                        <span className="text-purple-700 font-semibold">{trade.strikePrice} {trade.optionType}</span>
                       ) : '—'}
                     </td>
                     <td className="py-3 pr-4 text-gray-500 whitespace-nowrap">{trade.expiryDate || '—'}</td>
@@ -453,42 +321,21 @@ export default function AdminActiveTrades() {
                     <td className="py-3 pr-4">
                       <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
                         trade.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
-                      }`}>
-                        {trade.status}
-                      </span>
+                      }`}>{trade.status}</span>
                     </td>
                     <td className="py-3 pr-4">
                       <div className="flex gap-2">
-                        <button
-                          onClick={() => handleEdit(trade)}
-                          className="text-blue-600 hover:text-blue-800 text-xs font-semibold"
-                        >
-                          Edit
-                        </button>
+                        <button onClick={() => handleEdit(trade)} className="text-blue-600 hover:text-blue-800 text-xs font-semibold">Edit</button>
                         {trade.status === 'active' && (
-                          <button
-                            onClick={() => handleClose(trade.id)}
-                            className="text-amber-600 hover:text-amber-800 text-xs font-semibold"
-                          >
-                            Close
-                          </button>
+                          <button onClick={() => handleClose(trade.id)} className="text-amber-600 hover:text-amber-800 text-xs font-semibold">Close</button>
                         )}
-                        <button
-                          onClick={() => handleDelete(trade.id)}
-                          className="text-red-500 hover:text-red-700 text-xs font-semibold"
-                        >
-                          Del
-                        </button>
+                        <button onClick={() => handleDelete(trade.id)} className="text-red-500 hover:text-red-700 text-xs font-semibold">Del</button>
                       </div>
                     </td>
                   </tr>
                 ))}
                 {displayTrades.length === 0 && (
-                  <tr>
-                    <td colSpan={12} className="text-center text-gray-400 py-8">
-                      No trades found
-                    </td>
-                  </tr>
+                  <tr><td colSpan={12} className="text-center text-gray-400 py-8">No trades found</td></tr>
                 )}
               </tbody>
             </table>
