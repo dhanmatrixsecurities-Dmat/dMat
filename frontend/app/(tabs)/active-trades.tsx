@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, RefreshControl,
-  TouchableOpacity, ActivityIndicator, Animated,
+  TouchableOpacity, ActivityIndicator, Animated, Linking,
 } from 'react-native';
 import { collection, query, onSnapshot, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
@@ -37,7 +37,6 @@ interface Trade {
   segment?: Segment;
 }
 
-// ── Auto expiry check ──────────────────────────────────────────────────────
 function isSubscriptionActive(userData: any): boolean {
   if (!userData) return false;
   if (userData.status !== 'ACTIVE') return false;
@@ -46,11 +45,9 @@ function isSubscriptionActive(userData: any): boolean {
   end.setHours(23, 59, 59, 999);
   return end >= new Date();
 }
-// ───────────────────────────────────────────────────────────────────────────
 
 function SubscriptionBanner({ endDate }: { endDate?: string }) {
   const blinkAnim = useRef(new Animated.Value(1)).current;
-
   useEffect(() => {
     const animation = Animated.loop(
       Animated.sequence([
@@ -61,11 +58,9 @@ function SubscriptionBanner({ endDate }: { endDate?: string }) {
     animation.start();
     return () => animation.stop();
   }, []);
-
   if (!endDate) return null;
   const daysLeft = Math.ceil((new Date(endDate).getTime() - Date.now()) / 86400000);
   if (daysLeft > 3 || daysLeft <= 0) return null;
-
   return (
     <Animated.View style={[styles.subBanner, { opacity: blinkAnim }]}>
       <Ionicons name="warning" size={16} color="#fff" />
@@ -82,7 +77,6 @@ export default function ActiveTrades() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeSegment, setActiveSegment] = useState<Segment>('equity');
-
   const prevTradeIdsRef = useRef<Set<string>>(new Set());
   const isFirstLoadRef = useRef(true);
 
@@ -92,18 +86,14 @@ export default function ActiveTrades() {
       const snapshot = await getDocs(q);
       const tradesData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Trade[];
       setTrades(tradesData);
-    } catch (error) {
-      console.error('Fetch error:', error);
-    }
+    } catch (error) { console.error('Fetch error:', error); }
   }, []);
 
   useEffect(() => {
     if (!isSubscriptionActive(userData)) { setLoading(false); return; }
-
     const q = query(collection(db, 'activeTrades'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const tradesData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Trade[];
-
       if (!isFirstLoadRef.current) {
         snapshot.docChanges().forEach((change) => {
           if (change.type === 'added') {
@@ -121,14 +111,12 @@ export default function ActiveTrades() {
           }
         });
       }
-
       prevTradeIdsRef.current = new Set(tradesData.map((t) => t.id));
       isFirstLoadRef.current = false;
       setTrades(tradesData);
       setLoading(false);
       setRefreshing(false);
     }, () => { setLoading(false); setRefreshing(false); });
-
     return () => unsubscribe();
   }, [userData]);
 
@@ -151,6 +139,11 @@ export default function ActiveTrades() {
     { key: 'futures', label: 'Futures' },
     { key: 'options', label: 'Options' },
   ];
+
+  const openChart = (stockName: string) => {
+    const symbol = `NSE:${stockName.toUpperCase().trim()}`;
+    Linking.openURL(`https://www.tradingview.com/chart/?symbol=${symbol}`);
+  };
 
   const renderTradeCard = ({ item }: { item: Trade }) => {
     const isBuy = item.type === 'BUY';
@@ -243,13 +236,24 @@ export default function ActiveTrades() {
           </View>
         </View>
 
-        <View style={styles.dateContainer}>
-          <Ionicons name="time-outline" size={14} color={Colors.textSecondary} />
-          <Text style={styles.dateText}>
-            {new Date(item.createdAt).toLocaleString('en-IN', {
-              day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
-            })}
-          </Text>
+        {/* Footer row — date left, chart button right */}
+        <View style={styles.cardFooter}>
+          <View style={styles.dateContainer}>
+            <Ionicons name="time-outline" size={14} color={Colors.textSecondary} />
+            <Text style={styles.dateText}>
+              {new Date(item.createdAt).toLocaleString('en-IN', {
+                day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+              })}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.chartBtn}
+            onPress={() => openChart(item.stockName)}
+            activeOpacity={0.75}
+          >
+            <Text style={styles.chartBtnEmoji}>📊</Text>
+            <Text style={styles.chartBtnText}>Live Chart</Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
@@ -314,12 +318,7 @@ export default function ActiveTrades() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={filteredTrades.length === 0 ? styles.emptyContainer : styles.listContent}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[Colors.primary]}
-            tintColor={Colors.primary}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} tintColor={Colors.primary} />
         }
         ListEmptyComponent={
           <View style={{ alignItems: 'center' }}>
@@ -380,8 +379,14 @@ const styles = StyleSheet.create({
   metricValue: { fontSize: 18, fontWeight: 'bold' },
   gainText: { color: Colors.success },
   riskText: { color: Colors.error },
+  // Footer with date + chart button
+  cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
   dateContainer: { flexDirection: 'row', alignItems: 'center' },
   dateText: { fontSize: 12, color: Colors.textSecondary, marginLeft: 4 },
+  chartBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#eef3ff', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 },
+  chartBtnEmoji: { fontSize: 16 },
+  chartBtnText: { fontSize: 12, fontWeight: '700', color: '#3b52cc' },
+  // Empty / locked states
   emptyText: { fontSize: 18, fontWeight: '600', color: Colors.text, marginTop: 16, textAlign: 'center' },
   emptySubtext: { fontSize: 14, color: Colors.textSecondary, marginTop: 8, textAlign: 'center' },
   blockedTitle: { fontSize: 24, fontWeight: 'bold', color: Colors.error, marginTop: 24 },
