@@ -6,7 +6,7 @@ import {
   CircularProgress, Tooltip, IconButton,
 } from '@mui/material';
 import { Search, CalendarMonth, CheckCircle } from '@mui/icons-material';
-import { collection, query, getDocs, doc, updateDoc, orderBy } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { User, UserStatus } from '../types';
 
@@ -60,9 +60,18 @@ const Users: React.FC = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
-      const snapshot = await getDocs(q);
+      // No orderBy — prevents silently dropping users who have no createdAt field
+      const snapshot = await getDocs(collection(db, 'users'));
       const usersData = snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as User[];
+      // Sort in JS: newest first, users without createdAt go to bottom
+      usersData.sort((a, b) => {
+        const da = parseDate((a as any).createdAt);
+        const db2 = parseDate((b as any).createdAt);
+        if (!da && !db2) return 0;
+        if (!da) return 1;
+        if (!db2) return -1;
+        return db2.getTime() - da.getTime();
+      });
       setUsers(usersData);
       setFilteredUsers(usersData);
     } catch (error) {
