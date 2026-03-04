@@ -54,8 +54,9 @@ export default function ClosedTrades() {
   }, [user]);
 
   const filteredTrades = trades.filter((t) => {
-    if (activeTab === 'equity') return !t.segment || t.segment === 'equity';
-    return t.segment === activeTab;
+    const s = t.segment?.toLowerCase();
+    if (activeTab === 'equity') return !s || s === 'equity';
+    return s === activeTab;
   });
 
   const renderTradeCard = ({ item }: { item: ClosedTrade }) => {
