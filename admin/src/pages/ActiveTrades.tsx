@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../firebaseConfig';
 import {
   collection, addDoc, updateDoc, deleteDoc,
-  doc, onSnapshot, query, orderBy, serverTimestamp,
+  doc, onSnapshot, query, orderBy, serverTimestamp, getDoc,
 } from 'firebase/firestore';
 import {
   Box, Typography, Paper, Table, TableBody, TableCell,
@@ -53,14 +53,20 @@ export default function AdminActiveTrades() {
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'active' | 'all'>('active');
   const [modalOpen, setModalOpen] = useState(false);
+
+  // Close trade dialog
+  const [closeDialogOpen, setCloseDialogOpen] = useState(false);
+  const [tradeToClose, setTradeToClose] = useState<Trade | null>(null);
+  const [exitPrice, setExitPrice] = useState('');
+
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false, message: '', severity: 'success',
   });
 
+  // ✅ Listen to activeTrades collection (not 'trades')
   useEffect(() => {
-    const q = query(collection(db, 'trades'), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, 'activeTrades'), orderBy('createdAt', 'desc'));
     const unsub = onSnapshot(q, (snap) => {
       setTrades(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Trade)));
     });
@@ -110,13 +116,18 @@ export default function AdminActiveTrades() {
     try {
       const payload: any = {
         symbol: form.symbol.toUpperCase(),
-        segment: form.segment,
+        // ✅ Also save as stockName for mobile app compatibility
+        stockName: form.symbol.toUpperCase(),
+        segment: form.segment.toLowerCase(),
+        // ✅ Also save as type for mobile app compatibility
+        type: form.action,
         action: form.action,
         entryPrice: parseFloat(form.entryPrice),
         targetPrice: parseFloat(form.targetPrice),
         stopLoss: parseFloat(form.stopLoss),
         status: 'active',
       };
+
       if (isFutOpt && form.lotSize) payload.lotSize = parseInt(form.lotSize);
       if (isFutOpt && form.expiryDate) payload.expiryDate = form.expiryDate;
       if (isFutOpt && form.duration) payload.duration = form.duration;
@@ -124,11 +135,13 @@ export default function AdminActiveTrades() {
       if (isOptions) payload.optionType = form.optionType;
 
       if (editId) {
-        await updateDoc(doc(db, 'trades', editId), payload);
+        // ✅ Update in activeTrades
+        await updateDoc(doc(db, 'activeTrades', editId), payload);
         showSnackbar('Trade updated!', 'success');
       } else {
+        // ✅ Add to activeTrades
         payload.createdAt = serverTimestamp();
-        await addDoc(collection(db, 'trades'), payload);
+        await addDoc(collection(db, 'activeTrades'), payload);
         showSnackbar('Trade added!', 'success');
       }
       handleCloseModal();
@@ -140,13 +153,54 @@ export default function AdminActiveTrades() {
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Delete this trade?')) return;
-    await deleteDoc(doc(db, 'trades', id));
+    // ✅ Delete from activeTrades
+    await deleteDoc(doc(db, 'activeTrades', id));
     showSnackbar('Trade deleted', 'success');
   };
 
-  const handleCloseTrade = async (id: string) => {
-    await updateDoc(doc(db, 'trades', id), { status: 'closed' });
-    showSnackbar('Trade closed', 'success');
+  // ✅ Open close trade dialog
+  const handleOpenCloseDialog = (trade: Trade) => {
+    setTradeToClose(trade);
+    setExitPrice('');
+    setCloseDialogOpen(true);
+  };
+
+  // ✅ Close trade: move from activeTrades → closedTrades
+  const handleCloseTrade = async () => {
+    if (!tradeToClose || !exitPrice) return;
+    setLoading(true);
+    try {
+      const exitPriceNum = parseFloat(exitPrice);
+      const profitLossPercent = ((exitPriceNum - tradeToClose.entryPrice) / tradeToClose.entryPrice) * 100;
+
+      // Add to closedTrades
+      await addDoc(collection(db, 'closedTrades'), {
+        stockName: tradeToClose.symbol,
+        symbol: tradeToClose.symbol,
+        type: tradeToClose.action,
+        action: tradeToClose.action,
+        segment: tradeToClose.segment.toLowerCase(),
+        entryPrice: tradeToClose.entryPrice,
+        exitPrice: exitPriceNum,
+        profitLossPercent: parseFloat(profitLossPercent.toFixed(2)),
+        lotSize: tradeToClose.lotSize || null,
+        expiryDate: tradeToClose.expiryDate || null,
+        strikePrice: tradeToClose.strikePrice || null,
+        optionType: tradeToClose.optionType || null,
+        closedAt: new Date().toISOString(),
+      });
+
+      // Remove from activeTrades
+      await deleteDoc(doc(db, 'activeTrades', tradeToClose.id));
+
+      showSnackbar('Trade closed successfully!', 'success');
+      setCloseDialogOpen(false);
+      setTradeToClose(null);
+      setExitPrice('');
+    } catch (err) {
+      showSnackbar('Error closing trade', 'error');
+    }
+    setLoading(false);
   };
 
   const formatDate = (ts: any) => {
@@ -155,15 +209,12 @@ export default function AdminActiveTrades() {
     return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
   };
 
-  const getSegmentColor = (segment: Segment) => {
-    if (segment === 'Options') return '#7b1fa2';
-    if (segment === 'Futures') return '#1565c0';
+  const getSegmentColor = (segment: string) => {
+    const s = segment?.toLowerCase();
+    if (s === 'options') return '#7b1fa2';
+    if (s === 'futures') return '#1565c0';
     return '#2e7d32';
   };
-
-  const displayTrades = activeTab === 'active'
-    ? trades.filter((t) => t.status === 'active')
-    : trades;
 
   return (
     <Box>
@@ -171,14 +222,10 @@ export default function AdminActiveTrades() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
         <Box>
           <Typography variant="h4" fontWeight="bold" gutterBottom>Active Trades</Typography>
-          <Typography variant="body1" color="text.secondary">
-            Manage live trades for ACTIVE users
-          </Typography>
+          <Typography variant="body1" color="text.secondary">Manage live trades for ACTIVE users</Typography>
         </Box>
         <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={handleOpenAdd}
+          variant="contained" startIcon={<Add />} onClick={handleOpenAdd}
           sx={{ backgroundColor: '#1a237e', mt: 1, borderRadius: 2, px: 3 }}
         >
           ADD TRADE
@@ -187,92 +234,59 @@ export default function AdminActiveTrades() {
 
       {/* Trade Table */}
       <Paper sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h6" fontWeight="bold">Trades</Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            {(['active', 'all'] as const).map((t) => (
-              <Button
-                key={t}
-                size="small"
-                variant={activeTab === t ? 'contained' : 'outlined'}
-                onClick={() => setActiveTab(t)}
-                sx={activeTab === t ? { backgroundColor: '#1a237e' } : {}}
-              >
-                {t === 'active' ? 'ACTIVE' : 'ALL'}
-              </Button>
-            ))}
-          </Box>
-        </Box>
-
+        <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>Trades</Typography>
         <TableContainer>
           <Table>
             <TableHead>
               <TableRow>
-                {['Stock', 'Segment', 'Type', 'Entry', 'Target', 'Stop Loss', 'Created', 'Actions'].map((h) => (
+                {['Stock', 'Segment', 'Type', 'Entry', 'Target', 'Stop Loss', 'Details', 'Created', 'Actions'].map((h) => (
                   <TableCell key={h}><strong>{h}</strong></TableCell>
                 ))}
               </TableRow>
             </TableHead>
             <TableBody>
-              {displayTrades.map((trade) => (
+              {trades.map((trade) => (
                 <TableRow key={trade.id} hover>
+                  <TableCell><strong>{trade.symbol}</strong></TableCell>
                   <TableCell>
-                    <strong>{trade.symbol}</strong>
-                    {trade.strikePrice && trade.optionType
-                      ? <Typography variant="caption" display="block" color="text.secondary">
-                          {trade.strikePrice} {trade.optionType}
-                        </Typography>
-                      : null}
+                    <Chip size="small" label={(trade.segment || 'equity').toUpperCase()}
+                      sx={{ backgroundColor: getSegmentColor(trade.segment), color: '#fff', fontWeight: 'bold', fontSize: 11 }} />
                   </TableCell>
                   <TableCell>
-                    <Chip
-                      size="small"
-                      label={trade.segment?.toUpperCase() || 'EQUITY'}
-                      sx={{
-                        backgroundColor: getSegmentColor(trade.segment),
-                        color: '#fff',
-                        fontWeight: 'bold',
-                        fontSize: 11,
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      size="small"
-                      label={trade.action}
-                      sx={{
-                        backgroundColor: trade.action === 'BUY' ? '#2e7d32' : '#c62828',
-                        color: '#fff',
-                        fontWeight: 'bold',
-                        fontSize: 11,
-                      }}
-                    />
+                    <Chip size="small" label={trade.action}
+                      sx={{ backgroundColor: trade.action === 'BUY' ? '#2e7d32' : '#c62828', color: '#fff', fontWeight: 'bold', fontSize: 11 }} />
                   </TableCell>
                   <TableCell>₹{trade.entryPrice}</TableCell>
                   <TableCell sx={{ color: 'green', fontWeight: 'bold' }}>₹{trade.targetPrice}</TableCell>
                   <TableCell sx={{ color: 'red', fontWeight: 'bold' }}>₹{trade.stopLoss}</TableCell>
+                  <TableCell>
+                    {trade.strikePrice && (
+                      <Typography variant="caption" display="block">Strike: ₹{trade.strikePrice} {trade.optionType}</Typography>
+                    )}
+                    {trade.expiryDate && (
+                      <Typography variant="caption" display="block" color="text.secondary">Expiry: {trade.expiryDate}</Typography>
+                    )}
+                    {trade.lotSize && (
+                      <Typography variant="caption" display="block" color="text.secondary">Lot: {trade.lotSize}</Typography>
+                    )}
+                    {trade.duration && (
+                      <Typography variant="caption" display="block" color="text.secondary">{trade.duration}</Typography>
+                    )}
+                  </TableCell>
                   <TableCell>{formatDate(trade.createdAt)}</TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                      <IconButton size="small" color="primary" onClick={() => handleEdit(trade)}>
-                        <Edit fontSize="small" />
-                      </IconButton>
-                      {trade.status === 'active' && (
-                        <IconButton size="small" color="warning" onClick={() => handleCloseTrade(trade.id)}>
-                          <Close fontSize="small" />
-                        </IconButton>
-                      )}
-                      <IconButton size="small" color="error" onClick={() => handleDelete(trade.id)}>
-                        <Delete fontSize="small" />
-                      </IconButton>
+                      <IconButton size="small" color="primary" onClick={() => handleEdit(trade)}><Edit fontSize="small" /></IconButton>
+                      <IconButton size="small" color="warning" onClick={() => handleOpenCloseDialog(trade)}><Close fontSize="small" /></IconButton>
+                      <IconButton size="small" color="error" onClick={() => handleDelete(trade.id)}><Delete fontSize="small" /></IconButton>
                     </Box>
                   </TableCell>
                 </TableRow>
               ))}
-              {displayTrades.length === 0 && (
+              {trades.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} align="center">
-                    <Typography color="text.secondary" sx={{ py: 4 }}>No trades found</Typography>
+                  <TableCell colSpan={9} align="center">
+                    <Typography color="text.secondary" sx={{ py: 4 }}>No active trades found</Typography>
                   </TableCell>
                 </TableRow>
               )}
@@ -288,68 +302,35 @@ export default function AdminActiveTrades() {
         </DialogTitle>
         <Box component="form" onSubmit={handleSubmit}>
           <DialogContent sx={{ pt: 1 }}>
+            <TextField fullWidth label="Stock Name (NSE)" required placeholder="e.g. RELIANCE, NIFTY"
+              value={form.symbol} onChange={(e) => setForm({ ...form, symbol: e.target.value })} sx={{ mb: 2 }} />
 
-            {/* Stock Name */}
-            <TextField
-              fullWidth label="Stock Name (NSE)" required
-              placeholder="e.g. RELIANCE, NIFTY"
-              value={form.symbol}
-              onChange={(e) => setForm({ ...form, symbol: e.target.value })}
-              sx={{ mb: 2 }}
-            />
-
-            {/* Segment */}
             <FormControl fullWidth sx={{ mb: 2 }}>
               <InputLabel>Segment</InputLabel>
-              <Select
-                label="Segment"
-                value={form.segment}
-                onChange={(e) => setForm({ ...form, segment: e.target.value as Segment })}
-              >
+              <Select label="Segment" value={form.segment}
+                onChange={(e) => setForm({ ...form, segment: e.target.value as Segment })}>
                 <MenuItem value="Equity">Equity</MenuItem>
                 <MenuItem value="Futures">Futures</MenuItem>
                 <MenuItem value="Options">Options</MenuItem>
               </Select>
             </FormControl>
 
-            {/* Type (BUY/SELL) */}
             <FormControl fullWidth sx={{ mb: 2 }}>
               <InputLabel>Type</InputLabel>
-              <Select
-                label="Type"
-                value={form.action}
-                onChange={(e) => setForm({ ...form, action: e.target.value as ActionType })}
-              >
+              <Select label="Type" value={form.action}
+                onChange={(e) => setForm({ ...form, action: e.target.value as ActionType })}>
                 <MenuItem value="BUY">BUY</MenuItem>
                 <MenuItem value="SELL">SELL</MenuItem>
               </Select>
             </FormControl>
 
-            {/* Entry Price */}
-            <TextField
-              fullWidth label="Entry Price" required type="number"
-              value={form.entryPrice}
-              onChange={(e) => setForm({ ...form, entryPrice: e.target.value })}
-              sx={{ mb: 2 }}
-            />
+            <TextField fullWidth label="Entry Price" required type="number"
+              value={form.entryPrice} onChange={(e) => setForm({ ...form, entryPrice: e.target.value })} sx={{ mb: 2 }} />
+            <TextField fullWidth label="Target Price" required type="number"
+              value={form.targetPrice} onChange={(e) => setForm({ ...form, targetPrice: e.target.value })} sx={{ mb: 2 }} />
+            <TextField fullWidth label="Stop Loss" required type="number"
+              value={form.stopLoss} onChange={(e) => setForm({ ...form, stopLoss: e.target.value })} sx={{ mb: 2 }} />
 
-            {/* Target Price */}
-            <TextField
-              fullWidth label="Target Price" required type="number"
-              value={form.targetPrice}
-              onChange={(e) => setForm({ ...form, targetPrice: e.target.value })}
-              sx={{ mb: 2 }}
-            />
-
-            {/* Stop Loss */}
-            <TextField
-              fullWidth label="Stop Loss" required type="number"
-              value={form.stopLoss}
-              onChange={(e) => setForm({ ...form, stopLoss: e.target.value })}
-              sx={{ mb: 2 }}
-            />
-
-            {/* Futures / Options extra fields */}
             {isFutOpt && (
               <Box sx={{ backgroundColor: '#e8f4fd', border: '1px solid #90caf9', borderRadius: 2, p: 2, mb: 2 }}>
                 <Typography variant="caption" fontWeight="bold" color="primary"
@@ -357,23 +338,17 @@ export default function AdminActiveTrades() {
                   {form.segment} Fields
                 </Typography>
                 <TextField fullWidth label="Lot Size" type="number" size="small"
-                  value={form.lotSize}
-                  onChange={(e) => setForm({ ...form, lotSize: e.target.value })}
-                  sx={{ mb: 2 }} />
+                  value={form.lotSize} onChange={(e) => setForm({ ...form, lotSize: e.target.value })} sx={{ mb: 2 }} />
                 <TextField fullWidth label="Expiry Date" type="date" size="small"
-                  value={form.expiryDate}
-                  onChange={(e) => setForm({ ...form, expiryDate: e.target.value })}
+                  value={form.expiryDate} onChange={(e) => setForm({ ...form, expiryDate: e.target.value })}
                   InputLabelProps={{ shrink: true }} sx={{ mb: 2 }} />
                 <TextField fullWidth label="Duration" size="small" placeholder="e.g. Weekly"
-                  value={form.duration}
-                  onChange={(e) => setForm({ ...form, duration: e.target.value })}
+                  value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })}
                   sx={{ mb: isOptions ? 2 : 0 }} />
                 {isOptions && (
                   <>
                     <TextField fullWidth label="Strike Price" type="number" size="small"
-                      value={form.strikePrice}
-                      onChange={(e) => setForm({ ...form, strikePrice: e.target.value })}
-                      sx={{ mb: 2 }} />
+                      value={form.strikePrice} onChange={(e) => setForm({ ...form, strikePrice: e.target.value })} sx={{ mb: 2 }} />
                     <FormControl fullWidth size="small">
                       <InputLabel>Option Type</InputLabel>
                       <Select label="Option Type" value={form.optionType}
@@ -386,21 +361,45 @@ export default function AdminActiveTrades() {
                 )}
               </Box>
             )}
-
           </DialogContent>
 
           <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
             <Button onClick={handleCloseModal} variant="outlined">CANCEL</Button>
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={loading}
-              sx={{ backgroundColor: '#1a237e', px: 4 }}
-            >
+            <Button type="submit" variant="contained" disabled={loading}
+              sx={{ backgroundColor: '#1a237e', px: 4 }}>
               {loading ? <CircularProgress size={20} color="inherit" /> : editId ? 'UPDATE' : 'ADD'}
             </Button>
           </DialogActions>
         </Box>
+      </Dialog>
+
+      {/* ── CLOSE TRADE DIALOG ── */}
+      <Dialog open={closeDialogOpen} onClose={() => setCloseDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle fontWeight="bold">Close Trade</DialogTitle>
+        <DialogContent>
+          {tradeToClose && (
+            <>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Closing <strong>{tradeToClose.symbol}</strong> | Entry: ₹{tradeToClose.entryPrice}
+              </Typography>
+              <TextField fullWidth label="Exit Price" type="number" value={exitPrice}
+                onChange={(e) => setExitPrice(e.target.value)} sx={{ mt: 2 }} autoFocus />
+              {exitPrice && (
+                <Alert severity={parseFloat(exitPrice) >= tradeToClose.entryPrice ? 'success' : 'error'} sx={{ mt: 2 }}>
+                  P&L: <strong>
+                    {(((parseFloat(exitPrice) - tradeToClose.entryPrice) / tradeToClose.entryPrice) * 100).toFixed(2)}%
+                  </strong>
+                </Alert>
+              )}
+            </>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={() => setCloseDialogOpen(false)} variant="outlined">CANCEL</Button>
+          <Button onClick={handleCloseTrade} variant="contained" color="success" disabled={!exitPrice || loading}>
+            {loading ? <CircularProgress size={20} color="inherit" /> : 'CLOSE TRADE'}
+          </Button>
+        </DialogActions>
       </Dialog>
 
       <Snackbar open={snackbar.open} autoHideDuration={3000}
