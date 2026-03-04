@@ -142,7 +142,8 @@ const Users: React.FC = () => {
     return Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
   };
 
-  // Total days: End Date - Start Date
+  // Total days: End Date - Start Date + 1 (both start and end date inclusive)
+  // Example: 01 Mar to 04 Mar = 4 days
   const getTotalSubDays = (startDate: any, endDate?: string) => {
     if (!endDate || !startDate) return null;
     const start = parseDate(startDate);
@@ -150,6 +151,7 @@ const Users: React.FC = () => {
     const end = new Date(endDate);
     start.setHours(0, 0, 0, 0);
     end.setHours(0, 0, 0, 0);
+    // +1 because both start day and end day are counted
     const total = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     return total > 0 ? total : null;
   };
@@ -179,12 +181,19 @@ const Users: React.FC = () => {
     }
     setAddingUser(true);
     try {
+      // Strip to digits only, keep last 10
+      const digitsOnly = newUserMobile.replace(/\D/g, '').slice(-10);
+      if (digitsOnly.length < 10) {
+        showSnackbar('Please enter a valid 10-digit mobile number', 'error');
+        setAddingUser(false);
+        return;
+      }
       // Generate login ID and password
-      const loginId = `${newUserMobile.replace(/\D/g, '')}@dhanmatrix.in`;
-      const password = `DhanMatrix@${newUserMobile.slice(-4)}`;
+      const loginId = `${digitsOnly}@dhanmatrix.ai`;
+      const password = `DhanMatrix@${digitsOnly.slice(-4)}`;
 
       // Get Firebase API key from environment
-      const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+      const apiKey = 'AIzaSyAB15tMu9OpirH-u9TjyUVhCe-V-oEcK_8';
 
       // Create user via Firebase Auth REST API (doesn't sign out current admin)
       const res = await fetch(
@@ -448,8 +457,8 @@ const Users: React.FC = () => {
               />
               <Box sx={{ backgroundColor: '#f5f5f5', p: 2, borderRadius: 1 }}>
                 <Typography variant="caption" color="text.secondary">
-                  Login ID will be: <strong>{newUserMobile ? `${newUserMobile.replace(/\D/g, '')}@dhanmatrix.in` : '9898989898@dhanmatrix.in'}</strong><br />
-                  Password will be: <strong>{newUserMobile ? `DhanMatrix@${newUserMobile.slice(-4)}` : 'DhanMatrix@8989'}</strong>
+                  Login ID will be: <strong>{newUserMobile ? `${newUserMobile.replace(/\D/g, '').slice(-10)}@dhanmatrix.ai` : '9898989898@dhanmatrix.ai'}</strong><br />
+                  Password will be: <strong>{newUserMobile ? `DhanMatrix@${newUserMobile.replace(/\D/g, '').slice(-4)}` : 'DhanMatrix@8989'}</strong>
                 </Typography>
               </Box>
             </Box>
