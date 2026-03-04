@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../lib/firebase';
+import { db } from '../firebaseConfig';
 import {
   collection,
   addDoc,
@@ -140,14 +140,12 @@ export default function AdminActiveTrades() {
       <div className="max-w-6xl mx-auto">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">📊 Manage Active Trades</h1>
 
-        {/* ── FORM ─────────────────────────────────────────── */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
           <h2 className="text-lg font-bold text-gray-800 mb-5">
             {editId ? '✏️ Edit Trade' : '➕ Add New Trade'}
           </h2>
 
           <form onSubmit={handleSubmit}>
-            {/* Row 1: Symbol, Type, Action */}
             <div className="grid grid-cols-3 gap-4 mb-4">
               <div>
                 <label className={labelCls}>Symbol *</label>
@@ -184,105 +182,57 @@ export default function AdminActiveTrades() {
               </div>
             </div>
 
-            {/* Row 2: Prices */}
             <div className="grid grid-cols-3 gap-4 mb-4">
               <div>
                 <label className={labelCls}>Entry Price *</label>
-                <input
-                  className={inputCls}
-                  type="number"
-                  placeholder="0.00"
-                  value={form.entryPrice}
-                  onChange={(e) => setForm({ ...form, entryPrice: e.target.value })}
-                  required
-                />
+                <input className={inputCls} type="number" placeholder="0.00" value={form.entryPrice}
+                  onChange={(e) => setForm({ ...form, entryPrice: e.target.value })} required />
               </div>
               <div>
                 <label className={labelCls}>Target Price *</label>
-                <input
-                  className={inputCls}
-                  type="number"
-                  placeholder="0.00"
-                  value={form.targetPrice}
-                  onChange={(e) => setForm({ ...form, targetPrice: e.target.value })}
-                  required
-                />
+                <input className={inputCls} type="number" placeholder="0.00" value={form.targetPrice}
+                  onChange={(e) => setForm({ ...form, targetPrice: e.target.value })} required />
               </div>
               <div>
                 <label className={labelCls}>Stop Loss *</label>
-                <input
-                  className={inputCls}
-                  type="number"
-                  placeholder="0.00"
-                  value={form.stopLoss}
-                  onChange={(e) => setForm({ ...form, stopLoss: e.target.value })}
-                  required
-                />
+                <input className={inputCls} type="number" placeholder="0.00" value={form.stopLoss}
+                  onChange={(e) => setForm({ ...form, stopLoss: e.target.value })} required />
               </div>
             </div>
 
-            {/* ── FUTURES & OPTIONS FIELDS ─────────────────── */}
             {isFutOpt && (
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
                 <p className="text-xs font-bold text-blue-700 mb-3 uppercase tracking-wide">
                   {form.tradeType} Fields
                 </p>
                 <div className="grid grid-cols-3 gap-4">
-                  {/* Lot Size */}
                   <div>
                     <label className={labelCls}>Lot Size</label>
-                    <input
-                      className={inputCls}
-                      type="number"
-                      placeholder="e.g. 50"
-                      value={form.lotSize}
-                      onChange={(e) => setForm({ ...form, lotSize: e.target.value })}
-                    />
+                    <input className={inputCls} type="number" placeholder="e.g. 50" value={form.lotSize}
+                      onChange={(e) => setForm({ ...form, lotSize: e.target.value })} />
                   </div>
-
-                  {/* Expiry Date */}
                   <div>
                     <label className={labelCls}>Expiry Date</label>
-                    <input
-                      className={inputCls}
-                      type="date"
-                      value={form.expiryDate}
-                      onChange={(e) => setForm({ ...form, expiryDate: e.target.value })}
-                    />
+                    <input className={inputCls} type="date" value={form.expiryDate}
+                      onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} />
                   </div>
-
-                  {/* Duration */}
                   <div>
                     <label className={labelCls}>Duration</label>
-                    <input
-                      className={inputCls}
-                      placeholder="e.g. Weekly, Monthly"
-                      value={form.duration}
-                      onChange={(e) => setForm({ ...form, duration: e.target.value })}
-                    />
+                    <input className={inputCls} placeholder="e.g. Weekly, Monthly" value={form.duration}
+                      onChange={(e) => setForm({ ...form, duration: e.target.value })} />
                   </div>
                 </div>
-
-                {/* OPTIONS ONLY: Strike + CE/PE */}
                 {isOptions && (
                   <div className="grid grid-cols-2 gap-4 mt-4">
                     <div>
                       <label className={labelCls}>Strike Price</label>
-                      <input
-                        className={inputCls}
-                        type="number"
-                        placeholder="e.g. 25150"
-                        value={form.strikePrice}
-                        onChange={(e) => setForm({ ...form, strikePrice: e.target.value })}
-                      />
+                      <input className={inputCls} type="number" placeholder="e.g. 25150" value={form.strikePrice}
+                        onChange={(e) => setForm({ ...form, strikePrice: e.target.value })} />
                     </div>
                     <div>
                       <label className={labelCls}>Option Type (CE / PE)</label>
-                      <select
-                        className={inputCls}
-                        value={form.optionType}
-                        onChange={(e) => setForm({ ...form, optionType: e.target.value as OptionType })}
-                      >
+                      <select className={inputCls} value={form.optionType}
+                        onChange={(e) => setForm({ ...form, optionType: e.target.value as OptionType })}>
                         <option value="CE">CE — Call Option</option>
                         <option value="PE">PE — Put Option</option>
                       </select>
@@ -292,36 +242,25 @@ export default function AdminActiveTrades() {
               </div>
             )}
 
-            {/* Status */}
             <div className="grid grid-cols-3 gap-4 mb-5">
               <div>
                 <label className={labelCls}>Status</label>
-                <select
-                  className={inputCls}
-                  value={form.status}
-                  onChange={(e) => setForm({ ...form, status: e.target.value })}
-                >
+                <select className={inputCls} value={form.status}
+                  onChange={(e) => setForm({ ...form, status: e.target.value })}>
                   <option value="active">Active</option>
                   <option value="closed">Closed</option>
                 </select>
               </div>
             </div>
 
-            {/* Buttons */}
             <div className="flex gap-3">
-              <button
-                type="submit"
-                disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg text-sm transition disabled:opacity-50"
-              >
+              <button type="submit" disabled={loading}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg text-sm transition disabled:opacity-50">
                 {loading ? 'Saving…' : editId ? 'Update Trade' : 'Add Trade'}
               </button>
               {editId && (
-                <button
-                  type="button"
-                  onClick={() => { setEditId(null); setForm(emptyForm); }}
-                  className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-6 py-2.5 rounded-lg text-sm transition"
-                >
+                <button type="button" onClick={() => { setEditId(null); setForm(emptyForm); }}
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-6 py-2.5 rounded-lg text-sm transition">
                   Cancel
                 </button>
               )}
@@ -329,21 +268,15 @@ export default function AdminActiveTrades() {
           </form>
         </div>
 
-        {/* ── TRADE LIST ───────────────────────────────────── */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-lg font-bold text-gray-800">Trades</h2>
             <div className="flex gap-2">
               {(['active', 'all'] as const).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setActiveTab(t)}
+                <button key={t} onClick={() => setActiveTab(t)}
                   className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition ${
-                    activeTab === t
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
+                    activeTab === t ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}>
                   {t === 'active' ? 'Active' : 'All'}
                 </button>
               ))}
@@ -354,10 +287,8 @@ export default function AdminActiveTrades() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100">
-                  {['Symbol', 'Type', 'Action', 'Entry', 'Target', 'SL', 'Lot', 'Strike', 'Expiry', 'Duration', 'Status', 'Actions'].map((h) => (
-                    <th key={h} className="text-left text-xs font-semibold text-gray-500 pb-3 pr-4 whitespace-nowrap">
-                      {h}
-                    </th>
+                  {['Symbol','Type','Action','Entry','Target','SL','Lot','Strike','Expiry','Duration','Status','Actions'].map((h) => (
+                    <th key={h} className="text-left text-xs font-semibold text-gray-500 pb-3 pr-4 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -368,18 +299,13 @@ export default function AdminActiveTrades() {
                     <td className="py-3 pr-4">
                       <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
                         trade.tradeType === 'Options' ? 'bg-purple-100 text-purple-700' :
-                        trade.tradeType === 'Futures' ? 'bg-blue-100 text-blue-700' :
-                        'bg-green-100 text-green-700'
-                      }`}>
-                        {trade.tradeType}
-                      </span>
+                        trade.tradeType === 'Futures' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                      }`}>{trade.tradeType}</span>
                     </td>
                     <td className="py-3 pr-4">
                       <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
                         trade.action === 'BUY' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                      }`}>
-                        {trade.action}
-                      </span>
+                      }`}>{trade.action}</span>
                     </td>
                     <td className="py-3 pr-4 text-gray-700">₹{trade.entryPrice}</td>
                     <td className="py-3 pr-4 text-green-600 font-semibold">₹{trade.targetPrice}</td>
@@ -387,9 +313,7 @@ export default function AdminActiveTrades() {
                     <td className="py-3 pr-4 text-gray-500">{trade.lotSize || '—'}</td>
                     <td className="py-3 pr-4">
                       {trade.strikePrice && trade.optionType ? (
-                        <span className="text-purple-700 font-semibold">
-                          {trade.strikePrice} {trade.optionType}
-                        </span>
+                        <span className="text-purple-700 font-semibold">{trade.strikePrice} {trade.optionType}</span>
                       ) : '—'}
                     </td>
                     <td className="py-3 pr-4 text-gray-500 whitespace-nowrap">{trade.expiryDate || '—'}</td>
@@ -397,42 +321,21 @@ export default function AdminActiveTrades() {
                     <td className="py-3 pr-4">
                       <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
                         trade.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
-                      }`}>
-                        {trade.status}
-                      </span>
+                      }`}>{trade.status}</span>
                     </td>
                     <td className="py-3 pr-4">
                       <div className="flex gap-2">
-                        <button
-                          onClick={() => handleEdit(trade)}
-                          className="text-blue-600 hover:text-blue-800 text-xs font-semibold"
-                        >
-                          Edit
-                        </button>
+                        <button onClick={() => handleEdit(trade)} className="text-blue-600 hover:text-blue-800 text-xs font-semibold">Edit</button>
                         {trade.status === 'active' && (
-                          <button
-                            onClick={() => handleClose(trade.id)}
-                            className="text-amber-600 hover:text-amber-800 text-xs font-semibold"
-                          >
-                            Close
-                          </button>
+                          <button onClick={() => handleClose(trade.id)} className="text-amber-600 hover:text-amber-800 text-xs font-semibold">Close</button>
                         )}
-                        <button
-                          onClick={() => handleDelete(trade.id)}
-                          className="text-red-500 hover:text-red-700 text-xs font-semibold"
-                        >
-                          Del
-                        </button>
+                        <button onClick={() => handleDelete(trade.id)} className="text-red-500 hover:text-red-700 text-xs font-semibold">Del</button>
                       </div>
                     </td>
                   </tr>
                 ))}
                 {displayTrades.length === 0 && (
-                  <tr>
-                    <td colSpan={12} className="text-center text-gray-400 py-8">
-                      No trades found
-                    </td>
-                  </tr>
+                  <tr><td colSpan={12} className="text-center text-gray-400 py-8">No trades found</td></tr>
                 )}
               </tbody>
             </table>
