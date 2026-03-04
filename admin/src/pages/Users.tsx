@@ -85,18 +85,25 @@ const Users: React.FC = () => {
         if (!db2) return -1;
         return db2.getTime() - da.getTime();
       });
-      // Auto-expire: if subscription ended and status is still ACTIVE, set to FREE
+      // Auto status management based on subscription end date
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       for (const user of usersData) {
-        if (user.status === 'ACTIVE' && user.subscriptionEndDate) {
+        if (user.subscriptionEndDate && user.status !== 'BLOCKED') {
           const endDate = new Date(user.subscriptionEndDate);
           endDate.setHours(0, 0, 0, 0);
-          // If end date is before today (fully expired)
-          if (endDate < today) {
+          const daysLeft = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+          if (daysLeft < 1 && user.status === 'ACTIVE') {
+            // Expired — set to FREE
             try {
               await updateDoc(doc(db, 'users', user.id), { status: 'FREE' });
               user.status = 'FREE' as UserStatus;
+            } catch {}
+          } else if (daysLeft >= 1 && user.status === 'FREE') {
+            // Has valid subscription — set to ACTIVE
+            try {
+              await updateDoc(doc(db, 'users', user.id), { status: 'ACTIVE' });
+              user.status = 'ACTIVE' as UserStatus;
             } catch {}
           }
         }
