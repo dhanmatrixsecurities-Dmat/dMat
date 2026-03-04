@@ -149,6 +149,9 @@ const Users: React.FC = () => {
       await updateDoc(doc(db, 'users', userId), { subscriptionEndDate: isoDate });
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, subscriptionEndDate: isoDate } : u));
       setEditingEndDate(prev => { const u = { ...prev }; delete u[userId]; return u; });
+      // Auto-manage status after end date change
+      const updatedUser = users.find(u => u.id === userId);
+      await autoManageStatus(userId, isoDate, updatedUser?.status);
       showSnackbar('Subscription end date saved!', 'success');
     } catch {
       showSnackbar('Error saving end date', 'error');
@@ -253,6 +256,23 @@ const Users: React.FC = () => {
 
   const showSnackbar = (message: string, severity: 'success' | 'error') => {
     setSnackbar({ open: true, message, severity });
+  };
+
+  // Auto-manage status based on subscription end date
+  const autoManageStatus = async (userId: string, endDateStr?: string, currentStatus?: UserStatus) => {
+    if (!endDateStr || currentStatus === 'BLOCKED') return;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const endDate = new Date(endDateStr);
+    endDate.setHours(0, 0, 0, 0);
+    const daysLeft = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    if (daysLeft < 1 && currentStatus === 'ACTIVE') {
+      await updateDoc(doc(db, 'users', userId), { status: 'FREE' });
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'FREE' as UserStatus } : u));
+    } else if (daysLeft >= 1 && currentStatus === 'FREE') {
+      await updateDoc(doc(db, 'users', userId), { status: 'ACTIVE' });
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'ACTIVE' as UserStatus } : u));
+    }
   };
 
   const copyToClipboard = (text: string) => {
