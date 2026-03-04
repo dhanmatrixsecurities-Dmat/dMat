@@ -18,10 +18,12 @@ type ActionType = 'BUY' | 'SELL';
 type OptionType = 'CE' | 'PE';
 
 interface Trade {
+  stockName?: string; // old field name
   id: string;
-  symbol: string;
+  symbol?: string;
   segment: Segment;
-  action: ActionType;
+  action?: ActionType;
+  type?: ActionType; // old field name
   entryPrice: number;
   targetPrice: number;
   stopLoss: number;
@@ -89,9 +91,9 @@ export default function AdminActiveTrades() {
   const handleEdit = (trade: Trade) => {
     setEditId(trade.id);
     setForm({
-      symbol: trade.symbol,
+      symbol: trade.symbol || trade.stockName || '',
       segment: trade.segment,
-      action: trade.action,
+      action: trade.action || trade.type || 'BUY' as ActionType,
       entryPrice: String(trade.entryPrice),
       targetPrice: String(trade.targetPrice),
       stopLoss: String(trade.stopLoss),
@@ -175,10 +177,10 @@ export default function AdminActiveTrades() {
 
       // Add to closedTrades
       await addDoc(collection(db, 'closedTrades'), {
-        stockName: tradeToClose.symbol,
-        symbol: tradeToClose.symbol,
-        type: tradeToClose.action,
-        action: tradeToClose.action,
+        stockName: tradeToClose.symbol || tradeToClose.stockName || '',
+        symbol: tradeToClose.symbol || tradeToClose.stockName || '',
+        type: tradeToClose.action || tradeToClose.type || 'BUY',
+        action: tradeToClose.action || tradeToClose.type || 'BUY',
         segment: tradeToClose.segment.toLowerCase(),
         entryPrice: tradeToClose.entryPrice,
         exitPrice: exitPriceNum,
@@ -247,14 +249,14 @@ export default function AdminActiveTrades() {
             <TableBody>
               {trades.map((trade) => (
                 <TableRow key={trade.id} hover>
-                  <TableCell><strong>{trade.symbol}</strong></TableCell>
+                  <TableCell><strong>{trade.stockName || trade.symbol}</strong></TableCell>
                   <TableCell>
                     <Chip size="small" label={(trade.segment || 'equity').toUpperCase()}
                       sx={{ backgroundColor: getSegmentColor(trade.segment), color: '#fff', fontWeight: 'bold', fontSize: 11 }} />
                   </TableCell>
                   <TableCell>
-                    <Chip size="small" label={trade.action}
-                      sx={{ backgroundColor: trade.action === 'BUY' ? '#2e7d32' : '#c62828', color: '#fff', fontWeight: 'bold', fontSize: 11 }} />
+                    <Chip size="small" label={trade.action || trade.type}
+                      sx={{ backgroundColor: ( trade.action || trade.type) === 'BUY' ? '#2e7d32' : '#c62828', color: '#fff', fontWeight: 'bold', fontSize: 11 }} />
                   </TableCell>
                   <TableCell>₹{trade.entryPrice}</TableCell>
                   <TableCell sx={{ color: 'green', fontWeight: 'bold' }}>₹{trade.targetPrice}</TableCell>
@@ -380,7 +382,7 @@ export default function AdminActiveTrades() {
           {tradeToClose && (
             <>
               <Typography variant="body2" color="text.secondary" gutterBottom>
-                Closing <strong>{tradeToClose.symbol}</strong> | Entry: ₹{tradeToClose.entryPrice}
+                Closing <strong>{tradeToClose.stockName || tradeToClose.symbol}</strong> | Entry: ₹{tradeToClose.entryPrice}
               </Typography>
               <TextField fullWidth label="Exit Price" type="number" value={exitPrice}
                 onChange={(e) => setExitPrice(e.target.value)} sx={{ mt: 2 }} autoFocus />
