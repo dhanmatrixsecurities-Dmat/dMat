@@ -452,8 +452,13 @@ const Users: React.FC = () => {
                 label="Mobile Number *"
                 fullWidth
                 value={newUserMobile}
-                onChange={(e) => setNewUserMobile(e.target.value)}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                  setNewUserMobile(digits);
+                }}
                 placeholder="e.g. 9898989898"
+                inputProps={{ maxLength: 10 }}
+                helperText="10 digit mobile number"
               />
               <Box sx={{ backgroundColor: '#f5f5f5', p: 2, borderRadius: 1 }}>
                 <Typography variant="caption" color="text.secondary">
