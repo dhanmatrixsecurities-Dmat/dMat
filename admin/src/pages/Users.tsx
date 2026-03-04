@@ -85,6 +85,22 @@ const Users: React.FC = () => {
         if (!db2) return -1;
         return db2.getTime() - da.getTime();
       });
+      // Auto-expire: if subscription ended and status is still ACTIVE, set to FREE
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      for (const user of usersData) {
+        if (user.status === 'ACTIVE' && user.subscriptionEndDate) {
+          const endDate = new Date(user.subscriptionEndDate);
+          endDate.setHours(0, 0, 0, 0);
+          // If end date is before today (fully expired)
+          if (endDate < today) {
+            try {
+              await updateDoc(doc(db, 'users', user.id), { status: 'FREE' });
+              user.status = 'FREE' as UserStatus;
+            } catch {}
+          }
+        }
+      }
       setUsers(usersData);
       setFilteredUsers(usersData);
     } catch {
@@ -298,7 +314,11 @@ const Users: React.FC = () => {
                         {/* Phone / Name / Email */}
                         <TableCell>
                           <Typography variant="body2" fontWeight="bold">
-                            {(user as any).mobile || (user as any).phone || '—'}
+                            {(() => {
+                              const raw = (user as any).mobile || (user as any).phone || '';
+                              const digits = raw.replace(/\D/g, '');
+                              return digits.length >= 10 ? digits.slice(-10) : raw || '—';
+                            })()}
                           </Typography>
                           {user.name && (
                             <Typography variant="caption" color="text.secondary" display="block">
