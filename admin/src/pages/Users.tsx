@@ -12,16 +12,28 @@ import { User, UserStatus } from '../types';
 
 const parseDate = (value: any): Date | null => {
   if (!value) return null;
-  if (value?.toDate) return value.toDate();
-  if (value?.seconds) return new Date(value.seconds * 1000);
-  if (typeof value === 'string') return new Date(value);
+  // Firestore Timestamp object with toDate() method
+  if (typeof value?.toDate === 'function') return value.toDate();
+  // Firestore Timestamp-like plain object {seconds, nanoseconds}
+  if (value?.seconds !== undefined) return new Date(value.seconds * 1000);
+  // ISO string or any parseable string
+  if (typeof value === 'string' && value.trim() !== '') {
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  // Already a Date
+  if (value instanceof Date) return isNaN(value.getTime()) ? null : value;
   return null;
 };
 
 const toInputDate = (value: any): string => {
   const d = parseDate(value);
   if (!d || isNaN(d.getTime())) return '';
-  return d.toISOString().split('T')[0];
+  // Format as YYYY-MM-DD in local time (not UTC) to avoid off-by-one
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 const Users: React.FC = () => {
@@ -39,7 +51,7 @@ const Users: React.FC = () => {
 
   useEffect(() => {
     const filtered = users.filter(user =>
-      (user.mobile || user.phone || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.mobile || (user as any).phone || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (user.name || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredUsers(filtered);
@@ -74,12 +86,14 @@ const Users: React.FC = () => {
     const dateValue = editingDate[userId];
     if (!dateValue) return;
     try {
-      const isoDate = new Date(dateValue).toISOString();
+      // Store as ISO string — safe and consistent
+      const isoDate = new Date(dateValue + 'T00:00:00').toISOString();
       await updateDoc(doc(db, 'users', userId), { subscriptionEndDate: isoDate });
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, subscriptionEndDate: isoDate } : u));
       setEditingDate(prev => { const u = { ...prev }; delete u[userId]; return u; });
       showSnackbar('Subscription date updated!', 'success');
-    } catch {
+    } catch (err) {
+      console.error('Save sub date error:', err);
       showSnackbar('Error updating subscription date', 'error');
     }
   };
@@ -88,12 +102,14 @@ const Users: React.FC = () => {
     const dateValue = editingRegDate[userId];
     if (!dateValue) return;
     try {
-      const isoDate = new Date(dateValue).toISOString();
+      // Store as ISO string — overwrites Firestore Timestamp with a plain string
+      const isoDate = new Date(dateValue + 'T00:00:00').toISOString();
       await updateDoc(doc(db, 'users', userId), { createdAt: isoDate });
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, createdAt: isoDate } : u));
       setEditingRegDate(prev => { const u = { ...prev }; delete u[userId]; return u; });
       showSnackbar('Registered date updated!', 'success');
-    } catch {
+    } catch (err) {
+      console.error('Save reg date error:', err);
       showSnackbar('Error updating registered date', 'error');
     }
   };
@@ -109,7 +125,6 @@ const Users: React.FC = () => {
 
   const getDaysColor = (days: number | null): 'success' | 'warning' | 'error' | 'default' => {
     if (days === null) return 'default';
-    if (days <= 0) return 'error';
     if (days <= 7) return 'error';
     if (days <= 15) return 'warning';
     return 'success';
@@ -177,7 +192,7 @@ const Users: React.FC = () => {
                         {/* Phone / Name / Email */}
                         <TableCell>
                           <Typography variant="body2" fontWeight="bold">
-                            {(user as any).mobile || user.phone || '—'}
+                            {(user as any).mobile || (user as any).phone || '—'}
                           </Typography>
                           {user.name && (
                             <Typography variant="caption" color="text.secondary" display="block">
@@ -199,14 +214,28 @@ const Users: React.FC = () => {
                         {/* Registered — editable */}
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <TextField type="date" size="small"
-                              value={editingRegDate[user.id] !== undefined ? editingRegDate[user.id] : toInputDate((user as any).createdAt)}
-                              onChange={(e) => setEditingRegDate(prev => ({ ...prev, [user.id]: e.target.value }))}
+                            <TextField
+                              type="date"
+                              size="small"
+                              value={
+                                editingRegDate[user.id] !== undefined
+                                  ? editingRegDate[user.id]
+                                  : toInputDate((user as any).createdAt)
+                              }
+                              onChange={(e) =>
+                                setEditingRegDate(prev => ({ ...prev, [user.id]: e.target.value }))
+                              }
                               sx={{ width: 160 }}
-                              InputProps={{ startAdornment: <InputAdornment position="start"><CalendarMonth fontSize="small" /></InputAdornment> }}
+                              InputProps={{
+                                startAdornment: (
+                                  <InputAdornment position="start">
+                                    <CalendarMonth fontSize="small" />
+                                  </InputAdornment>
+                                ),
+                              }}
                             />
                             {editingRegDate[user.id] !== undefined && (
-                              <Tooltip title="Save date">
+                              <Tooltip title="Save registered date">
                                 <IconButton size="small" color="success" onClick={() => handleSaveRegDate(user.id)}>
                                   <CheckCircle />
                                 </IconButton>
@@ -218,14 +247,28 @@ const Users: React.FC = () => {
                         {/* Subscription End Date */}
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <TextField type="date" size="small"
-                              value={editingDate[user.id] !== undefined ? editingDate[user.id] : toInputDate(user.subscriptionEndDate)}
-                              onChange={(e) => setEditingDate(prev => ({ ...prev, [user.id]: e.target.value }))}
+                            <TextField
+                              type="date"
+                              size="small"
+                              value={
+                                editingDate[user.id] !== undefined
+                                  ? editingDate[user.id]
+                                  : toInputDate(user.subscriptionEndDate)
+                              }
+                              onChange={(e) =>
+                                setEditingDate(prev => ({ ...prev, [user.id]: e.target.value }))
+                              }
                               sx={{ width: 160 }}
-                              InputProps={{ startAdornment: <InputAdornment position="start"><CalendarMonth fontSize="small" /></InputAdornment> }}
+                              InputProps={{
+                                startAdornment: (
+                                  <InputAdornment position="start">
+                                    <CalendarMonth fontSize="small" />
+                                  </InputAdornment>
+                                ),
+                              }}
                             />
                             {editingDate[user.id] !== undefined && (
-                              <Tooltip title="Save date">
+                              <Tooltip title="Save subscription date">
                                 <IconButton size="small" color="success" onClick={() => handleSaveDate(user.id)}>
                                   <CheckCircle />
                                 </IconButton>
@@ -251,8 +294,10 @@ const Users: React.FC = () => {
                         {/* Actions */}
                         <TableCell>
                           <FormControl size="small" sx={{ minWidth: 120 }}>
-                            <Select value={user.status}
-                              onChange={(e) => handleStatusChange(user.id, e.target.value as UserStatus)}>
+                            <Select
+                              value={user.status}
+                              onChange={(e) => handleStatusChange(user.id, e.target.value as UserStatus)}
+                            >
                               <MenuItem value="FREE">FREE</MenuItem>
                               <MenuItem value="ACTIVE">ACTIVE</MenuItem>
                               <MenuItem value="BLOCKED">BLOCKED</MenuItem>
