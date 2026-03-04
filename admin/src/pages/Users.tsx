@@ -3,25 +3,25 @@ import {
   Box, Typography, Paper, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Chip, Select, MenuItem,
   FormControl, TextField, InputAdornment, Alert, Snackbar,
-  CircularProgress, Tooltip, IconButton,
+  CircularProgress, Tooltip, IconButton, Button, Dialog,
+  DialogTitle, DialogContent, DialogActions,
 } from '@mui/material';
-import { Search, CalendarMonth, CheckCircle } from '@mui/icons-material';
+import { Search, CalendarMonth, CheckCircle, PersonAdd, ContentCopy } from '@mui/icons-material';
 import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { User, UserStatus } from '../types';
 
+// ── Firebase Auth REST API (create user without signing out admin) ──
+const FIREBASE_API_KEY = (window as any).__FIREBASE_API_KEY__ || '';
+
 const parseDate = (value: any): Date | null => {
   if (!value) return null;
-  // Firestore Timestamp object with toDate() method
   if (typeof value?.toDate === 'function') return value.toDate();
-  // Firestore Timestamp-like plain object {seconds, nanoseconds}
   if (value?.seconds !== undefined) return new Date(value.seconds * 1000);
-  // ISO string or any parseable string
   if (typeof value === 'string' && value.trim() !== '') {
     const d = new Date(value);
     return isNaN(d.getTime()) ? null : d;
   }
-  // Already a Date
   if (value instanceof Date) return isNaN(value.getTime()) ? null : value;
   return null;
 };
@@ -29,11 +29,16 @@ const parseDate = (value: any): Date | null => {
 const toInputDate = (value: any): string => {
   const d = parseDate(value);
   if (!d || isNaN(d.getTime())) return '';
-  // Format as YYYY-MM-DD in local time (not UTC) to avoid off-by-one
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+};
+
+const formatDisplayDate = (value: any): string => {
+  const d = parseDate(value);
+  if (!d || isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
 const Users: React.FC = () => {
@@ -41,8 +46,18 @@ const Users: React.FC = () => {
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [editingDate, setEditingDate] = useState<{ [userId: string]: string }>({});
-  const [editingRegDate, setEditingRegDate] = useState<{ [userId: string]: string }>({});
+
+  // Editing states
+  const [editingStartDate, setEditingStartDate] = useState<{ [id: string]: string }>({});
+  const [editingEndDate, setEditingEndDate] = useState<{ [id: string]: string }>({});
+
+  // Add User dialog
+  const [addUserOpen, setAddUserOpen] = useState(false);
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserMobile, setNewUserMobile] = useState('');
+  const [addingUser, setAddingUser] = useState(false);
+  const [generatedCreds, setGeneratedCreds] = useState<{ loginId: string; password: string } | null>(null);
+
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false, message: '', severity: 'success',
   });
@@ -51,7 +66,7 @@ const Users: React.FC = () => {
 
   useEffect(() => {
     const filtered = users.filter(user =>
-      (user.mobile || (user as any).phone || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ((user as any).mobile || (user as any).phone || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (user.name || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredUsers(filtered);
@@ -60,10 +75,8 @@ const Users: React.FC = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      // No orderBy — prevents silently dropping users who have no createdAt field
       const snapshot = await getDocs(collection(db, 'users'));
       const usersData = snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as User[];
-      // Sort in JS: newest first, users without createdAt go to bottom
       usersData.sort((a, b) => {
         const da = parseDate((a as any).createdAt);
         const db2 = parseDate((b as any).createdAt);
@@ -74,7 +87,7 @@ const Users: React.FC = () => {
       });
       setUsers(usersData);
       setFilteredUsers(usersData);
-    } catch (error) {
+    } catch {
       showSnackbar('Error fetching users', 'error');
     } finally {
       setLoading(false);
@@ -91,57 +104,53 @@ const Users: React.FC = () => {
     }
   };
 
-  const handleSaveDate = async (userId: string) => {
-    const dateValue = editingDate[userId];
+  const handleSaveStartDate = async (userId: string) => {
+    const dateValue = editingStartDate[userId];
     if (!dateValue) return;
     try {
-      // Store as ISO string — safe and consistent
+      const isoDate = new Date(dateValue + 'T00:00:00').toISOString();
+      await updateDoc(doc(db, 'users', userId), { subscriptionStartDate: isoDate });
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, subscriptionStartDate: isoDate } : u));
+      setEditingStartDate(prev => { const u = { ...prev }; delete u[userId]; return u; });
+      showSnackbar('Subscription start date saved!', 'success');
+    } catch {
+      showSnackbar('Error saving start date', 'error');
+    }
+  };
+
+  const handleSaveEndDate = async (userId: string) => {
+    const dateValue = editingEndDate[userId];
+    if (!dateValue) return;
+    try {
       const isoDate = new Date(dateValue + 'T00:00:00').toISOString();
       await updateDoc(doc(db, 'users', userId), { subscriptionEndDate: isoDate });
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, subscriptionEndDate: isoDate } : u));
-      setEditingDate(prev => { const u = { ...prev }; delete u[userId]; return u; });
-      showSnackbar('Subscription date updated!', 'success');
-    } catch (err) {
-      console.error('Save sub date error:', err);
-      showSnackbar('Error updating subscription date', 'error');
+      setEditingEndDate(prev => { const u = { ...prev }; delete u[userId]; return u; });
+      showSnackbar('Subscription end date saved!', 'success');
+    } catch {
+      showSnackbar('Error saving end date', 'error');
     }
   };
 
-  const handleSaveRegDate = async (userId: string) => {
-    const dateValue = editingRegDate[userId];
-    if (!dateValue) return;
-    try {
-      // Store as ISO string — overwrites Firestore Timestamp with a plain string
-      const isoDate = new Date(dateValue + 'T00:00:00').toISOString();
-      await updateDoc(doc(db, 'users', userId), { createdAt: isoDate });
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, createdAt: isoDate } : u));
-      setEditingRegDate(prev => { const u = { ...prev }; delete u[userId]; return u; });
-      showSnackbar('Registered date updated!', 'success');
-    } catch (err) {
-      console.error('Save reg date error:', err);
-      showSnackbar('Error updating registered date', 'error');
-    }
-  };
-
+  // Days remaining: End Date - Today + 1 (end date counts as 1 day)
   const getDaysRemaining = (subscriptionEndDate?: string) => {
     if (!subscriptionEndDate) return null;
     const endDate = new Date(subscriptionEndDate);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     endDate.setHours(0, 0, 0, 0);
-    // +1 so end date itself counts as 1 day remaining
     return Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
   };
 
-  // Total days from registration → subscription end date
-  const getTotalSubDays = (createdAt: any, subscriptionEndDate?: string) => {
-    if (!subscriptionEndDate) return null;
-    const regDate = parseDate(createdAt);
-    if (!regDate) return null;
-    const endDate = new Date(subscriptionEndDate);
-    regDate.setHours(0, 0, 0, 0);
-    endDate.setHours(0, 0, 0, 0);
-    const total = Math.ceil((endDate.getTime() - regDate.getTime()) / (1000 * 60 * 60 * 24));
+  // Total days: End Date - Start Date
+  const getTotalSubDays = (startDate: any, endDate?: string) => {
+    if (!endDate || !startDate) return null;
+    const start = parseDate(startDate);
+    if (!start) return null;
+    const end = new Date(endDate);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+    const total = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     return total > 0 ? total : null;
   };
 
@@ -162,18 +171,81 @@ const Users: React.FC = () => {
     }
   };
 
+  // ── Add User ──────────────────────────────────────────────────────
+  const handleAddUser = async () => {
+    if (!newUserName.trim() || !newUserMobile.trim()) {
+      showSnackbar('Name and mobile are required', 'error');
+      return;
+    }
+    setAddingUser(true);
+    try {
+      // Generate login ID and password
+      const loginId = `${newUserMobile.replace(/\D/g, '')}@dhanmatrix.in`;
+      const password = `DhanMatrix@${newUserMobile.slice(-4)}`;
+
+      // Get Firebase API key from environment
+      const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+
+      // Create user via Firebase Auth REST API (doesn't sign out current admin)
+      const res = await fetch(
+        `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: loginId, password, returnSecureToken: false }),
+        }
+      );
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+
+      // Save user profile in Firestore
+      const { setDoc, doc: firestoreDoc } = await import('firebase/firestore');
+      await setDoc(firestoreDoc(db, 'users', data.localId), {
+        name: newUserName.trim(),
+        mobile: newUserMobile.trim(),
+        email: loginId,
+        status: 'FREE',
+        createdAt: new Date().toISOString(),
+      });
+
+      setGeneratedCreds({ loginId, password });
+      setNewUserName('');
+      setNewUserMobile('');
+      fetchUsers();
+    } catch (err: any) {
+      showSnackbar(err.message || 'Error creating user', 'error');
+    } finally {
+      setAddingUser(false);
+    }
+  };
+
   const showSnackbar = (message: string, severity: 'success' | 'error') => {
     setSnackbar({ open: true, message, severity });
   };
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    showSnackbar('Copied!', 'success');
+  };
+
   return (
     <Box>
-      <Typography variant="h4" fontWeight="bold" gutterBottom>User Management</Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+        <Typography variant="h4" fontWeight="bold">User Management</Typography>
+        <Button
+          variant="contained"
+          startIcon={<PersonAdd />}
+          onClick={() => { setAddUserOpen(true); setGeneratedCreds(null); }}
+          sx={{ backgroundColor: '#1a237e' }}
+        >
+          Add User
+        </Button>
+      </Box>
       <Typography variant="body1" color="text.secondary" paragraph>
         Manage user access levels and subscription dates
       </Typography>
 
-      <Paper sx={{ p: 3, mt: 3 }}>
+      <Paper sx={{ p: 3, mt: 2 }}>
         <Box sx={{ mb: 3 }}>
           <TextField fullWidth placeholder="Search by phone number or name..."
             value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
@@ -191,7 +263,8 @@ const Users: React.FC = () => {
                   <TableCell><strong>Phone / Name / Email</strong></TableCell>
                   <TableCell><strong>Status</strong></TableCell>
                   <TableCell><strong>Registered</strong></TableCell>
-                  <TableCell><strong>Subscription End Date</strong></TableCell>
+                  <TableCell><strong>Sub Start Date</strong></TableCell>
+                  <TableCell><strong>Sub End Date</strong></TableCell>
                   <TableCell><strong>Days Remaining</strong></TableCell>
                   <TableCell><strong>Actions</strong></TableCell>
                 </TableRow>
@@ -199,7 +272,7 @@ const Users: React.FC = () => {
               <TableBody>
                 {filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} align="center">
+                    <TableCell colSpan={7} align="center">
                       <Typography color="text.secondary">
                         {searchTerm ? 'No users found' : 'No users registered yet'}
                       </Typography>
@@ -208,6 +281,7 @@ const Users: React.FC = () => {
                 ) : (
                   filteredUsers.map((user) => {
                     const daysLeft = getDaysRemaining(user.subscriptionEndDate);
+                    const totalDays = getTotalSubDays((user as any).subscriptionStartDate, user.subscriptionEndDate);
 
                     return (
                       <TableRow key={user.id} hover>
@@ -229,27 +303,33 @@ const Users: React.FC = () => {
                           )}
                         </TableCell>
 
-                        {/* Status */}
+                        {/* Status chip */}
                         <TableCell>
                           <Chip label={user.status} color={getStatusColor(user.status)} size="small" />
                         </TableCell>
 
-                        {/* Registered — always editable date picker */}
+                        {/* Registered — plain text, no picker */}
+                        <TableCell>
+                          <Typography variant="body2">
+                            {formatDisplayDate((user as any).createdAt)}
+                          </Typography>
+                        </TableCell>
+
+                        {/* Sub Start Date — editable */}
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <TextField
                               type="date"
                               size="small"
                               value={
-                                editingRegDate[user.id] !== undefined
-                                  ? editingRegDate[user.id]
-                                  : toInputDate((user as any).createdAt) ?? ''
+                                editingStartDate[user.id] !== undefined
+                                  ? editingStartDate[user.id]
+                                  : toInputDate((user as any).subscriptionStartDate)
                               }
                               onChange={(e) =>
-                                setEditingRegDate(prev => ({ ...prev, [user.id]: e.target.value }))
+                                setEditingStartDate(prev => ({ ...prev, [user.id]: e.target.value }))
                               }
-                              sx={{ width: 160 }}
-                              inputProps={{ placeholder: 'dd-mm-yyyy' }}
+                              sx={{ width: 155 }}
                               InputProps={{
                                 startAdornment: (
                                   <InputAdornment position="start">
@@ -258,9 +338,9 @@ const Users: React.FC = () => {
                                 ),
                               }}
                             />
-                            {editingRegDate[user.id] !== undefined && editingRegDate[user.id] !== '' && (
-                              <Tooltip title="Save registered date">
-                                <IconButton size="small" color="success" onClick={() => handleSaveRegDate(user.id)}>
+                            {editingStartDate[user.id] !== undefined && (
+                              <Tooltip title="Save start date">
+                                <IconButton size="small" color="success" onClick={() => handleSaveStartDate(user.id)}>
                                   <CheckCircle />
                                 </IconButton>
                               </Tooltip>
@@ -268,21 +348,21 @@ const Users: React.FC = () => {
                           </Box>
                         </TableCell>
 
-                        {/* Subscription End Date */}
+                        {/* Sub End Date — editable */}
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <TextField
                               type="date"
                               size="small"
                               value={
-                                editingDate[user.id] !== undefined
-                                  ? editingDate[user.id]
+                                editingEndDate[user.id] !== undefined
+                                  ? editingEndDate[user.id]
                                   : toInputDate(user.subscriptionEndDate)
                               }
                               onChange={(e) =>
-                                setEditingDate(prev => ({ ...prev, [user.id]: e.target.value }))
+                                setEditingEndDate(prev => ({ ...prev, [user.id]: e.target.value }))
                               }
-                              sx={{ width: 160 }}
+                              sx={{ width: 155 }}
                               InputProps={{
                                 startAdornment: (
                                   <InputAdornment position="start">
@@ -291,9 +371,9 @@ const Users: React.FC = () => {
                                 ),
                               }}
                             />
-                            {editingDate[user.id] !== undefined && (
-                              <Tooltip title="Save subscription date">
-                                <IconButton size="small" color="success" onClick={() => handleSaveDate(user.id)}>
+                            {editingEndDate[user.id] !== undefined && (
+                              <Tooltip title="Save end date">
+                                <IconButton size="small" color="success" onClick={() => handleSaveEndDate(user.id)}>
                                   <CheckCircle />
                                 </IconButton>
                               </Tooltip>
@@ -303,28 +383,23 @@ const Users: React.FC = () => {
 
                         {/* Days Remaining */}
                         <TableCell>
-                          {(() => {
-                            const totalDays = getTotalSubDays((user as any).createdAt, user.subscriptionEndDate);
-                            return (
-                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                                {user.status === 'ACTIVE' && daysLeft !== null ? (
-                                  <Chip
-                                    label={daysLeft < 1 ? 'Expired' : `${daysLeft} days left`}
-                                    color={getDaysColor(daysLeft)}
-                                    size="small"
-                                    variant={daysLeft <= 7 ? 'filled' : 'outlined'}
-                                  />
-                                ) : (
-                                  <Typography variant="caption" color="text.secondary">—</Typography>
-                                )}
-                                {totalDays !== null && (
-                                  <Typography variant="caption" color="text.secondary">
-                                    Total: {totalDays}d
-                                  </Typography>
-                                )}
-                              </Box>
-                            );
-                          })()}
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                            {user.status === 'ACTIVE' && daysLeft !== null ? (
+                              <Chip
+                                label={daysLeft < 1 ? 'Expired' : `${daysLeft} ${daysLeft === 1 ? 'day' : 'days'} left`}
+                                color={getDaysColor(daysLeft)}
+                                size="small"
+                                variant={daysLeft <= 7 ? 'filled' : 'outlined'}
+                              />
+                            ) : (
+                              <Typography variant="caption" color="text.secondary">—</Typography>
+                            )}
+                            {totalDays !== null && (
+                              <Typography variant="caption" color="text.secondary">
+                                Total: {totalDays} {totalDays === 1 ? 'day' : 'days'}
+                              </Typography>
+                            )}
+                          </Box>
                         </TableCell>
 
                         {/* Actions */}
@@ -350,6 +425,80 @@ const Users: React.FC = () => {
           </TableContainer>
         )}
       </Paper>
+
+      {/* ── Add User Dialog ─────────────────────────────────── */}
+      <Dialog open={addUserOpen} onClose={() => setAddUserOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 'bold' }}>➕ Add New User</DialogTitle>
+        <DialogContent>
+          {!generatedCreds ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+              <TextField
+                label="Full Name *"
+                fullWidth
+                value={newUserName}
+                onChange={(e) => setNewUserName(e.target.value)}
+                placeholder="e.g. Rahul Sharma"
+              />
+              <TextField
+                label="Mobile Number *"
+                fullWidth
+                value={newUserMobile}
+                onChange={(e) => setNewUserMobile(e.target.value)}
+                placeholder="e.g. 9898989898"
+              />
+              <Box sx={{ backgroundColor: '#f5f5f5', p: 2, borderRadius: 1 }}>
+                <Typography variant="caption" color="text.secondary">
+                  Login ID will be: <strong>{newUserMobile ? `${newUserMobile.replace(/\D/g, '')}@dhanmatrix.in` : '9898989898@dhanmatrix.in'}</strong><br />
+                  Password will be: <strong>{newUserMobile ? `DhanMatrix@${newUserMobile.slice(-4)}` : 'DhanMatrix@8989'}</strong>
+                </Typography>
+              </Box>
+            </Box>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+              <Alert severity="success">User created successfully!</Alert>
+              <Box sx={{ backgroundColor: '#f5f5f5', p: 2, borderRadius: 1 }}>
+                <Typography variant="body2" gutterBottom><strong>Share these credentials with the user:</strong></Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 1 }}>
+                  <Typography variant="body2">Login ID: <strong>{generatedCreds.loginId}</strong></Typography>
+                  <IconButton size="small" onClick={() => copyToClipboard(generatedCreds.loginId)}><ContentCopy fontSize="small" /></IconButton>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 0.5 }}>
+                  <Typography variant="body2">Password: <strong>{generatedCreds.password}</strong></Typography>
+                  <IconButton size="small" onClick={() => copyToClipboard(generatedCreds.password)}><ContentCopy fontSize="small" /></IconButton>
+                </Box>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  sx={{ mt: 2 }}
+                  onClick={() => copyToClipboard(`Login ID: ${generatedCreds.loginId}\nPassword: ${generatedCreds.password}`)}
+                  startIcon={<ContentCopy />}
+                >
+                  Copy Both
+                </Button>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          {!generatedCreds ? (
+            <>
+              <Button onClick={() => setAddUserOpen(false)}>Cancel</Button>
+              <Button
+                variant="contained"
+                onClick={handleAddUser}
+                disabled={addingUser || !newUserName.trim() || !newUserMobile.trim()}
+                sx={{ backgroundColor: '#1a237e' }}
+              >
+                {addingUser ? 'Creating...' : 'Create User'}
+              </Button>
+            </>
+          ) : (
+            <Button variant="contained" onClick={() => { setAddUserOpen(false); setGeneratedCreds(null); }} sx={{ backgroundColor: '#1a237e' }}>
+              Done
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
 
       <Snackbar open={snackbar.open} autoHideDuration={3000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}>
