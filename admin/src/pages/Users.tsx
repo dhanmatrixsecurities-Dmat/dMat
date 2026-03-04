@@ -123,6 +123,18 @@ const Users: React.FC = () => {
     return Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
   };
 
+  // Total days from registration → subscription end date
+  const getTotalSubDays = (createdAt: any, subscriptionEndDate?: string) => {
+    if (!subscriptionEndDate) return null;
+    const regDate = parseDate(createdAt);
+    if (!regDate) return null;
+    const endDate = new Date(subscriptionEndDate);
+    regDate.setHours(0, 0, 0, 0);
+    endDate.setHours(0, 0, 0, 0);
+    const total = Math.ceil((endDate.getTime() - regDate.getTime()) / (1000 * 60 * 60 * 24));
+    return total > 0 ? total : null;
+  };
+
   const getDaysColor = (days: number | null): 'success' | 'warning' | 'error' | 'default' => {
     if (days === null) return 'default';
     if (days <= 7) return 'error';
@@ -211,7 +223,7 @@ const Users: React.FC = () => {
                           <Chip label={user.status} color={getStatusColor(user.status)} size="small" />
                         </TableCell>
 
-                        {/* Registered — editable */}
+                        {/* Registered — always editable date picker */}
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <TextField
@@ -220,12 +232,13 @@ const Users: React.FC = () => {
                               value={
                                 editingRegDate[user.id] !== undefined
                                   ? editingRegDate[user.id]
-                                  : toInputDate((user as any).createdAt)
+                                  : toInputDate((user as any).createdAt) ?? ''
                               }
                               onChange={(e) =>
                                 setEditingRegDate(prev => ({ ...prev, [user.id]: e.target.value }))
                               }
                               sx={{ width: 160 }}
+                              inputProps={{ placeholder: 'dd-mm-yyyy' }}
                               InputProps={{
                                 startAdornment: (
                                   <InputAdornment position="start">
@@ -234,7 +247,7 @@ const Users: React.FC = () => {
                                 ),
                               }}
                             />
-                            {editingRegDate[user.id] !== undefined && (
+                            {editingRegDate[user.id] !== undefined && editingRegDate[user.id] !== '' && (
                               <Tooltip title="Save registered date">
                                 <IconButton size="small" color="success" onClick={() => handleSaveRegDate(user.id)}>
                                   <CheckCircle />
@@ -279,16 +292,28 @@ const Users: React.FC = () => {
 
                         {/* Days Remaining */}
                         <TableCell>
-                          {user.status === 'ACTIVE' && daysLeft !== null ? (
-                            <Chip
-                              label={daysLeft <= 0 ? 'Expired' : `${daysLeft} days`}
-                              color={getDaysColor(daysLeft)}
-                              size="small"
-                              variant={daysLeft <= 7 ? 'filled' : 'outlined'}
-                            />
-                          ) : (
-                            <Typography variant="caption" color="text.secondary">—</Typography>
-                          )}
+                          {(() => {
+                            const totalDays = getTotalSubDays((user as any).createdAt, user.subscriptionEndDate);
+                            return (
+                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                {user.status === 'ACTIVE' && daysLeft !== null ? (
+                                  <Chip
+                                    label={daysLeft <= 0 ? 'Expired' : `${daysLeft} days left`}
+                                    color={getDaysColor(daysLeft)}
+                                    size="small"
+                                    variant={daysLeft <= 7 ? 'filled' : 'outlined'}
+                                  />
+                                ) : (
+                                  <Typography variant="caption" color="text.secondary">—</Typography>
+                                )}
+                                {totalDays !== null && (
+                                  <Typography variant="caption" color="text.secondary">
+                                    Total: {totalDays}d
+                                  </Typography>
+                                )}
+                              </Box>
+                            );
+                          })()}
                         </TableCell>
 
                         {/* Actions */}
