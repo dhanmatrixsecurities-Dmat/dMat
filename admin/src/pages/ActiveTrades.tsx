@@ -375,8 +375,8 @@ export default function AdminActiveTrades() {
                       <InputLabel>Option Type</InputLabel>
                       <Select label="Option Type" value={form.optionType}
                         onChange={(e) => setForm({ ...form, optionType: e.target.value as OptionType })}>
-                        <MenuItem value="CE">CE — Call</MenuItem>
-                        <MenuItem value="PE">PE — Put</MenuItem>
+                        <MenuItem value="CE">CE</MenuItem>
+                        <MenuItem value="PE">PE</MenuItem>
                       </Select>
                     </FormControl>
                   </>
