@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, RefreshControl,
-  ActivityIndicator, TouchableOpacity,
+  ActivityIndicator, TouchableOpacity, Linking,
 } from 'react-native';
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
@@ -61,6 +61,11 @@ export default function ClosedTrades() {
     if (activeTab === 'equity') return !s || s === 'equity';
     return s === activeTab;
   });
+
+  const openChart = (stockName: string) => {
+    const symbol = `NSE:${stockName.toUpperCase().trim()}`;
+    Linking.openURL(`https://www.tradingview.com/chart/?symbol=${symbol}`);
+  };
 
   const renderTradeCard = ({ item }: { item: ClosedTrade }) => {
     const isBuy = item.type === 'BUY';
@@ -128,16 +133,27 @@ export default function ClosedTrades() {
           </View>
         </View>
 
-        {/* ── Date ── */}
-        <View style={styles.dateContainer}>
-          <Ionicons name="calendar-outline" size={14} color={Colors.textSecondary} />
-          <Text style={styles.dateText}>
-            Closed: {new Date(item.closedAt || Date.now()).toLocaleString('en-IN', {
-              day: 'numeric', month: 'short', year: 'numeric',
-              hour: '2-digit', minute: '2-digit',
-            })}
-          </Text>
+        {/* ── Footer: Date + Chart Button ── */}
+        <View style={styles.cardFooter}>
+          <View style={styles.dateContainer}>
+            <Ionicons name="calendar-outline" size={14} color={Colors.textSecondary} />
+            <Text style={styles.dateText}>
+              Closed: {new Date(item.closedAt || Date.now()).toLocaleString('en-IN', {
+                day: 'numeric', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit',
+              })}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.chartBtn}
+            onPress={() => openChart(item.stockName)}
+            activeOpacity={0.75}
+          >
+            <Text style={styles.chartBtnEmoji}>📈</Text>
+            <Text style={styles.chartBtnText}>Live Chart</Text>
+          </TouchableOpacity>
         </View>
+
       </View>
     );
   };
@@ -221,8 +237,13 @@ const styles = StyleSheet.create({
   profitText: { color: Colors.success },
   lossText: { color: Colors.error },
 
+  // ── Footer ──
+  cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
   dateContainer: { flexDirection: 'row', alignItems: 'center' },
   dateText: { fontSize: 12, color: Colors.textSecondary, marginLeft: 4 },
+  chartBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#fff', borderRadius: 7, borderWidth: 1.5, borderColor: '#3b82f6', paddingHorizontal: 8, paddingVertical: 4 },
+  chartBtnEmoji: { fontSize: 12 },
+  chartBtnText: { fontSize: 10, fontWeight: '700', color: '#3b82f6' },
 
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   emptyText: { fontSize: 18, fontWeight: '600', color: Colors.text, marginTop: 16, textAlign: 'center' },
