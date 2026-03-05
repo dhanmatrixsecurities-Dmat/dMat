@@ -27,7 +27,9 @@
         "backgroundColor": "#001F3F"
       },
       "package": "com.dhanmatrix.app",
-      "permissions": ["NOTIFICATIONS", "RECEIVE_BOOT_COMPLETED", "VIBRATE"]
+      "permissions": ["NOTIFICATIONS", "RECEIVE_BOOT_COMPLETED", "VIBRATE"],
+      "jsEngine": "hermes",
+      "enableProguardInRelease": true
     },
     "web": {
       "bundler": "metro",
