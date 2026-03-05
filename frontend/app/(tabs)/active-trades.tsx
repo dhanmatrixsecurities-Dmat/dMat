@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, FlatList, RefreshControl,
   TouchableOpacity, ActivityIndicator, Animated,
 } from 'react-native';
-import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, onSnapshot, getDocs } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,8 +22,10 @@ type Segment = 'equity' | 'futures' | 'options';
 
 interface Trade {
   id: string;
-  stockName: string;
-  type: 'BUY' | 'SELL';
+  stockName?: string;
+  symbol?: string;
+  type?: 'BUY' | 'SELL';
+  action?: 'BUY' | 'SELL';
   entryPrice: number;
   targetPrice: number;
   stopLoss: number;
@@ -79,7 +81,7 @@ export default function ActiveTrades() {
   useEffect(() => {
     if (userData?.status !== 'ACTIVE') { setLoading(false); return; }
 
-    const q = query(collection(db, 'activeTrades'),);
+    const q = query(collection(db, 'activeTrades'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const tradesData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Trade[];
 
@@ -128,7 +130,7 @@ export default function ActiveTrades() {
   ];
 
   const renderTradeCard = ({ item }: { item: Trade }) => {
-    const isBuy = item.type === 'BUY';
+    const isBuy = (item.type || item.action) === 'BUY';
     const entryPrice = Number(item.entryPrice) || 0;
     const targetPrice = Number(item.targetPrice) || 0;
     const stopLoss = Number(item.stopLoss) || 0;
@@ -151,7 +153,7 @@ export default function ActiveTrades() {
         <View style={styles.tradeHeader}>
           <View style={styles.stockInfo}>
             <View style={styles.stockNameRow}>
-              <Text style={styles.stockName}>{item.stockName}</Text>
+              <Text style={styles.stockName}>{item.stockName || item.symbol}</Text>
               {seg === 'options' && item.strikePrice && (
                 <View style={styles.strikeBadge}>
                   <Text style={styles.strikeText}>{item.strikePrice} {item.optionType || ''}</Text>
@@ -222,7 +224,7 @@ export default function ActiveTrades() {
         <View style={styles.dateContainer}>
           <Ionicons name="time-outline" size={14} color={Colors.textSecondary} />
           <Text style={styles.dateText}>
-            {new Date(item.createdAt).toLocaleString('en-IN', {
+            {new Date(item.createdAt || item.createdAtISO || Date.now()).toLocaleString('en-IN', {
               day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
             })}
           </Text>
