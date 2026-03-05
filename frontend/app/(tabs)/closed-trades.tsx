@@ -42,10 +42,13 @@ export default function ClosedTrades() {
   useEffect(() => {
     if (!user) { setLoading(false); return; }
 
-    const q = query(collection(db, 'closedTrades'), orderBy('closedAt', 'desc'));
+    const q = query(collection(db, 'closedTrades'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const tradesData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as ClosedTrade[];
-      setTrades(tradesData);
+      const sorted = [...tradesData].sort((a, b) => {
+        return new Date(b.closedAt || 0).getTime() - new Date(a.closedAt || 0).getTime();
+      });
+      setTrades(sorted);
       setLoading(false);
       setRefreshing(false);
     }, () => { setLoading(false); setRefreshing(false); });
@@ -129,7 +132,7 @@ export default function ClosedTrades() {
         <View style={styles.dateContainer}>
           <Ionicons name="calendar-outline" size={14} color={Colors.textSecondary} />
           <Text style={styles.dateText}>
-            Closed: {new Date(item.closedAt).toLocaleString('en-IN', {
+            Closed: {new Date(item.closedAt || Date.now()).toLocaleString('en-IN', {
               day: 'numeric', month: 'short', year: 'numeric',
               hour: '2-digit', minute: '2-digit',
             })}
@@ -166,7 +169,7 @@ export default function ClosedTrades() {
       ) : (
         <FlatList data={filteredTrades} renderItem={renderTradeCard} keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => setRefreshing(true)}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 1500); }}
             colors={[Colors.primary]} tintColor={Colors.primary} />} />
       )}
     </View>
