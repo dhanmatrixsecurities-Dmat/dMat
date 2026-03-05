@@ -105,7 +105,13 @@ export default function ActiveTrades() {
 
       prevTradeIdsRef.current = new Set(tradesData.map((t) => t.id));
       isFirstLoadRef.current = false;
-      setTrades(tradesData);
+      // Sort by createdAt descending (newest first)
+      const sorted = [...tradesData].sort((a, b) => {
+        const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt || 0).getTime();
+        const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt || 0).getTime();
+        return bTime - aTime;
+      });
+      setTrades(sorted);
       setLoading(false);
       setRefreshing(false);
     }, () => { setLoading(false); setRefreshing(false); });
@@ -224,9 +230,10 @@ export default function ActiveTrades() {
         <View style={styles.dateContainer}>
           <Ionicons name="time-outline" size={14} color={Colors.textSecondary} />
           <Text style={styles.dateText}>
-            {new Date(item.createdAt || item.createdAtISO || Date.now()).toLocaleString('en-IN', {
-              day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
-            })}
+            {(() => {
+              const d = item.createdAt?.toDate ? item.createdAt.toDate() : new Date(item.createdAt || Date.now());
+              return isNaN(d.getTime()) ? '—' : d.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+            })()}
           </Text>
         </View>
       </View>
@@ -296,7 +303,7 @@ export default function ActiveTrades() {
       ) : (
         <FlatList data={filteredTrades} renderItem={renderTradeCard} keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => setRefreshing(true)}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 1500); }}
             colors={[Colors.primary]} tintColor={Colors.primary} />} />
       )}
     </View>
