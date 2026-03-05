@@ -11,7 +11,7 @@ import {
   IconButton, Alert, Snackbar, CircularProgress,
   Dialog, DialogTitle, DialogContent, DialogActions, Menu,
 } from '@mui/material';
-import { Add, Edit, Delete, Close } from '@mui/icons-material';
+import { Add, Edit, Delete, Close, MoreVert } from '@mui/icons-material';
 
 type Segment = 'Equity' | 'Futures' | 'Options';
 type ActionType = 'BUY' | 'SELL';
@@ -19,7 +19,7 @@ type OptionType = 'CE' | 'PE';
 
 interface Trade {
   id: string;
-  _collection: string; // which collection it came from
+  _collection: string;
   stockName?: string;
   symbol?: string;
   segment?: string;
@@ -61,37 +61,30 @@ export default function AdminActiveTrades() {
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
   const [tradeToClose, setTradeToClose] = useState<Trade | null>(null);
   const [exitPrice, setExitPrice] = useState('');
-  const [menuAnchor, setMenuAnchor] = useState<{ el: HTMLElement; trade: Trade } | null>(null);
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const [menuTrade, setMenuTrade] = useState<Trade | null>(null);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false, message: '', severity: 'success',
   });
 
   useEffect(() => {
-    // ✅ Listen to BOTH collections simultaneously
     const allTrades: { [id: string]: Trade } = {};
 
-    const q1 = query(collection(db, 'activeTrades'), orderBy('createdAt', 'desc'));
+    const q1 = query(collection(db, 'activeTrades'));
     const unsub1 = onSnapshot(q1, (snap) => {
-      // Remove old activeTrades entries
-      Object.keys(allTrades).forEach(k => {
-        if (allTrades[k]._collection === 'activeTrades') delete allTrades[k];
-      });
+      Object.keys(allTrades).forEach(k => { if (allTrades[k]._collection === 'activeTrades') delete allTrades[k]; });
       snap.docs.forEach(d => {
         allTrades[`activeTrades_${d.id}`] = { id: d.id, _collection: 'activeTrades', ...d.data() } as Trade;
       });
       updateTrades();
     });
 
-    const q2 = query(collection(db, 'trades'), orderBy('createdAt', 'desc'));
+    const q2 = query(collection(db, 'trades'));
     const unsub2 = onSnapshot(q2, (snap) => {
-      // Remove old trades entries
-      Object.keys(allTrades).forEach(k => {
-        if (allTrades[k]._collection === 'trades') delete allTrades[k];
-      });
+      Object.keys(allTrades).forEach(k => { if (allTrades[k]._collection === 'trades') delete allTrades[k]; });
       snap.docs.forEach(d => {
-        // Only show active ones from old collection
         const data = d.data();
-        if (!data.status || data.status === 'active') {
+        if (!data.status || data.status === 'active' || data.status === 'Active') {
           allTrades[`trades_${d.id}`] = { id: d.id, _collection: 'trades', ...data } as Trade;
         }
       });
@@ -100,9 +93,9 @@ export default function AdminActiveTrades() {
 
     function updateTrades() {
       const sorted = Object.values(allTrades).sort((a, b) => {
-        const aTime = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
-        const bTime = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
-        return bTime.getTime() - aTime.getTime();
+        const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt || 0).getTime();
+        const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt || 0).getTime();
+        return bTime - aTime;
       });
       setTrades(sorted);
     }
@@ -113,12 +106,11 @@ export default function AdminActiveTrades() {
   const isFutOpt = form.segment === 'Futures' || form.segment === 'Options';
   const isOptions = form.segment === 'Options';
 
-  const showSnackbar = (message: string, severity: 'success' | 'error') => {
-    setSnackbar({ open: true, message, severity });
-  };
+  const showSnackbar = (message: string, severity: 'success' | 'error') => setSnackbar({ open: true, message, severity });
 
   const getDisplayName = (trade: Trade) => trade.stockName || trade.symbol || '—';
   const getDisplayType = (trade: Trade) => trade.type || trade.action || 'BUY';
+
   const getSegmentColor = (segment?: string) => {
     const s = segment?.toLowerCase();
     if (s === 'options') return '#7b1fa2';
@@ -126,11 +118,14 @@ export default function AdminActiveTrades() {
     return '#2e7d32';
   };
 
-  const handleOpenAdd = () => {
-    setEditId(null);
-    setForm(emptyForm);
-    setModalOpen(true);
+  const formatDate = (ts: any) => {
+    if (!ts) return '—';
+    const date = ts.toDate ? ts.toDate() : new Date(ts);
+    if (isNaN(date.getTime())) return '—';
+    return date.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   };
+
+  const handleOpenAdd = () => { setEditId(null); setForm(emptyForm); setModalOpen(true); };
 
   const handleEdit = (trade: Trade) => {
     setEditId(trade.id);
@@ -153,11 +148,7 @@ export default function AdminActiveTrades() {
     setModalOpen(true);
   };
 
-  const handleCloseModal = () => {
-    setModalOpen(false);
-    setEditId(null);
-    setForm(emptyForm);
-  };
+  const handleCloseModal = () => { setModalOpen(false); setEditId(null); setForm(emptyForm); };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,7 +165,6 @@ export default function AdminActiveTrades() {
         stopLoss: parseFloat(form.stopLoss),
         status: 'active',
       };
-
       if (isFutOpt && form.lotSize) payload.lotSize = parseInt(form.lotSize);
       if (isFutOpt && form.expiryDate) payload.expiryDate = form.expiryDate;
       if (isFutOpt && form.duration) payload.duration = form.duration;
@@ -214,7 +204,6 @@ export default function AdminActiveTrades() {
     try {
       const exitPriceNum = parseFloat(exitPrice);
       const profitLossPercent = ((exitPriceNum - tradeToClose.entryPrice) / tradeToClose.entryPrice) * 100;
-
       await addDoc(collection(db, 'closedTrades'), {
         stockName: getDisplayName(tradeToClose),
         symbol: getDisplayName(tradeToClose),
@@ -230,9 +219,7 @@ export default function AdminActiveTrades() {
         optionType: tradeToClose.optionType || null,
         closedAt: new Date().toISOString(),
       });
-
       await deleteDoc(doc(db, tradeToClose._collection, tradeToClose.id));
-
       showSnackbar('Trade closed successfully!', 'success');
       setCloseDialogOpen(false);
       setTradeToClose(null);
@@ -243,15 +230,18 @@ export default function AdminActiveTrades() {
     setLoading(false);
   };
 
-  const formatDate = (ts: any) => {
-    if (!ts) return '—';
-    const date = ts.toDate ? ts.toDate() : new Date(ts);
-    return date.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const handleMenuOpen = (e: React.MouseEvent<HTMLElement>, trade: Trade) => {
+    setMenuAnchor(e.currentTarget);
+    setMenuTrade(trade);
+  };
+
+  const handleMenuClose = () => {
+    setMenuAnchor(null);
+    setMenuTrade(null);
   };
 
   return (
     <Box>
-      {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
         <Box>
           <Typography variant="h4" fontWeight="bold" gutterBottom>Active Trades</Typography>
@@ -263,7 +253,6 @@ export default function AdminActiveTrades() {
         </Button>
       </Box>
 
-      {/* Trade Table */}
       <Paper sx={{ p: 3 }}>
         <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>Trades</Typography>
         <TableContainer>
@@ -298,7 +287,7 @@ export default function AdminActiveTrades() {
                   </TableCell>
                   <TableCell>{formatDate(trade.createdAt)}</TableCell>
                   <TableCell>
-                    <IconButton size="small" onClick={(e) => setMenuAnchor({ el: e.currentTarget, trade })}>
+                    <IconButton size="small" onClick={(e) => handleMenuOpen(e, trade)}>
                       <MoreVert fontSize="small" />
                     </IconButton>
                   </TableCell>
@@ -316,48 +305,51 @@ export default function AdminActiveTrades() {
         </TableContainer>
       </Paper>
 
+      {/* DROPDOWN MENU */}
+      <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={handleMenuClose}>
+        <MenuItem onClick={() => { if (menuTrade) handleEdit(menuTrade); handleMenuClose(); }}>
+          <Edit fontSize="small" sx={{ mr: 1, color: '#1a237e' }} /> Edit
+        </MenuItem>
+        <MenuItem onClick={() => { if (menuTrade) handleOpenCloseDialog(menuTrade); handleMenuClose(); }}>
+          <Close fontSize="small" sx={{ mr: 1, color: '#ed6c02' }} /> Close Trade
+        </MenuItem>
+        <MenuItem onClick={() => { if (menuTrade) handleDelete(menuTrade); handleMenuClose(); }}>
+          <Delete fontSize="small" sx={{ mr: 1, color: '#d32f2f' }} /> Delete
+        </MenuItem>
+      </Menu>
+
       {/* ADD / EDIT MODAL */}
       <Dialog open={modalOpen} onClose={handleCloseModal} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 'bold', fontSize: 22 }}>
-          {editId ? 'Edit Trade' : 'Add New Trade'}
-        </DialogTitle>
+        <DialogTitle sx={{ fontWeight: 'bold', fontSize: 22 }}>{editId ? 'Edit Trade' : 'Add New Trade'}</DialogTitle>
         <Box component="form" onSubmit={handleSubmit}>
           <DialogContent sx={{ pt: 1 }}>
             <TextField fullWidth label="Stock Name (NSE)" required placeholder="e.g. RELIANCE, NIFTY"
               value={form.symbol} onChange={(e) => setForm({ ...form, symbol: e.target.value })} sx={{ mb: 2 }} />
-
             <FormControl fullWidth sx={{ mb: 2 }}>
               <InputLabel>Segment</InputLabel>
-              <Select label="Segment" value={form.segment}
-                onChange={(e) => setForm({ ...form, segment: e.target.value as Segment })}>
+              <Select label="Segment" value={form.segment} onChange={(e) => setForm({ ...form, segment: e.target.value as Segment })}>
                 <MenuItem value="Equity">Equity</MenuItem>
                 <MenuItem value="Futures">Futures</MenuItem>
                 <MenuItem value="Options">Options</MenuItem>
               </Select>
             </FormControl>
-
             <FormControl fullWidth sx={{ mb: 2 }}>
               <InputLabel>Type</InputLabel>
-              <Select label="Type" value={form.action}
-                onChange={(e) => setForm({ ...form, action: e.target.value as ActionType })}>
+              <Select label="Type" value={form.action} onChange={(e) => setForm({ ...form, action: e.target.value as ActionType })}>
                 <MenuItem value="BUY">BUY</MenuItem>
                 <MenuItem value="SELL">SELL</MenuItem>
               </Select>
             </FormControl>
-
             <TextField fullWidth label="Entry Price" required type="number"
               value={form.entryPrice} onChange={(e) => setForm({ ...form, entryPrice: e.target.value })} sx={{ mb: 2 }} />
             <TextField fullWidth label="Target Price" required type="number"
               value={form.targetPrice} onChange={(e) => setForm({ ...form, targetPrice: e.target.value })} sx={{ mb: 2 }} />
             <TextField fullWidth label="Stop Loss" required type="number"
               value={form.stopLoss} onChange={(e) => setForm({ ...form, stopLoss: e.target.value })} sx={{ mb: 2 }} />
-
             {isFutOpt && (
               <Box sx={{ backgroundColor: '#e8f4fd', border: '1px solid #90caf9', borderRadius: 2, p: 2, mb: 2 }}>
                 <Typography variant="caption" fontWeight="bold" color="primary"
-                  sx={{ textTransform: 'uppercase', display: 'block', mb: 2 }}>
-                  {form.segment} Fields
-                </Typography>
+                  sx={{ textTransform: 'uppercase', display: 'block', mb: 2 }}>{form.segment} Fields</Typography>
                 <TextField fullWidth label="Lot Size" type="number" size="small"
                   value={form.lotSize} onChange={(e) => setForm({ ...form, lotSize: e.target.value })} sx={{ mb: 2 }} />
                 <TextField fullWidth label="Expiry Date" type="date" size="small"
@@ -405,9 +397,7 @@ export default function AdminActiveTrades() {
                 onChange={(e) => setExitPrice(e.target.value)} sx={{ mt: 2 }} autoFocus />
               {exitPrice && (
                 <Alert severity={parseFloat(exitPrice) >= tradeToClose.entryPrice ? 'success' : 'error'} sx={{ mt: 2 }}>
-                  P&L: <strong>
-                    {(((parseFloat(exitPrice) - tradeToClose.entryPrice) / tradeToClose.entryPrice) * 100).toFixed(2)}%
-                  </strong>
+                  P&L: <strong>{(((parseFloat(exitPrice) - tradeToClose.entryPrice) / tradeToClose.entryPrice) * 100).toFixed(2)}%</strong>
                 </Alert>
               )}
             </>
@@ -421,25 +411,7 @@ export default function AdminActiveTrades() {
         </DialogActions>
       </Dialog>
 
-      {/* ── ACTIONS DROPDOWN MENU ── */}
-      <Menu
-        anchorEl={menuAnchor?.el}
-        open={Boolean(menuAnchor)}
-        onClose={() => setMenuAnchor(null)}
-      >
-        <MenuItem onClick={() => { handleEdit(menuAnchor!.trade); setMenuAnchor(null); }}>
-          <Edit fontSize="small" sx={{ mr: 1, color: '#1a237e' }} /> Edit
-        </MenuItem>
-        <MenuItem onClick={() => { handleOpenCloseDialog(menuAnchor!.trade); setMenuAnchor(null); }}>
-          <Close fontSize="small" sx={{ mr: 1, color: '#ed6c02' }} /> Close Trade
-        </MenuItem>
-        <MenuItem onClick={() => { handleDelete(menuAnchor!.trade); setMenuAnchor(null); }}>
-          <Delete fontSize="small" sx={{ mr: 1, color: '#d32f2f' }} /> Delete
-        </MenuItem>
-      </Menu>
-
-      <Snackbar open={snackbar.open} autoHideDuration={3000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}>
+      <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
         <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })}>
           {snackbar.message}
         </Alert>
