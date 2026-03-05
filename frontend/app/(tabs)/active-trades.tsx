@@ -79,7 +79,7 @@ export default function ActiveTrades() {
   useEffect(() => {
     if (userData?.status !== 'ACTIVE') { setLoading(false); return; }
 
-    const q = query(collection(db, 'activeTrades'), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, 'activeTrades'),);
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const tradesData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Trade[];
 
