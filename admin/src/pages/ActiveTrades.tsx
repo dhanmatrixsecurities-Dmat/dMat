@@ -61,6 +61,7 @@ export default function AdminActiveTrades() {
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
   const [tradeToClose, setTradeToClose] = useState<Trade | null>(null);
   const [exitPrice, setExitPrice] = useState('');
+  const [menuAnchor, setMenuAnchor] = useState<{ el: HTMLElement; trade: Trade } | null>(null);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false, message: '', severity: 'success',
   });
@@ -245,7 +246,7 @@ export default function AdminActiveTrades() {
   const formatDate = (ts: any) => {
     if (!ts) return '—';
     const date = ts.toDate ? ts.toDate() : new Date(ts);
-    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+    return date.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   };
 
   return (
@@ -297,11 +298,9 @@ export default function AdminActiveTrades() {
                   </TableCell>
                   <TableCell>{formatDate(trade.createdAt)}</TableCell>
                   <TableCell>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                      <IconButton size="small" color="primary" onClick={() => handleEdit(trade)}><Edit fontSize="small" /></IconButton>
-                      <IconButton size="small" color="warning" onClick={() => handleOpenCloseDialog(trade)}><Close fontSize="small" /></IconButton>
-                      <IconButton size="small" color="error" onClick={() => handleDelete(trade)}><Delete fontSize="small" /></IconButton>
-                    </Box>
+                    <IconButton size="small" onClick={(e) => setMenuAnchor({ el: e.currentTarget, trade })}>
+                      <MoreVert fontSize="small" />
+                    </IconButton>
                   </TableCell>
                 </TableRow>
               ))}
@@ -421,6 +420,23 @@ export default function AdminActiveTrades() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* ── ACTIONS DROPDOWN MENU ── */}
+      <Menu
+        anchorEl={menuAnchor?.el}
+        open={Boolean(menuAnchor)}
+        onClose={() => setMenuAnchor(null)}
+      >
+        <MenuItem onClick={() => { handleEdit(menuAnchor!.trade); setMenuAnchor(null); }}>
+          <Edit fontSize="small" sx={{ mr: 1, color: '#1a237e' }} /> Edit
+        </MenuItem>
+        <MenuItem onClick={() => { handleOpenCloseDialog(menuAnchor!.trade); setMenuAnchor(null); }}>
+          <Close fontSize="small" sx={{ mr: 1, color: '#ed6c02' }} /> Close Trade
+        </MenuItem>
+        <MenuItem onClick={() => { handleDelete(menuAnchor!.trade); setMenuAnchor(null); }}>
+          <Delete fontSize="small" sx={{ mr: 1, color: '#d32f2f' }} /> Delete
+        </MenuItem>
+      </Menu>
 
       <Snackbar open={snackbar.open} autoHideDuration={3000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}>
