@@ -236,14 +236,24 @@ export default function ActiveTrades() {
           </View>
         </View>
 
-        <View style={styles.dateContainer}>
-          <Ionicons name="time-outline" size={14} color={Colors.textSecondary} />
-          <Text style={styles.dateText}>
-            {(() => {
-              const d = item.createdAt?.toDate ? item.createdAt.toDate() : new Date(item.createdAt || Date.now());
-              return isNaN(d.getTime()) ? '—' : d.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-            })()}
-          </Text>
+        <View style={styles.cardFooter}>
+          <View style={styles.dateContainer}>
+            <Ionicons name="time-outline" size={14} color={Colors.textSecondary} />
+            <Text style={styles.dateText}>
+              {(() => {
+                const d = item.createdAt?.toDate ? item.createdAt.toDate() : new Date(item.createdAt || Date.now());
+                return isNaN(d.getTime()) ? '—' : d.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+              })()}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.chartBtn}
+            onPress={() => openChart(item.stockName || item.symbol || '')}
+            activeOpacity={0.75}
+          >
+            <Text style={styles.chartBtnEmoji}>📈</Text>
+            <Text style={styles.chartBtnText}>Live Chart</Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
