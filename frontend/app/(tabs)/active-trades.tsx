@@ -106,11 +106,13 @@ export default function ActiveTrades() {
       prevTradeIdsRef.current = new Set(tradesData.map((t) => t.id));
       isFirstLoadRef.current = false;
       // Sort by createdAt descending (newest first)
-      const sorted = [...tradesData].sort((a, b) => {
-        const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt || 0).getTime();
-        const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt || 0).getTime();
-        return bTime - aTime;
-      });
+      const getTime = (val: any) => {
+        if (!val) return 0;
+        if (typeof val.toDate === 'function') return val.toDate().getTime();
+        const d = new Date(val);
+        return isNaN(d.getTime()) ? 0 : d.getTime();
+      };
+      const sorted = [...tradesData].sort((a, b) => getTime(b.createdAt) - getTime(a.createdAt));
       setTrades(sorted);
       setLoading(false);
       setRefreshing(false);
