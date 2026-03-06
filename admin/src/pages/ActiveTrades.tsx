@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../firebaseConfig';
 import {
   collection, addDoc, updateDoc, deleteDoc,
-  doc, onSnapshot, query, orderBy, serverTimestamp,
+  doc, onSnapshot, query, serverTimestamp,
 } from 'firebase/firestore';
 import {
   Box, Typography, Paper, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Chip, TextField,
   Select, MenuItem, FormControl, InputLabel, Button,
   IconButton, Alert, Snackbar, CircularProgress,
-  Dialog, DialogTitle, DialogContent, DialogActions, Menu,
+  Dialog, DialogTitle, DialogContent, DialogActions, Menu, Switch,
 } from '@mui/material';
 import { Add, Edit, Delete, Close, MoreVert } from '@mui/icons-material';
 
@@ -34,6 +34,7 @@ interface Trade {
   optionType?: OptionType;
   duration?: string;
   status?: string;
+  showInApp?: boolean;
   createdAt: any;
 }
 
@@ -125,6 +126,12 @@ export default function AdminActiveTrades() {
     return date.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   };
 
+  // ── Toggle showInApp instantly ─────────────────────────────────────────────
+  const handleToggleShowInApp = async (trade: Trade) => {
+    const newValue = trade.showInApp === false ? true : false;
+    await updateDoc(doc(db, trade._collection, trade.id), { showInApp: newValue });
+  };
+
   const handleOpenAdd = () => { setEditId(null); setForm(emptyForm); setModalOpen(true); };
 
   const handleEdit = (trade: Trade) => {
@@ -176,6 +183,7 @@ export default function AdminActiveTrades() {
         showSnackbar('Trade updated!', 'success');
       } else {
         payload.createdAt = serverTimestamp();
+        payload.showInApp = true;
         await addDoc(collection(db, 'activeTrades'), payload);
         showSnackbar('Trade added!', 'success');
       }
@@ -259,7 +267,7 @@ export default function AdminActiveTrades() {
           <Table>
             <TableHead>
               <TableRow>
-                {['Stock', 'Segment', 'Type', 'Entry', 'Target', 'Stop Loss', 'Details', 'Created', 'Actions'].map((h) => (
+                {['Stock', 'Segment', 'Type', 'Entry', 'Target', 'Stop Loss', 'Details', 'Show In App', 'Created', 'Actions'].map((h) => (
                   <TableCell key={h}><strong>{h}</strong></TableCell>
                 ))}
               </TableRow>
@@ -285,6 +293,14 @@ export default function AdminActiveTrades() {
                     {trade.lotSize && <Typography variant="caption" display="block" color="text.secondary">Lot: {trade.lotSize}</Typography>}
                     {trade.duration && <Typography variant="caption" display="block" color="text.secondary">{trade.duration}</Typography>}
                   </TableCell>
+                  <TableCell>
+                    <Switch
+                      checked={trade.showInApp !== false}
+                      onChange={() => handleToggleShowInApp(trade)}
+                      color="success"
+                      size="small"
+                    />
+                  </TableCell>
                   <TableCell>{formatDate(trade.createdAt)}</TableCell>
                   <TableCell>
                     <IconButton size="small" onClick={(e) => handleMenuOpen(e, trade)}>
@@ -295,7 +311,7 @@ export default function AdminActiveTrades() {
               ))}
               {trades.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={9} align="center">
+                  <TableCell colSpan={10} align="center">
                     <Typography color="text.secondary" sx={{ py: 4 }}>No active trades found</Typography>
                   </TableCell>
                 </TableRow>
