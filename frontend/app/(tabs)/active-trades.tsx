@@ -83,9 +83,7 @@ export default function ActiveTrades() {
 
     const q = query(collection(db, 'activeTrades'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const tradesData = snapshot.docs
-        .map((doc) => ({ id: doc.id, ...doc.data() }))
-        .filter((t: any) => t.showInApp !== false) as Trade[];
+      const tradesData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Trade[];
 
       if (!isFirstLoadRef.current) {
         snapshot.docChanges().forEach((change) => {
