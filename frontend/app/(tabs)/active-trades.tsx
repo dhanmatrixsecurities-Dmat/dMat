@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, FlatList, RefreshControl,
-  TouchableOpacity, ActivityIndicator, Animated,
+  TouchableOpacity, ActivityIndicator, Animated, Linking,
 } from 'react-native';
 import { collection, query, onSnapshot, getDocs } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
@@ -83,7 +83,9 @@ export default function ActiveTrades() {
 
     const q = query(collection(db, 'activeTrades'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const tradesData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Trade[];
+      const tradesData = snapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter((t: any) => t.showInApp !== false) as Trade[];
 
       if (!isFirstLoadRef.current) {
         snapshot.docChanges().forEach((change) => {
@@ -136,6 +138,11 @@ export default function ActiveTrades() {
     { key: 'futures', label: 'Futures' },
     { key: 'options', label: 'Options' },
   ];
+
+  const openChart = (stockName: string) => {
+    const symbol = `NSE:${stockName.toUpperCase().trim()}`;
+    Linking.openURL(`https://www.tradingview.com/chart/?symbol=${symbol}`);
+  };
 
   const renderTradeCard = ({ item }: { item: Trade }) => {
     const isBuy = (item.type || item.action) === 'BUY';
@@ -358,7 +365,11 @@ const styles = StyleSheet.create({
   metricValue: { fontSize: 18, fontWeight: 'bold' },
   gainText: { color: Colors.success },
   riskText: { color: Colors.error },
+  cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
   dateContainer: { flexDirection: 'row', alignItems: 'center' },
+  chartBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#fff', borderRadius: 7, borderWidth: 1.5, borderColor: '#3b82f6', paddingHorizontal: 8, paddingVertical: 4 },
+  chartBtnEmoji: { fontSize: 12 },
+  chartBtnText: { fontSize: 10, fontWeight: '700', color: '#3b82f6' },
   dateText: { fontSize: 12, color: Colors.textSecondary, marginLeft: 4 },
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   emptyText: { fontSize: 18, fontWeight: '600', color: Colors.text, marginTop: 16, textAlign: 'center' },
