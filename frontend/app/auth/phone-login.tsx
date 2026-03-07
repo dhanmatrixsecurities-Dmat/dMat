@@ -22,18 +22,14 @@ export default function PhoneLogin() {
   const [showPass, setShowPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
 
-  // Login fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
-  // Register fields
   const [name, setName] = useState('');
   const [mobile, setMobile] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  // ── Blinking dot animation ──
   const dotOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -45,13 +41,11 @@ export default function PhoneLogin() {
     ).start();
   }, []);
 
-  // ── Validate Indian mobile ──────────────────────────────────────────────
   const validateMobile = (num: string) => {
     const cleaned = num.replace(/\D/g, '').replace(/^(91|0)/, '');
     return /^[6-9]\d{9}$/.test(cleaned);
   };
 
-  // ── Login ───────────────────────────────────────────────────────────────
   const handleLogin = async () => {
     if (!email || !password) return Alert.alert('Error', 'Please fill all fields');
     try {
@@ -85,7 +79,6 @@ export default function PhoneLogin() {
     }
   };
 
-  // ── Register ────────────────────────────────────────────────────────────
   const handleRegister = async () => {
     if (!name.trim()) return Alert.alert('Error', 'Please enter your full name');
     if (!validateMobile(mobile)) return Alert.alert('Error', 'Enter a valid 10-digit Indian mobile number (starts with 6-9)');
@@ -125,7 +118,6 @@ export default function PhoneLogin() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Subtle corner glows */}
       <View style={styles.glowTopRight} />
       <View style={styles.glowBottomLeft} />
 
@@ -134,16 +126,16 @@ export default function PhoneLogin() {
 
           {/* Brand row */}
           <View style={styles.brandRow}>
-            <Image source={require('../../assets/images/dm-logo.png')} style={styles.logo} resizeMode="contain" />
+            <Image source={require('../../assets/images/icon.png')} style={styles.logo} resizeMode="contain" />
             <Text style={styles.brandName}>DhanMatrix</Text>
           </View>
 
-          {/* Headline */}
+          {/* Headline with square blinking dot */}
           <Text style={styles.headlineLine1}>{isRegister ? 'Create Your' : 'Investing'}</Text>
-          <Text style={styles.headlineLine2}>
+          <View style={styles.headlineLine2Row}>
             <Text style={styles.headlineAccent}>{isRegister ? 'Account' : 'Your Trust'}</Text>
-            <Animated.Text style={[styles.headlineDot, { opacity: dotOpacity }]}>.</Animated.Text>
-          </Text>
+            <Animated.View style={[styles.squareDot, { opacity: dotOpacity }]} />
+          </View>
 
           <Text style={styles.subtitle}>
             {isRegister ? 'Join DhanMatrix and stay ahead of the market.' : 'Smart market insights, every day.'}
@@ -161,7 +153,7 @@ export default function PhoneLogin() {
             </TouchableOpacity>
           </View>
 
-          {/* ── LOGIN FORM ── */}
+          {/* LOGIN FORM */}
           {!isRegister && (
             <View style={styles.formContainer}>
               <View style={styles.inputContainer}>
@@ -191,7 +183,7 @@ export default function PhoneLogin() {
             </View>
           )}
 
-          {/* ── REGISTER FORM ── */}
+          {/* REGISTER FORM */}
           {isRegister && (
             <View style={styles.formContainer}>
               <View style={styles.inputContainer}>
@@ -269,9 +261,9 @@ const styles = StyleSheet.create({
   logo: { width: 36, height: 36, borderRadius: 9 },
   brandName: { fontSize: 15, fontWeight: '700', color: 'rgba(255,255,255,0.85)' },
   headlineLine1: { fontSize: 38, fontWeight: '900', color: '#ffffff', letterSpacing: -0.5, lineHeight: 46 },
-  headlineLine2: { fontSize: 38, fontWeight: '900', letterSpacing: -0.5, lineHeight: 46, marginBottom: 10 },
-  headlineAccent: { fontSize: 38, fontWeight: '900', color: '#3b82f6', letterSpacing: -0.5 },
-  headlineDot: { fontSize: 38, fontWeight: '900', color: '#22c55e' },
+  headlineLine2Row: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 10 },
+  headlineAccent: { fontSize: 38, fontWeight: '900', color: '#3b82f6', letterSpacing: -0.5, lineHeight: 46 },
+  squareDot: { width: 9, height: 9, backgroundColor: '#22c55e', marginLeft: 3, marginBottom: 9 },
   subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.35)', marginBottom: 28 },
   toggleRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 4, marginBottom: 22, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   toggleBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
