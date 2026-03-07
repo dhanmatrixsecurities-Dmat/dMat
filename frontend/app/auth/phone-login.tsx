@@ -36,35 +36,31 @@ export default function PhoneLogin() {
   const [confirmPassword, setConfirmPassword] = useState('');
 
   // ── Animations ──────────────────────────────────────────────────────────
-  const circle1Y = useRef(new Animated.Value(0)).current;
-  const circle2Y = useRef(new Animated.Value(0)).current;
-  const circle3Y = useRef(new Animated.Value(0)).current;
-  const circle4Y = useRef(new Animated.Value(0)).current;
-  const circle5Y = useRef(new Animated.Value(0)).current;
-  const circle6Y = useRef(new Animated.Value(0)).current;
   const dotOpacity = useRef(new Animated.Value(1)).current;
+  // subtle corner glow animations
+  const glow1 = useRef(new Animated.Value(0)).current;
+  const glow2 = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const makeFloat = (anim: Animated.Value, distance: number, duration: number) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(anim, { toValue: distance, duration, useNativeDriver: true, easing: (t) => Math.sin(t * Math.PI) }),
-          Animated.timing(anim, { toValue: 0, duration, useNativeDriver: true, easing: (t) => Math.sin(t * Math.PI) }),
-        ])
-      );
-
-    makeFloat(circle1Y, -28, 1200).start();
-    makeFloat(circle2Y, 28, 900).start();
-    makeFloat(circle3Y, -22, 1100).start();
-    makeFloat(circle4Y, 24, 800).start();
-    makeFloat(circle5Y, -18, 1300).start();
-    makeFloat(circle6Y, 20, 950).start();
-
     // Blinking dot
     Animated.loop(
       Animated.sequence([
         Animated.timing(dotOpacity, { toValue: 0, duration: 600, useNativeDriver: true }),
         Animated.timing(dotOpacity, { toValue: 1, duration: 600, useNativeDriver: true }),
+      ])
+    ).start();
+
+    // Subtle corner glow pulse
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glow1, { toValue: 1, duration: 3000, useNativeDriver: true }),
+        Animated.timing(glow1, { toValue: 0, duration: 3000, useNativeDriver: true }),
+      ])
+    ).start();
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glow2, { toValue: 1, duration: 4000, useNativeDriver: true }),
+        Animated.timing(glow2, { toValue: 0, duration: 4000, useNativeDriver: true }),
       ])
     ).start();
   }, []);
@@ -163,21 +159,20 @@ export default function PhoneLogin() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* ── Background circles ── */}
-      <Animated.View style={[styles.circle1, { transform: [{ translateY: circle1Y }] }]} />
-      <Animated.View style={[styles.circle2, { transform: [{ translateY: circle2Y }] }]} />
-      <Animated.View style={[styles.circle3, { transform: [{ translateY: circle3Y }] }]} />
-      <Animated.View style={[styles.circle4, { transform: [{ translateY: circle4Y }] }]} />
-      <Animated.View style={[styles.circle5, { transform: [{ translateY: circle5Y }] }]} />
-      <Animated.View style={[styles.circle6, { transform: [{ translateY: circle6Y }] }]} />
+
+      {/* Subtle corner glows only — no big circles */}
+      <Animated.View style={[styles.glowTopRight, { opacity: glow1.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }]} />
+      <Animated.View style={[styles.glowBottomLeft, { opacity: glow2.interpolate({ inputRange: [0, 1], outputRange: [0.4, 0.9] }) }]} />
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
 
-          {/* Header */}
+          {/* Header — small logo + brand name in a row */}
           <View style={styles.header}>
-            <Image source={require('../../assets/images/icon.png')} style={styles.logo} resizeMode="contain" />
-            <Text style={styles.brandName}>DhanMatrix</Text>
+            <View style={styles.brandRow}>
+              <Image source={require('../../assets/images/icon.png')} style={styles.logo} resizeMode="contain" />
+              <Text style={styles.brandName}>DhanMatrix</Text>
+            </View>
             <Text style={styles.title}>
               {isRegister ? 'Create Your' : 'Investing'}{'\n'}
               {isRegister ? (
@@ -312,22 +307,25 @@ const styles = StyleSheet.create({
   keyboardView: { flex: 1 },
   scrollContent: { flexGrow: 1, padding: 24, paddingTop: 40 },
 
-  // ── Circles ──
-  circle1: { position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundColor: 'rgba(59,130,246,0.18)', top: -80, right: -80 },
-  circle2: { position: 'absolute', width: 250, height: 250, borderRadius: 125, backgroundColor: 'rgba(34,197,94,0.14)', bottom: -60, left: -60 },
-  circle3: { position: 'absolute', width: 170, height: 170, borderRadius: 85, backgroundColor: 'rgba(6,182,212,0.14)', top: height * 0.3, left: -30 },
-  circle4: { position: 'absolute', width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(129,140,248,0.14)', bottom: 120, right: -10 },
-  circle5: { position: 'absolute', width: 110, height: 110, borderRadius: 55, backgroundColor: 'rgba(34,197,94,0.12)', top: height * 0.45, right: 40 },
-  circle6: { position: 'absolute', width: 130, height: 130, borderRadius: 65, backgroundColor: 'rgba(168,85,247,0.12)', top: 80, left: 10 },
+  // ── Subtle corner glows only ──
+  glowTopRight: {
+    position: 'absolute', width: 280, height: 280, borderRadius: 140,
+    backgroundColor: 'rgba(59,130,246,0.15)', top: -80, right: -80,
+  },
+  glowBottomLeft: {
+    position: 'absolute', width: 220, height: 220, borderRadius: 110,
+    backgroundColor: 'rgba(34,197,94,0.1)', bottom: -60, left: -60,
+  },
 
   // ── Header ──
-  header: { alignItems: 'center', marginBottom: 28 },
-  logo: { width: 72, height: 72, borderRadius: 18 },
-  brandName: { fontSize: 15, fontWeight: '700', color: 'rgba(255,255,255,0.7)', marginTop: 10 },
-  title: { fontSize: 34, fontWeight: '900', color: '#ffffff', marginTop: 16, textAlign: 'center', lineHeight: 42, letterSpacing: -0.5 },
+  header: { marginBottom: 28 },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 24 },
+  logo: { width: 40, height: 40, borderRadius: 10 },
+  brandName: { fontSize: 16, fontWeight: '700', color: 'rgba(255,255,255,0.85)' },
+  title: { fontSize: 36, fontWeight: '900', color: '#ffffff', lineHeight: 44, letterSpacing: -0.5, marginBottom: 8 },
   titleAccent: { color: '#3b82f6' },
-  dot: { color: '#22c55e', fontSize: 34, fontWeight: '900' },
-  subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.3)', marginTop: 6, textAlign: 'center' },
+  dot: { color: '#22c55e', fontSize: 36, fontWeight: '900' },
+  subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.35)' },
 
   // ── Toggle ──
   toggleRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 4, marginBottom: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
@@ -362,10 +360,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', elevation: 6, marginTop: 4,
     shadowColor: '#3b82f6', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.45, shadowRadius: 12,
   },
-  buttonGreen: {
-    backgroundColor: '#22c55e',
-    shadowColor: '#22c55e',
-  },
+  buttonGreen: { backgroundColor: '#22c55e', shadowColor: '#22c55e' },
   buttonDisabled: { backgroundColor: 'rgba(255,255,255,0.08)', elevation: 0, shadowOpacity: 0 },
   buttonText: { color: '#fff', fontSize: 17, fontWeight: 'bold', letterSpacing: 0.3 },
   switchLink: { marginTop: 18, alignItems: 'center', paddingBottom: 20 },
