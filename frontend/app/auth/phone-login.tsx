@@ -106,21 +106,22 @@ export default function PhoneLogin() {
     }
   };
 
-  // LOGIN SCREEN
+  // LOGIN — uses ScrollView with flexGrow+space-between on contentContainer
   if (!isRegister) {
     return (
       <SafeAreaView style={styles.container}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
-          <View style={styles.loginLayout}>
-
-            {/* ALL CONTENT grouped together at top */}
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <ScrollView
+            contentContainerStyle={styles.loginContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {/* TOP: brand + headline + form */}
             <View>
-              {/* Brand */}
               <View style={styles.brandRow}>
                 <Image source={require('../../assets/images/icon.png')} style={styles.logo} resizeMode="contain" />
                 <Text style={styles.brandName}>DhanMatrix</Text>
               </View>
-              {/* Headline - "Your" white, "Trust" cyan-blue like poster */}
               <Text style={styles.h1}>Investing</Text>
               <View style={styles.h2Row}>
                 <Text style={styles.h2White}>Your </Text>
@@ -128,7 +129,6 @@ export default function PhoneLogin() {
                 <Animated.View style={[styles.dot, { opacity: dotOpacity }]} />
               </View>
               <Text style={styles.sub}>Smart market insights, every day.</Text>
-              {/* Toggle */}
               <View style={styles.toggleRow}>
                 <TouchableOpacity style={[styles.toggleBtn, styles.tBtnBlue]} activeOpacity={0.8}>
                   <Text style={styles.toggleTextOn}>Login</Text>
@@ -137,7 +137,6 @@ export default function PhoneLogin() {
                   <Text style={styles.toggleText}>Register</Text>
                 </TouchableOpacity>
               </View>
-              {/* Fields */}
               <View style={styles.field}>
                 <Text style={styles.label}>Email Address</Text>
                 <TextInput style={styles.input} placeholder="Enter your email" placeholderTextColor="rgba(255,255,255,0.25)" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
@@ -156,33 +155,28 @@ export default function PhoneLogin() {
               </TouchableOpacity>
             </View>
 
-            <View style={{ flex: 1 }} />
-            {/* Footer pinned to bottom */}
+            {/* BOTTOM: footer */}
             <TouchableOpacity onPress={() => setIsRegister(true)} style={styles.footer}>
               <Text style={styles.footerText}>New user? <Text style={styles.footerLink}>Register here</Text></Text>
             </TouchableOpacity>
-
-          </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
     );
   }
 
-  // REGISTER SCREEN
+  // REGISTER
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          {/* Brand */}
           <View style={styles.brandRow}>
             <Image source={require('../../assets/images/icon.png')} style={styles.logo} resizeMode="contain" />
             <Text style={styles.brandName}>DhanMatrix</Text>
           </View>
-          {/* Headline - no dot on register */}
           <Text style={styles.h1}>Create Your</Text>
           <Text style={[styles.h2Cyan, { lineHeight: 44, marginBottom: 10 }]}>Account</Text>
           <Text style={styles.sub}>Join DhanMatrix and stay ahead of the market.</Text>
-          {/* Toggle */}
           <View style={styles.toggleRow}>
             <TouchableOpacity style={styles.toggleBtn} onPress={() => setIsRegister(false)} activeOpacity={0.8}>
               <Text style={styles.toggleText}>Login</Text>
@@ -242,8 +236,7 @@ export default function PhoneLogin() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#060c1a' },
-  keyboardView: { flex: 1 },
-  loginLayout: { flex: 1, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 30 },
+  loginContent: { flexGrow: 1, padding: 24, paddingTop: 20, paddingBottom: 30, justifyContent: 'space-between' },
   scroll: { padding: 24, paddingTop: 20, paddingBottom: 30 },
 
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 28 },
