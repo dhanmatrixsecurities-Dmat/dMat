@@ -106,127 +106,117 @@ export default function PhoneLogin() {
     }
   };
 
-  // LOGIN — uses ScrollView with flexGrow+space-between on contentContainer
   if (!isRegister) {
     return (
-      <SafeAreaView style={styles.container}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-          <ScrollView
-            contentContainerStyle={styles.loginContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            {/* TOP: brand + headline + form */}
-            <View>
-              <View style={styles.brandRow}>
-                <Image source={require('../../assets/images/icon.png')} style={styles.logo} resizeMode="contain" />
-                <Text style={styles.brandName}>DhanMatrix</Text>
+      <SafeAreaView style={s.container}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.flex}>
+          <View style={s.flex}>
+            {/* TOP SECTION */}
+            <View style={s.top}>
+              <View style={s.brandRow}>
+                <Image source={require('../../assets/images/icon.png')} style={s.logo} resizeMode="contain" />
+                <Text style={s.brandName}>DhanMatrix</Text>
               </View>
-              <Text style={styles.h1}>Investing</Text>
-              <View style={styles.h2Row}>
-                <Text style={styles.h2White}>Your </Text>
-                <Text style={styles.h2Cyan}>Trust</Text>
-                <Animated.View style={[styles.dot, { opacity: dotOpacity }]} />
+              <Text style={s.h1}>Investing</Text>
+              <View style={s.h2Row}>
+                <Text style={s.h2w}>Your </Text>
+                <Text style={s.h2c}>Trust</Text>
+                <Animated.View style={[s.dot, { opacity: dotOpacity }]} />
               </View>
-              <Text style={styles.sub}>Smart market insights, every day.</Text>
-              <View style={styles.toggleRow}>
-                <TouchableOpacity style={[styles.toggleBtn, styles.tBtnBlue]} activeOpacity={0.8}>
-                  <Text style={styles.toggleTextOn}>Login</Text>
+              <Text style={s.sub}>Smart market insights, every day.</Text>
+            </View>
+
+            {/* MIDDLE SECTION */}
+            <View style={s.mid}>
+              <View style={s.toggleRow}>
+                <TouchableOpacity style={[s.toggleBtn, s.tBlue]} activeOpacity={0.8}>
+                  <Text style={s.tTextOn}>Login</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.toggleBtn} onPress={() => setIsRegister(true)} activeOpacity={0.8}>
-                  <Text style={styles.toggleText}>Register</Text>
+                <TouchableOpacity style={s.toggleBtn} onPress={() => setIsRegister(true)} activeOpacity={0.8}>
+                  <Text style={s.tText}>Register</Text>
                 </TouchableOpacity>
               </View>
-              <View style={styles.field}>
-                <Text style={styles.label}>Email Address</Text>
-                <TextInput style={styles.input} placeholder="Enter your email" placeholderTextColor="rgba(255,255,255,0.25)" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+              <View style={s.field}>
+                <Text style={s.label}>Email Address</Text>
+                <TextInput style={s.input} placeholder="Enter your email" placeholderTextColor="rgba(255,255,255,0.25)" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
               </View>
-              <View style={styles.field}>
-                <Text style={styles.label}>Password</Text>
-                <View style={styles.passRow}>
-                  <TextInput style={[styles.input, { flex: 1, paddingRight: 48 }]} placeholder="Enter your password" placeholderTextColor="rgba(255,255,255,0.25)" value={password} onChangeText={setPassword} secureTextEntry={!showPass} />
-                  <TouchableOpacity onPress={() => setShowPass(!showPass)} style={styles.eye}>
+              <View style={s.field}>
+                <Text style={s.label}>Password</Text>
+                <View style={s.passRow}>
+                  <TextInput style={[s.input, { flex: 1, paddingRight: 48 }]} placeholder="Enter your password" placeholderTextColor="rgba(255,255,255,0.25)" value={password} onChangeText={setPassword} secureTextEntry={!showPass} />
+                  <TouchableOpacity onPress={() => setShowPass(!showPass)} style={s.eye}>
                     <Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={22} color="rgba(255,255,255,0.4)" />
                   </TouchableOpacity>
                 </View>
               </View>
-              <TouchableOpacity style={[styles.btn, (loading || !email || !password) && styles.btnOff]} onPress={handleLogin} disabled={loading || !email || !password} activeOpacity={0.8}>
-                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Sign In →</Text>}
+              <TouchableOpacity style={[s.btn, (loading || !email || !password) && s.btnOff]} onPress={handleLogin} disabled={loading || !email || !password} activeOpacity={0.8}>
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={s.btnText}>Sign In →</Text>}
               </TouchableOpacity>
             </View>
 
-            {/* BOTTOM: footer */}
-            <TouchableOpacity onPress={() => setIsRegister(true)} style={styles.footer}>
-              <Text style={styles.footerText}>New user? <Text style={styles.footerLink}>Register here</Text></Text>
-            </TouchableOpacity>
-          </ScrollView>
+            {/* BOTTOM SECTION */}
+            <View style={s.bot}>
+              <TouchableOpacity onPress={() => setIsRegister(true)}>
+                <Text style={s.footerText}>New user? <Text style={s.footerLink}>Register here</Text></Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
     );
   }
 
-  // REGISTER
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <View style={styles.brandRow}>
-            <Image source={require('../../assets/images/icon.png')} style={styles.logo} resizeMode="contain" />
-            <Text style={styles.brandName}>DhanMatrix</Text>
+    <SafeAreaView style={s.container}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.flex}>
+        <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <View style={s.brandRow}>
+            <Image source={require('../../assets/images/icon.png')} style={s.logo} resizeMode="contain" />
+            <Text style={s.brandName}>DhanMatrix</Text>
           </View>
-          <Text style={styles.h1}>Create Your</Text>
-          <Text style={[styles.h2Cyan, { lineHeight: 44, marginBottom: 10 }]}>Account</Text>
-          <Text style={styles.sub}>Join DhanMatrix and stay ahead of the market.</Text>
-          <View style={styles.toggleRow}>
-            <TouchableOpacity style={styles.toggleBtn} onPress={() => setIsRegister(false)} activeOpacity={0.8}>
-              <Text style={styles.toggleText}>Login</Text>
+          <Text style={s.h1}>Create Your</Text>
+          <Text style={[s.h2c, { lineHeight: 44, marginBottom: 10 }]}>Account</Text>
+          <Text style={s.sub}>Join DhanMatrix and stay ahead of the market.</Text>
+          <View style={s.toggleRow}>
+            <TouchableOpacity style={s.toggleBtn} onPress={() => setIsRegister(false)} activeOpacity={0.8}>
+              <Text style={s.tText}>Login</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.toggleBtn, styles.tBtnGreen]} activeOpacity={0.8}>
-              <Text style={styles.toggleTextOn}>Register</Text>
+            <TouchableOpacity style={[s.toggleBtn, s.tGreen]} activeOpacity={0.8}>
+              <Text style={s.tTextOn}>Register</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.field}>
-            <Text style={styles.label}>Full Name</Text>
-            <TextInput style={styles.input} placeholder="Enter your full name" placeholderTextColor="rgba(255,255,255,0.25)" value={name} onChangeText={setName} autoCapitalize="words" />
-          </View>
-          <View style={styles.field}>
-            <Text style={styles.label}>Mobile Number</Text>
-            <View style={styles.mobileRow}>
-              <View style={styles.cc}><Text style={styles.ccText}>🇮🇳 +91</Text></View>
-              <TextInput style={[styles.input, { flex: 1 }]} placeholder="9XXXXXXXXX" placeholderTextColor="rgba(255,255,255,0.25)" value={mobile} onChangeText={setMobile} keyboardType="phone-pad" maxLength={10} />
+          <View style={s.field}><Text style={s.label}>Full Name</Text><TextInput style={s.input} placeholder="Enter your full name" placeholderTextColor="rgba(255,255,255,0.25)" value={name} onChangeText={setName} autoCapitalize="words" /></View>
+          <View style={s.field}>
+            <Text style={s.label}>Mobile Number</Text>
+            <View style={s.mobileRow}>
+              <View style={s.cc}><Text style={s.ccText}>🇮🇳 +91</Text></View>
+              <TextInput style={[s.input, { flex: 1 }]} placeholder="9XXXXXXXXX" placeholderTextColor="rgba(255,255,255,0.25)" value={mobile} onChangeText={setMobile} keyboardType="phone-pad" maxLength={10} />
             </View>
           </View>
-          <View style={styles.field}>
-            <Text style={styles.label}>Email Address</Text>
-            <TextInput style={styles.input} placeholder="Enter your email" placeholderTextColor="rgba(255,255,255,0.25)" value={regEmail} onChangeText={setRegEmail} keyboardType="email-address" autoCapitalize="none" />
-          </View>
-          <View style={styles.field}>
-            <Text style={styles.label}>Password</Text>
-            <View style={styles.passRow}>
-              <TextInput style={[styles.input, { flex: 1, paddingRight: 48 }]} placeholder="Min. 6 characters" placeholderTextColor="rgba(255,255,255,0.25)" value={regPassword} onChangeText={setRegPassword} secureTextEntry={!showPass} />
-              <TouchableOpacity onPress={() => setShowPass(!showPass)} style={styles.eye}>
-                <Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={22} color="rgba(255,255,255,0.4)" />
-              </TouchableOpacity>
+          <View style={s.field}><Text style={s.label}>Email Address</Text><TextInput style={s.input} placeholder="Enter your email" placeholderTextColor="rgba(255,255,255,0.25)" value={regEmail} onChangeText={setRegEmail} keyboardType="email-address" autoCapitalize="none" /></View>
+          <View style={s.field}>
+            <Text style={s.label}>Password</Text>
+            <View style={s.passRow}>
+              <TextInput style={[s.input, { flex: 1, paddingRight: 48 }]} placeholder="Min. 6 characters" placeholderTextColor="rgba(255,255,255,0.25)" value={regPassword} onChangeText={setRegPassword} secureTextEntry={!showPass} />
+              <TouchableOpacity onPress={() => setShowPass(!showPass)} style={s.eye}><Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={22} color="rgba(255,255,255,0.4)" /></TouchableOpacity>
             </View>
           </View>
-          <View style={styles.field}>
-            <Text style={styles.label}>Confirm Password</Text>
-            <View style={styles.passRow}>
-              <TextInput style={[styles.input, { flex: 1, paddingRight: 48 }]} placeholder="Re-enter password" placeholderTextColor="rgba(255,255,255,0.25)" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry={!showConfirmPass} />
-              <TouchableOpacity onPress={() => setShowConfirmPass(!showConfirmPass)} style={styles.eye}>
-                <Ionicons name={showConfirmPass ? 'eye-off-outline' : 'eye-outline'} size={22} color="rgba(255,255,255,0.4)" />
-              </TouchableOpacity>
+          <View style={s.field}>
+            <Text style={s.label}>Confirm Password</Text>
+            <View style={s.passRow}>
+              <TextInput style={[s.input, { flex: 1, paddingRight: 48 }]} placeholder="Re-enter password" placeholderTextColor="rgba(255,255,255,0.25)" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry={!showConfirmPass} />
+              <TouchableOpacity onPress={() => setShowConfirmPass(!showConfirmPass)} style={s.eye}><Ionicons name={showConfirmPass ? 'eye-off-outline' : 'eye-outline'} size={22} color="rgba(255,255,255,0.4)" /></TouchableOpacity>
             </View>
           </View>
-          <View style={styles.infoNote}>
+          <View style={s.infoNote}>
             <Ionicons name="information-circle-outline" size={16} color="#3b82f6" />
-            <Text style={styles.infoText}>A verification link will be sent to your email after registration.</Text>
+            <Text style={s.infoText}>A verification link will be sent to your email after registration.</Text>
           </View>
-          <TouchableOpacity style={[styles.btn, styles.btnGreen, loading && styles.btnOff]} onPress={handleRegister} disabled={loading} activeOpacity={0.8}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Create Account →</Text>}
+          <TouchableOpacity style={[s.btn, s.btnGreen, loading && s.btnOff]} onPress={handleRegister} disabled={loading} activeOpacity={0.8}>
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={s.btnText}>Create Account →</Text>}
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setIsRegister(false)} style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? <Text style={styles.footerLink}>Sign In</Text></Text>
+          <TouchableOpacity onPress={() => setIsRegister(false)} style={{ alignItems: 'center', paddingTop: 16, paddingBottom: 10 }}>
+            <Text style={s.footerText}>Already have an account? <Text style={s.footerLink}>Sign In</Text></Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -234,10 +224,15 @@ export default function PhoneLogin() {
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#060c1a' },
-  loginContent: { flexGrow: 1, padding: 24, paddingTop: 20, paddingBottom: 30, justifyContent: 'space-between' },
+  flex: { flex: 1 },
   scroll: { padding: 24, paddingTop: 20, paddingBottom: 30 },
+
+  // LOGIN 3-section layout
+  top: { paddingHorizontal: 24, paddingTop: 20 },
+  mid: { paddingHorizontal: 24 },
+  bot: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 30 },
 
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 28 },
   logo: { width: 38, height: 38, borderRadius: 9 },
@@ -245,17 +240,17 @@ const styles = StyleSheet.create({
 
   h1: { fontSize: 36, fontWeight: '900', color: '#fff', letterSpacing: -0.5, lineHeight: 44 },
   h2Row: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 10 },
-  h2White: { fontSize: 36, fontWeight: '900', color: '#ffffff', letterSpacing: -0.5, lineHeight: 44 },
-  h2Cyan: { fontSize: 36, fontWeight: '900', color: '#06b6d4', letterSpacing: -0.5 },
+  h2w: { fontSize: 36, fontWeight: '900', color: '#fff', letterSpacing: -0.5, lineHeight: 44 },
+  h2c: { fontSize: 36, fontWeight: '900', color: '#06b6d4', letterSpacing: -0.5 },
   dot: { width: 9, height: 9, backgroundColor: '#22c55e', marginLeft: 3, marginBottom: 8 },
-  sub: { fontSize: 13, color: 'rgba(255,255,255,0.35)', marginBottom: 24 },
+  sub: { fontSize: 13, color: 'rgba(255,255,255,0.35)', marginBottom: 28 },
 
   toggleRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 4, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   toggleBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
-  tBtnBlue: { backgroundColor: '#3b82f6', elevation: 4, shadowColor: '#3b82f6', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8 },
-  tBtnGreen: { backgroundColor: '#22c55e', elevation: 4, shadowColor: '#22c55e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8 },
-  toggleText: { fontSize: 15, fontWeight: '600', color: 'rgba(255,255,255,0.35)' },
-  toggleTextOn: { fontSize: 15, fontWeight: '600', color: '#fff' },
+  tBlue: { backgroundColor: '#3b82f6', elevation: 4, shadowColor: '#3b82f6', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8 },
+  tGreen: { backgroundColor: '#22c55e', elevation: 4, shadowColor: '#22c55e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8 },
+  tText: { fontSize: 15, fontWeight: '600', color: 'rgba(255,255,255,0.35)' },
+  tTextOn: { fontSize: 15, fontWeight: '600', color: '#fff' },
 
   field: { marginBottom: 14 },
   label: { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.4)', marginBottom: 6, letterSpacing: 0.8, textTransform: 'uppercase' },
@@ -273,7 +268,6 @@ const styles = StyleSheet.create({
   btnOff: { backgroundColor: 'rgba(255,255,255,0.08)', elevation: 0, shadowOpacity: 0 },
   btnText: { color: '#fff', fontSize: 17, fontWeight: 'bold', letterSpacing: 0.3 },
 
-  footer: { alignItems: 'center', paddingTop: 8 },
   footerText: { fontSize: 14, color: 'rgba(255,255,255,0.3)' },
   footerLink: { color: '#60a5fa', fontWeight: '700' },
 });
