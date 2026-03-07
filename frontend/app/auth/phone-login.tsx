@@ -132,7 +132,7 @@ export default function PhoneLogin() {
 
           {/* Header */}
           <View style={styles.header}>
-            <Ionicons name="phone-portrait" size={70} color={Colors.primary} />
+            <Ionicons name="phone-portrait" size={70} color="#3b82f6" />
             <Text style={styles.title}>DhanMatrix</Text>
             <Text style={styles.subtitle}>{isRegister ? 'Create your account' : 'Sign in to continue'}</Text>
           </View>
@@ -155,17 +155,17 @@ export default function PhoneLogin() {
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Email</Text>
                 <TextInput style={styles.input} placeholder="Enter your email"
-                  placeholderTextColor={Colors.textSecondary} value={email} onChangeText={setEmail}
+                  placeholderTextColor="rgba(255,255,255,0.3)" value={email} onChangeText={setEmail}
                   keyboardType="email-address" autoCapitalize="none" />
               </View>
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Password</Text>
                 <View style={styles.passRow}>
                   <TextInput style={[styles.input, { flex: 1, paddingRight: 48 }]}
-                    placeholder="Enter your password" placeholderTextColor={Colors.textSecondary}
+                    placeholder="Enter your password" placeholderTextColor="rgba(255,255,255,0.3)"
                     value={password} onChangeText={setPassword} secureTextEntry={!showPass} />
                   <TouchableOpacity onPress={() => setShowPass(!showPass)} style={styles.eyeBtn}>
-                    <Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={22} color={Colors.textSecondary} />
+                    <Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={22} color="rgba(255,255,255,0.4)" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -185,7 +185,7 @@ export default function PhoneLogin() {
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Full Name</Text>
                 <TextInput style={styles.input} placeholder="Enter your full name"
-                  placeholderTextColor={Colors.textSecondary} value={name} onChangeText={setName}
+                  placeholderTextColor="rgba(255,255,255,0.3)" value={name} onChangeText={setName}
                   autoCapitalize="words" />
               </View>
 
@@ -196,7 +196,7 @@ export default function PhoneLogin() {
                     <Text style={styles.countryCodeText}>🇮🇳 +91</Text>
                   </View>
                   <TextInput style={[styles.input, styles.mobileInput]}
-                    placeholder="9XXXXXXXXX" placeholderTextColor={Colors.textSecondary}
+                    placeholder="9XXXXXXXXX" placeholderTextColor="rgba(255,255,255,0.3)"
                     value={mobile} onChangeText={setMobile} keyboardType="phone-pad" maxLength={10} />
                 </View>
               </View>
@@ -204,7 +204,7 @@ export default function PhoneLogin() {
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Email</Text>
                 <TextInput style={styles.input} placeholder="Enter your email"
-                  placeholderTextColor={Colors.textSecondary} value={regEmail} onChangeText={setRegEmail}
+                  placeholderTextColor="rgba(255,255,255,0.3)" value={regEmail} onChangeText={setRegEmail}
                   keyboardType="email-address" autoCapitalize="none" />
               </View>
 
@@ -212,10 +212,10 @@ export default function PhoneLogin() {
                 <Text style={styles.label}>Password</Text>
                 <View style={styles.passRow}>
                   <TextInput style={[styles.input, { flex: 1, paddingRight: 48 }]}
-                    placeholder="Min. 6 characters" placeholderTextColor={Colors.textSecondary}
+                    placeholder="Min. 6 characters" placeholderTextColor="rgba(255,255,255,0.3)"
                     value={regPassword} onChangeText={setRegPassword} secureTextEntry={!showPass} />
                   <TouchableOpacity onPress={() => setShowPass(!showPass)} style={styles.eyeBtn}>
-                    <Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={22} color={Colors.textSecondary} />
+                    <Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={22} color="rgba(255,255,255,0.4)" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -224,10 +224,10 @@ export default function PhoneLogin() {
                 <Text style={styles.label}>Confirm Password</Text>
                 <View style={styles.passRow}>
                   <TextInput style={[styles.input, { flex: 1, paddingRight: 48 }]}
-                    placeholder="Re-enter password" placeholderTextColor={Colors.textSecondary}
+                    placeholder="Re-enter password" placeholderTextColor="rgba(255,255,255,0.3)"
                     value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry={!showConfirmPass} />
                   <TouchableOpacity onPress={() => setShowConfirmPass(!showConfirmPass)} style={styles.eyeBtn}>
-                    <Ionicons name={showConfirmPass ? 'eye-off-outline' : 'eye-outline'} size={22} color={Colors.textSecondary} />
+                    <Ionicons name={showConfirmPass ? 'eye-off-outline' : 'eye-outline'} size={22} color="rgba(255,255,255,0.4)" />
                   </TouchableOpacity>
                 </View>
               </View>
