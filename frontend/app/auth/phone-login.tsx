@@ -127,7 +127,7 @@ export default function PhoneLogin() {
         >
           {/* Brand row */}
           <View style={styles.brandRow}>
-            <Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode="contain" />
+            <Image source={require('../../assets/images/icon.png')} style={styles.logo} resizeMode="contain" />
             <Text style={styles.brandName}>DhanMatrix</Text>
           </View>
 
