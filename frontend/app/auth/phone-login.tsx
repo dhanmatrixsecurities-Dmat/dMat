@@ -176,7 +176,7 @@ export default function PhoneLogin() {
 
           {/* Header */}
           <View style={styles.header}>
-            <Image source={require('../../../assets/images/icon.png')} style={styles.logo} resizeMode="contain" />
+            <Image source={require('../../assets/images/icon.png')} style={styles.logo} resizeMode="contain" />
             <Text style={styles.brandName}>DhanMatrix</Text>
             <Text style={styles.title}>
               {isRegister ? 'Create Your' : 'Investing'}{'\n'}
