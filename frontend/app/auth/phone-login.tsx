@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform, ScrollView, Alert,
-  ActivityIndicator, SafeAreaView, Animated, Image, Dimensions,
+  ActivityIndicator, SafeAreaView, Animated, Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { auth, db } from '@/firebaseConfig';
@@ -14,8 +14,6 @@ import {
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
-
-const { height } = Dimensions.get('window');
 
 export default function PhoneLogin() {
   const router = useRouter();
@@ -121,27 +119,25 @@ export default function PhoneLogin() {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
-        <ScrollView
-          contentContainerStyle={[styles.scrollContent, { minHeight: height - 60 }]}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* Brand row */}
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+
+          {/* Brand row — logo with dark bg to hide white */}
           <View style={styles.brandRow}>
-            <Image source={require('../../assets/images/icon.png')} style={styles.logo} resizeMode="contain" />
+            <View style={styles.logoWrap}>
+              <Image source={require('../../assets/images/icon.png')} style={styles.logo} resizeMode="cover" />
+            </View>
             <Text style={styles.brandName}>DhanMatrix</Text>
           </View>
 
           {/* Headline */}
-          <View style={styles.headlineWrap}>
-            <Text style={styles.headlineLine1}>{isRegister ? 'Create Your' : 'Investing'}</Text>
-            <View style={styles.headlineLine2Row}>
-              <Text style={styles.headlineAccent}>{isRegister ? 'Account' : 'Your Trust'}</Text>
-              <Animated.View style={[styles.squareDot, { opacity: dotOpacity }]} />
-            </View>
-            <Text style={styles.subtitle}>
-              {isRegister ? 'Join DhanMatrix and stay ahead of the market.' : 'Smart market insights, every day.'}
-            </Text>
+          <Text style={styles.headlineLine1}>{isRegister ? 'Create Your' : 'Investing'}</Text>
+          <View style={styles.headlineLine2Row}>
+            <Text style={styles.headlineAccent}>{isRegister ? 'Account' : 'Your Trust'}</Text>
+            <Animated.View style={[styles.squareDot, { opacity: dotOpacity }]} />
           </View>
+          <Text style={styles.subtitle}>
+            {isRegister ? 'Join DhanMatrix and stay ahead of the market.' : 'Smart market insights, every day.'}
+          </Text>
 
           {/* Toggle tabs */}
           <View style={styles.toggleRow}>
@@ -256,22 +252,30 @@ export default function PhoneLogin() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#060c1a' },
   keyboardView: { flex: 1 },
-  scrollContent: { flexGrow: 1, padding: 24, paddingTop: 20, justifyContent: 'space-between' },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 0 },
-  logo: { width: 36, height: 36, borderRadius: 9 },
-  brandName: { fontSize: 15, fontWeight: '700', color: 'rgba(255,255,255,0.85)' },
-  headlineWrap: { marginTop: 20, marginBottom: 0 },
-  headlineLine1: { fontSize: 36, fontWeight: '900', color: '#ffffff', letterSpacing: -0.5, lineHeight: 44 },
-  headlineLine2Row: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 10 },
-  headlineAccent: { fontSize: 36, fontWeight: '900', color: '#3b82f6', letterSpacing: -0.5, lineHeight: 44 },
-  squareDot: { width: 9, height: 9, backgroundColor: '#22c55e', marginLeft: 4, marginBottom: 8 },
-  subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.35)', marginTop: 2 },
-  toggleRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 4, marginTop: 24, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  scrollContent: { flexGrow: 1, padding: 24, paddingTop: 20 },
+
+  // Logo with dark bg wrapper to hide white background
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 32 },
+  logoWrap: { width: 38, height: 38, borderRadius: 10, backgroundColor: '#132044', overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
+  logo: { width: 38, height: 38 },
+  brandName: { fontSize: 16, fontWeight: '700', color: 'rgba(255,255,255,0.9)' },
+
+  // Headline — tight, no gaps
+  headlineLine1: { fontSize: 38, fontWeight: '900', color: '#ffffff', letterSpacing: -0.5, lineHeight: 46 },
+  headlineLine2Row: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 12 },
+  headlineAccent: { fontSize: 38, fontWeight: '900', color: '#3b82f6', letterSpacing: -0.5, lineHeight: 46 },
+  squareDot: { width: 9, height: 9, backgroundColor: '#22c55e', marginLeft: 4, marginBottom: 9 },
+  subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.35)', marginBottom: 28 },
+
+  // Toggle
+  toggleRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 4, marginBottom: 22, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   toggleBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
   toggleBtnActive: { backgroundColor: '#3b82f6', elevation: 4, shadowColor: '#3b82f6', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8 },
   toggleBtnActiveGreen: { backgroundColor: '#22c55e', elevation: 4, shadowColor: '#22c55e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8 },
   toggleText: { fontSize: 15, fontWeight: '600', color: 'rgba(255,255,255,0.35)' },
   toggleTextActive: { color: '#fff' },
+
+  // Form
   formContainer: { width: '100%' },
   inputContainer: { marginBottom: 14 },
   label: { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.4)', marginBottom: 7, letterSpacing: 0.8, textTransform: 'uppercase' },
@@ -288,7 +292,7 @@ const styles = StyleSheet.create({
   buttonGreen: { backgroundColor: '#22c55e', shadowColor: '#22c55e' },
   buttonDisabled: { backgroundColor: 'rgba(255,255,255,0.08)', elevation: 0, shadowOpacity: 0 },
   buttonText: { color: '#fff', fontSize: 17, fontWeight: 'bold', letterSpacing: 0.3 },
-  switchLink: { marginTop: 16, alignItems: 'center', paddingBottom: 10 },
+  switchLink: { marginTop: 16, alignItems: 'center', paddingBottom: 20 },
   switchText: { fontSize: 14, color: 'rgba(255,255,255,0.3)' },
   switchTextBold: { color: '#60a5fa', fontWeight: '700' },
 });
