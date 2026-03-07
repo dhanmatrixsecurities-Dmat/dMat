@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform, ScrollView, Alert,
-  ActivityIndicator, SafeAreaView, Animated, Image, Dimensions,
+  ActivityIndicator, SafeAreaView, Animated, Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { auth, db } from '@/firebaseConfig';
@@ -14,8 +14,6 @@ import {
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
-
-const { width, height } = Dimensions.get('window');
 
 export default function PhoneLogin() {
   const router = useRouter();
@@ -35,32 +33,14 @@ export default function PhoneLogin() {
   const [regPassword, setRegPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  // ── Animations ──────────────────────────────────────────────────────────
+  // ── Blinking dot animation ──
   const dotOpacity = useRef(new Animated.Value(1)).current;
-  // subtle corner glow animations
-  const glow1 = useRef(new Animated.Value(0)).current;
-  const glow2 = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Blinking dot
     Animated.loop(
       Animated.sequence([
-        Animated.timing(dotOpacity, { toValue: 0, duration: 600, useNativeDriver: true }),
-        Animated.timing(dotOpacity, { toValue: 1, duration: 600, useNativeDriver: true }),
-      ])
-    ).start();
-
-    // Subtle corner glow pulse
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(glow1, { toValue: 1, duration: 3000, useNativeDriver: true }),
-        Animated.timing(glow1, { toValue: 0, duration: 3000, useNativeDriver: true }),
-      ])
-    ).start();
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(glow2, { toValue: 1, duration: 4000, useNativeDriver: true }),
-        Animated.timing(glow2, { toValue: 0, duration: 4000, useNativeDriver: true }),
+        Animated.timing(dotOpacity, { toValue: 0, duration: 500, useNativeDriver: true }),
+        Animated.timing(dotOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
       ])
     ).start();
   }, []);
@@ -112,39 +92,25 @@ export default function PhoneLogin() {
     if (!regEmail.trim()) return Alert.alert('Error', 'Please enter your email');
     if (regPassword.length < 6) return Alert.alert('Error', 'Password must be at least 6 characters');
     if (regPassword !== confirmPassword) return Alert.alert('Error', 'Passwords do not match');
-
     try {
       setLoading(true);
       const userCred = await createUserWithEmailAndPassword(auth, regEmail.trim(), regPassword);
       const uid = userCred.user.uid;
-
-      // Send verification email
       await sendEmailVerification(userCred.user);
-
-      // Clean mobile — store as +91XXXXXXXXXX
       const cleanMobile = '+91' + mobile.replace(/\D/g, '').replace(/^(91|0)/, '');
-
       await setDoc(doc(db, 'users', uid), {
-        name: name.trim(),
-        mobile: cleanMobile,
-        email: regEmail.trim().toLowerCase(),
-        status: 'FREE',
-        subscriptionEndDate: null,
-        createdAt: serverTimestamp(),
+        name: name.trim(), mobile: cleanMobile,
+        email: regEmail.trim().toLowerCase(), status: 'FREE',
+        subscriptionEndDate: null, createdAt: serverTimestamp(),
       });
-
-      // Sign out until email is verified
       await auth.signOut();
-
       Alert.alert(
         'Verify Your Email 📧',
         `A verification link has been sent to ${regEmail.trim()}. Please verify your email before logging in.`,
-        [{
-          text: 'OK', onPress: () => {
-            setIsRegister(false);
-            setName(''); setMobile(''); setRegEmail(''); setRegPassword(''); setConfirmPassword('');
-          }
-        }]
+        [{ text: 'OK', onPress: () => {
+          setIsRegister(false);
+          setName(''); setMobile(''); setRegEmail(''); setRegPassword(''); setConfirmPassword('');
+        }}]
       );
     } catch (error: any) {
       if (error.code === 'auth/email-already-in-use') {
@@ -159,30 +125,29 @@ export default function PhoneLogin() {
 
   return (
     <SafeAreaView style={styles.container}>
-
-      {/* Subtle corner glows only — no big circles */}
-      <Animated.View style={[styles.glowTopRight, { opacity: glow1.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }]} />
-      <Animated.View style={[styles.glowBottomLeft, { opacity: glow2.interpolate({ inputRange: [0, 1], outputRange: [0.4, 0.9] }) }]} />
+      {/* Subtle corner glows */}
+      <View style={styles.glowTopRight} />
+      <View style={styles.glowBottomLeft} />
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
 
-          {/* Header — small logo + brand name in a row */}
-          <View style={styles.header}>
-            <View style={styles.brandRow}>
-              <Image source={require('../../assets/images/icon.png')} style={styles.logo} resizeMode="contain" />
-              <Text style={styles.brandName}>DhanMatrix</Text>
-            </View>
-            <Text style={styles.title}>
-              {isRegister ? 'Create Your' : 'Investing'}{'\n'}
-              {isRegister ? (
-                <Text style={styles.titleAccent}>Account<Animated.Text style={[styles.dot, { opacity: dotOpacity }]}>.</Animated.Text></Text>
-              ) : (
-                <Text style={styles.titleAccent}>Your Trust<Animated.Text style={[styles.dot, { opacity: dotOpacity }]}>.</Animated.Text></Text>
-              )}
-            </Text>
-            <Text style={styles.subtitle}>{isRegister ? 'Join DhanMatrix and stay ahead of the market.' : 'Smart market insights, every day.'}</Text>
+          {/* Brand row */}
+          <View style={styles.brandRow}>
+            <Image source={require('../../assets/images/dm-logo.png')} style={styles.logo} resizeMode="contain" />
+            <Text style={styles.brandName}>DhanMatrix</Text>
           </View>
+
+          {/* Headline */}
+          <Text style={styles.headlineLine1}>{isRegister ? 'Create Your' : 'Investing'}</Text>
+          <Text style={styles.headlineLine2}>
+            <Text style={styles.headlineAccent}>{isRegister ? 'Account' : 'Your Trust'}</Text>
+            <Animated.Text style={[styles.headlineDot, { opacity: dotOpacity }]}>.</Animated.Text>
+          </Text>
+
+          <Text style={styles.subtitle}>
+            {isRegister ? 'Join DhanMatrix and stay ahead of the market.' : 'Smart market insights, every day.'}
+          </Text>
 
           {/* Toggle tabs */}
           <View style={styles.toggleRow}>
@@ -235,7 +200,6 @@ export default function PhoneLogin() {
                   placeholderTextColor="rgba(255,255,255,0.25)" value={name} onChangeText={setName}
                   autoCapitalize="words" />
               </View>
-
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Mobile Number</Text>
                 <View style={styles.mobileRow}>
@@ -247,14 +211,12 @@ export default function PhoneLogin() {
                     value={mobile} onChangeText={setMobile} keyboardType="phone-pad" maxLength={10} />
                 </View>
               </View>
-
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Email Address</Text>
                 <TextInput style={styles.input} placeholder="Enter your email"
                   placeholderTextColor="rgba(255,255,255,0.25)" value={regEmail} onChangeText={setRegEmail}
                   keyboardType="email-address" autoCapitalize="none" />
               </View>
-
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Password</Text>
                 <View style={styles.passRow}>
@@ -266,7 +228,6 @@ export default function PhoneLogin() {
                   </TouchableOpacity>
                 </View>
               </View>
-
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Confirm Password</Text>
                 <View style={styles.passRow}>
@@ -278,18 +239,14 @@ export default function PhoneLogin() {
                   </TouchableOpacity>
                 </View>
               </View>
-
-              {/* Info note */}
               <View style={styles.infoNote}>
                 <Ionicons name="information-circle-outline" size={16} color="#3b82f6" />
                 <Text style={styles.infoNoteText}>A verification link will be sent to your email after registration.</Text>
               </View>
-
               <TouchableOpacity style={[styles.button, styles.buttonGreen, loading && styles.buttonDisabled]}
                 onPress={handleRegister} disabled={loading} activeOpacity={0.8}>
                 {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Create Account →</Text>}
               </TouchableOpacity>
-
               <TouchableOpacity onPress={() => setIsRegister(false)} style={styles.switchLink}>
                 <Text style={styles.switchText}>Already have an account? <Text style={styles.switchTextBold}>Sign In</Text></Text>
               </TouchableOpacity>
@@ -305,61 +262,36 @@ export default function PhoneLogin() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#060c1a' },
   keyboardView: { flex: 1 },
-  scrollContent: { flexGrow: 1, padding: 24, paddingTop: 40 },
-
-  // ── Subtle corner glows only ──
-  glowTopRight: {
-    position: 'absolute', width: 280, height: 280, borderRadius: 140,
-    backgroundColor: 'rgba(59,130,246,0.15)', top: -80, right: -80,
-  },
-  glowBottomLeft: {
-    position: 'absolute', width: 220, height: 220, borderRadius: 110,
-    backgroundColor: 'rgba(34,197,94,0.1)', bottom: -60, left: -60,
-  },
-
-  // ── Header ──
-  header: { marginBottom: 28 },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 24 },
-  logo: { width: 40, height: 40, borderRadius: 10 },
-  brandName: { fontSize: 16, fontWeight: '700', color: 'rgba(255,255,255,0.85)' },
-  title: { fontSize: 36, fontWeight: '900', color: '#ffffff', lineHeight: 44, letterSpacing: -0.5, marginBottom: 8 },
-  titleAccent: { color: '#3b82f6' },
-  dot: { color: '#22c55e', fontSize: 36, fontWeight: '900' },
-  subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.35)' },
-
-  // ── Toggle ──
-  toggleRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 4, marginBottom: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  scrollContent: { flexGrow: 1, padding: 24, paddingTop: 16 },
+  glowTopRight: { position: 'absolute', width: 220, height: 220, borderRadius: 110, backgroundColor: 'rgba(59,130,246,0.12)', top: -60, right: -60 },
+  glowBottomLeft: { position: 'absolute', width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(34,197,94,0.08)', bottom: -50, left: -50 },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 28 },
+  logo: { width: 36, height: 36, borderRadius: 9 },
+  brandName: { fontSize: 15, fontWeight: '700', color: 'rgba(255,255,255,0.85)' },
+  headlineLine1: { fontSize: 38, fontWeight: '900', color: '#ffffff', letterSpacing: -0.5, lineHeight: 46 },
+  headlineLine2: { fontSize: 38, fontWeight: '900', letterSpacing: -0.5, lineHeight: 46, marginBottom: 10 },
+  headlineAccent: { fontSize: 38, fontWeight: '900', color: '#3b82f6', letterSpacing: -0.5 },
+  headlineDot: { fontSize: 38, fontWeight: '900', color: '#22c55e' },
+  subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.35)', marginBottom: 28 },
+  toggleRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 4, marginBottom: 22, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   toggleBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
   toggleBtnActive: { backgroundColor: '#3b82f6', elevation: 4, shadowColor: '#3b82f6', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8 },
   toggleBtnActiveGreen: { backgroundColor: '#22c55e', elevation: 4, shadowColor: '#22c55e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8 },
   toggleText: { fontSize: 15, fontWeight: '600', color: 'rgba(255,255,255,0.35)' },
   toggleTextActive: { color: '#fff' },
-
-  // ── Form ──
   formContainer: { width: '100%' },
-  inputContainer: { marginBottom: 18 },
+  inputContainer: { marginBottom: 16 },
   label: { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.4)', marginBottom: 7, letterSpacing: 0.8, textTransform: 'uppercase' },
-  input: {
-    backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 13, borderWidth: 1,
-    borderColor: 'rgba(59,130,246,0.3)', paddingHorizontal: 16, paddingVertical: 14,
-    fontSize: 15, color: '#ffffff',
-  },
+  input: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 13, borderWidth: 1, borderColor: 'rgba(59,130,246,0.3)', paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: '#ffffff' },
   passRow: { position: 'relative' },
   eyeBtn: { position: 'absolute', right: 14, top: 0, bottom: 0, justifyContent: 'center' },
   mobileRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  countryCode: {
-    backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 13, borderWidth: 1,
-    borderColor: 'rgba(59,130,246,0.3)', paddingHorizontal: 12, paddingVertical: 14,
-  },
+  countryCode: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 13, borderWidth: 1, borderColor: 'rgba(59,130,246,0.3)', paddingHorizontal: 12, paddingVertical: 14 },
   countryCodeText: { fontSize: 15, fontWeight: '700', color: '#ffffff' },
   mobileInput: { flex: 1 },
   infoNote: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(59,130,246,0.1)', borderRadius: 10, padding: 10, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(59,130,246,0.2)' },
   infoNoteText: { flex: 1, fontSize: 12, color: '#93c5fd', fontWeight: '600' },
-  button: {
-    backgroundColor: '#3b82f6', paddingVertical: 15, borderRadius: 13,
-    alignItems: 'center', elevation: 6, marginTop: 4,
-    shadowColor: '#3b82f6', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.45, shadowRadius: 12,
-  },
+  button: { backgroundColor: '#3b82f6', paddingVertical: 15, borderRadius: 13, alignItems: 'center', elevation: 6, marginTop: 4, shadowColor: '#3b82f6', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.45, shadowRadius: 12 },
   buttonGreen: { backgroundColor: '#22c55e', shadowColor: '#22c55e' },
   buttonDisabled: { backgroundColor: 'rgba(255,255,255,0.08)', elevation: 0, shadowOpacity: 0 },
   buttonText: { color: '#fff', fontSize: 17, fontWeight: 'bold', letterSpacing: 0.3 },
