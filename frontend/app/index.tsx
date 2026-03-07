@@ -3,9 +3,11 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { Colors } from '@/constants/Colors';
+
 export default function Index() {
   const { user, loading } = useAuth();
   const router = useRouter();
+
   useEffect(() => {
     if (!loading) {
       if (user) {
@@ -17,16 +19,18 @@ export default function Index() {
       }
     }
   }, [user, loading]);
+
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color="#3b82f6" />
+      <ActivityIndicator size="large" color={Colors.primary} />
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#060c1a',
+    backgroundColor: Colors.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
