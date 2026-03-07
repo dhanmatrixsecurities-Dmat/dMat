@@ -156,6 +156,7 @@ export default function PhoneLogin() {
               </TouchableOpacity>
             </View>
 
+            <View style={{ flex: 1 }} />
             {/* Footer pinned to bottom */}
             <TouchableOpacity onPress={() => setIsRegister(true)} style={styles.footer}>
               <Text style={styles.footerText}>New user? <Text style={styles.footerLink}>Register here</Text></Text>
@@ -242,7 +243,7 @@ export default function PhoneLogin() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#060c1a' },
   keyboardView: { flex: 1 },
-  loginLayout: { flex: 1, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 30, justifyContent: 'space-between' },
+  loginLayout: { flex: 1, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 30 },
   scroll: { padding: 24, paddingTop: 20, paddingBottom: 30 },
 
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 28 },
