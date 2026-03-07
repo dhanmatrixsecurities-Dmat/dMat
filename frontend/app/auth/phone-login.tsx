@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform, ScrollView, Alert,
-  ActivityIndicator, SafeAreaView, Animated, Image,
+  ActivityIndicator, SafeAreaView, Animated, Image, Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { auth, db } from '@/firebaseConfig';
@@ -14,6 +14,8 @@ import {
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
+
+const { height } = Dimensions.get('window');
 
 export default function PhoneLogin() {
   const router = useRouter();
@@ -118,28 +120,28 @@ export default function PhoneLogin() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.glowTopRight} />
-      <View style={styles.glowBottomLeft} />
-
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-
+        <ScrollView
+          contentContainerStyle={[styles.scrollContent, { minHeight: height - 60 }]}
+          keyboardShouldPersistTaps="handled"
+        >
           {/* Brand row */}
           <View style={styles.brandRow}>
-            <Image source={require('../../assets/images/icon.png')} style={styles.logo} resizeMode="contain" />
+            <Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode="contain" />
             <Text style={styles.brandName}>DhanMatrix</Text>
           </View>
 
-          {/* Headline with square blinking dot */}
-          <Text style={styles.headlineLine1}>{isRegister ? 'Create Your' : 'Investing'}</Text>
-          <View style={styles.headlineLine2Row}>
-            <Text style={styles.headlineAccent}>{isRegister ? 'Account' : 'Your Trust'}</Text>
-            <Animated.View style={[styles.squareDot, { opacity: dotOpacity }]} />
+          {/* Headline */}
+          <View style={styles.headlineWrap}>
+            <Text style={styles.headlineLine1}>{isRegister ? 'Create Your' : 'Investing'}</Text>
+            <View style={styles.headlineLine2Row}>
+              <Text style={styles.headlineAccent}>{isRegister ? 'Account' : 'Your Trust'}</Text>
+              <Animated.View style={[styles.squareDot, { opacity: dotOpacity }]} />
+            </View>
+            <Text style={styles.subtitle}>
+              {isRegister ? 'Join DhanMatrix and stay ahead of the market.' : 'Smart market insights, every day.'}
+            </Text>
           </View>
-
-          <Text style={styles.subtitle}>
-            {isRegister ? 'Join DhanMatrix and stay ahead of the market.' : 'Smart market insights, every day.'}
-          </Text>
 
           {/* Toggle tabs */}
           <View style={styles.toggleRow}>
@@ -254,40 +256,39 @@ export default function PhoneLogin() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#060c1a' },
   keyboardView: { flex: 1 },
-  scrollContent: { flexGrow: 1, padding: 24, paddingTop: 16 },
-  glowTopRight: { position: 'absolute', width: 220, height: 220, borderRadius: 110, backgroundColor: 'rgba(59,130,246,0.12)', top: -60, right: -60 },
-  glowBottomLeft: { position: 'absolute', width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(34,197,94,0.08)', bottom: -50, left: -50 },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 28 },
+  scrollContent: { flexGrow: 1, padding: 24, paddingTop: 20, justifyContent: 'space-between' },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 0 },
   logo: { width: 36, height: 36, borderRadius: 9 },
   brandName: { fontSize: 15, fontWeight: '700', color: 'rgba(255,255,255,0.85)' },
-  headlineLine1: { fontSize: 38, fontWeight: '900', color: '#ffffff', letterSpacing: -0.5, lineHeight: 46 },
+  headlineWrap: { marginTop: 20, marginBottom: 0 },
+  headlineLine1: { fontSize: 36, fontWeight: '900', color: '#ffffff', letterSpacing: -0.5, lineHeight: 44 },
   headlineLine2Row: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 10 },
-  headlineAccent: { fontSize: 38, fontWeight: '900', color: '#3b82f6', letterSpacing: -0.5, lineHeight: 46 },
-  squareDot: { width: 9, height: 9, backgroundColor: '#22c55e', marginLeft: 3, marginBottom: 9 },
-  subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.35)', marginBottom: 28 },
-  toggleRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 4, marginBottom: 22, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  headlineAccent: { fontSize: 36, fontWeight: '900', color: '#3b82f6', letterSpacing: -0.5, lineHeight: 44 },
+  squareDot: { width: 9, height: 9, backgroundColor: '#22c55e', marginLeft: 4, marginBottom: 8 },
+  subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.35)', marginTop: 2 },
+  toggleRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 4, marginTop: 24, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   toggleBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
   toggleBtnActive: { backgroundColor: '#3b82f6', elevation: 4, shadowColor: '#3b82f6', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8 },
   toggleBtnActiveGreen: { backgroundColor: '#22c55e', elevation: 4, shadowColor: '#22c55e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8 },
   toggleText: { fontSize: 15, fontWeight: '600', color: 'rgba(255,255,255,0.35)' },
   toggleTextActive: { color: '#fff' },
   formContainer: { width: '100%' },
-  inputContainer: { marginBottom: 16 },
+  inputContainer: { marginBottom: 14 },
   label: { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.4)', marginBottom: 7, letterSpacing: 0.8, textTransform: 'uppercase' },
-  input: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 13, borderWidth: 1, borderColor: 'rgba(59,130,246,0.3)', paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: '#ffffff' },
+  input: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 13, borderWidth: 1, borderColor: 'rgba(59,130,246,0.3)', paddingHorizontal: 16, paddingVertical: 13, fontSize: 15, color: '#ffffff' },
   passRow: { position: 'relative' },
   eyeBtn: { position: 'absolute', right: 14, top: 0, bottom: 0, justifyContent: 'center' },
   mobileRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  countryCode: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 13, borderWidth: 1, borderColor: 'rgba(59,130,246,0.3)', paddingHorizontal: 12, paddingVertical: 14 },
+  countryCode: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 13, borderWidth: 1, borderColor: 'rgba(59,130,246,0.3)', paddingHorizontal: 12, paddingVertical: 13 },
   countryCodeText: { fontSize: 15, fontWeight: '700', color: '#ffffff' },
   mobileInput: { flex: 1 },
-  infoNote: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(59,130,246,0.1)', borderRadius: 10, padding: 10, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(59,130,246,0.2)' },
+  infoNote: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(59,130,246,0.1)', borderRadius: 10, padding: 10, marginBottom: 14, borderWidth: 1, borderColor: 'rgba(59,130,246,0.2)' },
   infoNoteText: { flex: 1, fontSize: 12, color: '#93c5fd', fontWeight: '600' },
   button: { backgroundColor: '#3b82f6', paddingVertical: 15, borderRadius: 13, alignItems: 'center', elevation: 6, marginTop: 4, shadowColor: '#3b82f6', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.45, shadowRadius: 12 },
   buttonGreen: { backgroundColor: '#22c55e', shadowColor: '#22c55e' },
   buttonDisabled: { backgroundColor: 'rgba(255,255,255,0.08)', elevation: 0, shadowOpacity: 0 },
   buttonText: { color: '#fff', fontSize: 17, fontWeight: 'bold', letterSpacing: 0.3 },
-  switchLink: { marginTop: 18, alignItems: 'center', paddingBottom: 20 },
+  switchLink: { marginTop: 16, alignItems: 'center', paddingBottom: 10 },
   switchText: { fontSize: 14, color: 'rgba(255,255,255,0.3)' },
   switchTextBold: { color: '#60a5fa', fontWeight: '700' },
 });
