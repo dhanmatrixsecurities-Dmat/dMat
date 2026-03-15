@@ -3,12 +3,13 @@ import {
   View, Text, StyleSheet, FlatList, RefreshControl,
   TouchableOpacity, ActivityIndicator, Animated, Linking,
 } from 'react-native';
-import { collection, query, onSnapshot, getDocs } from 'firebase/firestore';
+import { collection, query, onSnapshot } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import * as Notifications from 'expo-notifications';
+import { useRouter } from 'expo-router';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -68,8 +69,16 @@ function SubscriptionBanner({ endDate }: { endDate?: string }) {
   );
 }
 
+// ── Segment label helper ──────────────────────────────────────────────────────
+const segmentLabel = (seg?: string): string => {
+  if (seg === 'futures') return 'Futures';
+  if (seg === 'options') return 'Options';
+  return 'Equity';
+};
+
 export default function ActiveTrades() {
   const { userData } = useAuth();
+  const router = useRouter();
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -77,6 +86,20 @@ export default function ActiveTrades() {
 
   const prevTradeIdsRef = useRef<Set<string>>(new Set());
   const isFirstLoadRef = useRef(true);
+
+  // ── BUG 3 FIX: Handle notification tap → navigate to Active Trades ─────────
+  useEffect(() => {
+    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data as { tradeId?: string; segment?: string };
+      // Navigate to ActiveTrades tab; segment can be used to pre-select the tab
+      router.push({
+        pathname: '/(tabs)/active-trades',
+        params: { tradeId: data?.tradeId, segment: data?.segment },
+      });
+    });
+    return () => subscription.remove();
+  }, []);
+  // ───────────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (userData?.status !== 'ACTIVE') { setLoading(false); return; }
@@ -92,14 +115,20 @@ export default function ActiveTrades() {
           if (change.type === 'added') {
             const t = { id: change.doc.id, ...change.doc.data() } as Trade;
             if (!prevTradeIdsRef.current.has(t.id)) {
+              const tradeType = t.type || t.action || 'TRADE';
+              const seg = segmentLabel(t.segment);
+
+              // ── BUG 2 FIX: Include segment in notification + tradeId in data ──
               Notifications.scheduleNotificationAsync({
                 content: {
-                  title: `New ${t.type} Trade Alert!`,
-                  body: `${t.stockName} | Entry: ₹${t.entryPrice} | Target: ₹${t.targetPrice}`,
+                  title: `New ${tradeType} Trade Alert! [${seg}]`,
+                  body: `${t.stockName} | ${seg} | Entry: ₹${t.entryPrice} | Target: ₹${t.targetPrice}`,
                   sound: true,
+                  data: { tradeId: t.id, segment: t.segment ?? 'equity' }, // used by Bug 3 handler
                 },
                 trigger: null,
               });
+              // ────────────────────────────────────────────────────────────────
             }
           }
         });
@@ -107,7 +136,6 @@ export default function ActiveTrades() {
 
       prevTradeIdsRef.current = new Set(tradesData.map((t) => t.id));
       isFirstLoadRef.current = false;
-      // Sort by createdAt descending (newest first)
       const getTime = (val: any) => {
         if (!val) return 0;
         if (typeof val.toDate === 'function') return val.toDate().getTime();
@@ -151,17 +179,25 @@ export default function ActiveTrades() {
     const stopLoss = Number(item.stopLoss) || 0;
     const seg = normalizeSegment(item.segment);
     const isFnO = seg === 'options' || seg === 'futures';
-    // For BUY: profit when price goes up. For SELL: profit when price goes down.
+
+    // Potential gain: always positive means moving toward target
     const potential = entryPrice > 0
       ? isBuy
         ? ((targetPrice - entryPrice) / entryPrice) * 100   // BUY: target > entry
         : ((entryPrice - targetPrice) / entryPrice) * 100   // SELL: entry > target
       : 0;
+
+    // Risk: always a positive magnitude (displayed with explicit − sign below)
     const risk = entryPrice > 0
       ? isBuy
         ? ((entryPrice - stopLoss) / entryPrice) * 100      // BUY: stop below entry
         : ((stopLoss - entryPrice) / entryPrice) * 100      // SELL: stop above entry
       : 0;
+
+    // ── BUG 4 FIX: format signs safely so we never get +- or -- ─────────────
+    const potentialDisplay = `${potential >= 0 ? '+' : ''}${potential.toFixed(2)}%`;
+    const riskDisplay = stopLoss > 0 ? `-${Math.abs(risk).toFixed(2)}%` : 'N/A';
+    // ─────────────────────────────────────────────────────────────────────────
 
     return (
       <View style={styles.tradeCard}>
@@ -226,13 +262,15 @@ export default function ActiveTrades() {
         <View style={styles.metricsRow}>
           <View style={styles.metric}>
             <Text style={styles.metricLabel}>Potential Gain</Text>
-            <Text style={[styles.metricValue, styles.gainText]}>+{potential.toFixed(2)}%</Text>
+            {/* BUG 4 FIX: use pre-computed potentialDisplay — never +- */}
+            <Text style={[styles.metricValue, potential >= 0 ? styles.gainText : styles.riskText]}>
+              {potentialDisplay}
+            </Text>
           </View>
           <View style={styles.metric}>
             <Text style={styles.metricLabel}>Risk</Text>
-            <Text style={[styles.metricValue, styles.riskText]}>
-              {stopLoss > 0 ? `-${risk.toFixed(2)}%` : 'N/A'}
-            </Text>
+            {/* BUG 4 FIX: use pre-computed riskDisplay — never -- */}
+            <Text style={[styles.metricValue, styles.riskText]}>{riskDisplay}</Text>
           </View>
         </View>
 
