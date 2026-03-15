@@ -69,9 +69,19 @@ export default function ClosedTrades() {
 
   const renderTradeCard = ({ item }: { item: ClosedTrade }) => {
     const isBuy = item.type === 'BUY';
-    const isProfit = item.profitLossPercent > 0;
     const seg = item.segment || 'equity';
     const isFnO = seg === 'options' || seg === 'futures';
+
+    // ── BUG 1 FIX: Calculate P&L based on trade direction ──────────────────
+    // BUY  profit = price went UP  → (exit - entry) / entry
+    // SELL profit = price went DOWN → (entry - exit) / entry
+    const displayPercent = item.entryPrice > 0
+      ? isBuy
+        ? ((item.exitPrice - item.entryPrice) / item.entryPrice) * 100
+        : ((item.entryPrice - item.exitPrice) / item.entryPrice) * 100
+      : item.profitLossPercent; // fallback to stored value if prices missing
+    const isProfit = displayPercent > 0;
+    // ───────────────────────────────────────────────────────────────────────
 
     return (
       <View style={styles.tradeCard}>
@@ -99,11 +109,11 @@ export default function ClosedTrades() {
             </View>
           </View>
 
-          {/* Profit/Loss Badge */}
+          {/* Profit/Loss Badge — now uses direction-aware displayPercent */}
           <View style={[styles.resultBadge, isProfit ? styles.profitBadge : styles.lossBadge]}>
             <Ionicons name={isProfit ? 'trending-up' : 'trending-down'} size={18} color="#fff" />
             <Text style={styles.resultText}>
-              {isProfit ? '+' : ''}{item.profitLossPercent.toFixed(2)}%
+              {isProfit ? '+' : ''}{displayPercent.toFixed(2)}%
             </Text>
           </View>
         </View>
