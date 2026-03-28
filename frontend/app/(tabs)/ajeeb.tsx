@@ -92,7 +92,7 @@ export default function AjeebScreen() {
 
       const data = await response.json();
       const botText =
-        data?.content?.[0]?.text || 'Signal lost. Try again.';
+        data?.content?.[0]?.text || 'Signal lost. Try again.\n\n⚠️ Note: API key not configured yet — add EXPO_PUBLIC_ANTHROPIC_API_KEY to your .env file.';
 
       setMessages(prev => [
         ...prev,
@@ -101,7 +101,7 @@ export default function AjeebScreen() {
     } catch {
       setMessages(prev => [
         ...prev,
-        { id: Date.now().toString() + 'e', role: 'bot', text: 'Signal lost. Check your connection.' },
+        { id: Date.now().toString() + 'e', role: 'bot', text: 'Signal lost. Check your connection.\n\n⚠️ Note: API key not configured yet — add EXPO_PUBLIC_ANTHROPIC_API_KEY to your .env file to activate Ajeeb.' },
       ]);
     } finally {
       setLoading(false);
@@ -118,7 +118,7 @@ export default function AjeebScreen() {
       {/* Header badge */}
       <View style={styles.agentBadge}>
         <View style={styles.statusDot} />
-        <Text style={styles.agentBadgeText}>Finance Agent — Online</Text>
+        <Text style={styles.agentBadgeText}>Ajeeb — Online</Text>
       </View>
 
       {/* Messages */}
