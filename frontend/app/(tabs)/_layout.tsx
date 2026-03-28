@@ -17,7 +17,7 @@ export default function TabLayout() {
           paddingTop: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 10,
           fontWeight: '600',
         },
         headerStyle: {
@@ -67,8 +67,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="ajeeb"
         options={{
-          title: '🤖 AI',
-          headerTitle: 'Ajeeb AI — Finance Agent',
+          title: '🤖 ai',
+          headerTitle: 'Ajeeb AI',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="sparkles" size={size} color={color} />
           ),
