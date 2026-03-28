@@ -134,7 +134,7 @@ export default function AjeebScreen() {
       {/* Agent badge */}
       <View style={styles.agentBadge}>
         <View style={styles.statusDot} />
-        <Text style={styles.agentBadgeText}>Ajeeb — Online</Text>
+        <Text style={styles.agentBadgeText}>Ajeeb — Decoding the <Text style={styles.moneyMatrix}>Money Matrix</Text></Text>
       </View>
 
       {/* Messages */}
@@ -254,6 +254,11 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: '#00C853',
+  },
+  moneyMatrix: {
+    color: Colors.success,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   agentBadgeText: {
     fontSize: 12,
