@@ -122,6 +122,11 @@ export default function AjeebScreen() {
     >
       </View>
 
+      {/* Subtitle bar */}
+      <View style={styles.subtitleBar}>
+        <Text style={styles.subtitleText}>ai Judgment Engine for Equity and Bourse</Text>
+      </View>
+
       {/* In Progress Banner */}
       <View style={styles.inProgressBanner}>
         <Text style={styles.inProgressEmoji}>🚧</Text>
@@ -232,6 +237,17 @@ const styles = StyleSheet.create({
   },
     color: Colors.primary,
     fontWeight: '700',
+  },
+  subtitleBar: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 5,
+  },
+  subtitleText: {
+    color: 'rgba(255,255,255,0.65)',
+    fontSize: 10,
+    fontWeight: '500',
+    letterSpacing: 0.4,
   },
   inProgressBanner: {
     flexDirection: 'row',
