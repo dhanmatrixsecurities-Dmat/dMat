@@ -2,7 +2,6 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { StatusBar } from 'expo-status-bar';
-import { View, Text } from 'react-native';
 
 export default function TabLayout() {
   return (
@@ -43,7 +42,6 @@ export default function TabLayout() {
             ),
           }}
         />
-
         <Tabs.Screen
           name="active-trades"
           options={{
@@ -53,7 +51,6 @@ export default function TabLayout() {
             ),
           }}
         />
-
         <Tabs.Screen
           name="closed-trades"
           options={{
@@ -63,21 +60,11 @@ export default function TabLayout() {
             ),
           }}
         />
-
         <Tabs.Screen
           name="ajeeb"
           options={{
             title: '🤖 ai',
-            headerTitle: () => (
-              <View style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-                <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' }}>
-                  {'Ajeeb ai'}
-                </Text>
-                <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, fontWeight: '500', letterSpacing: 0.4 }}>
-                  {'ai Judgment Engine for Equity & Bourse'}
-                </Text>
-              </View>
-            ),
+            headerTitle: 'Ajeeb ai',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="sparkles" size={size} color={color} />
             ),
@@ -87,7 +74,6 @@ export default function TabLayout() {
             },
           }}
         />
-
         <Tabs.Screen
           name="profile"
           options={{
