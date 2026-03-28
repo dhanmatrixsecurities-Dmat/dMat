@@ -93,7 +93,7 @@ export default function AjeebScreen() {
       const data = await response.json();
       const botText =
         data?.content?.[0]?.text ||
-        'Signal lost. Try again.\n\n⚠️ api key not configured yet — add EXPO_PUBLIC_ANTHROPIC_API_KEY to your .env file.';
+        'Signal lost. Try again.\n\nNote: API key not configured yet.';
 
       setMessages(prev => [
         ...prev,
@@ -105,7 +105,7 @@ export default function AjeebScreen() {
         {
           id: Date.now().toString() + 'e',
           role: 'bot',
-          text: 'Signal lost. Check your connection.\n\n⚠️ api key not configured yet — add EXPO_PUBLIC_ANTHROPIC_API_KEY to your .env file to activate Ajeeb.',
+          text: 'Signal lost. Check your connection.\n\nNote: Add EXPO_PUBLIC_ANTHROPIC_API_KEY to your .env file to activate Ajeeb.',
         },
       ]);
     } finally {
@@ -120,14 +120,10 @@ export default function AjeebScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={90}
     >
-      </View>
-
-      {/* Subtitle bar */}
       <View style={styles.subtitleBar}>
         <Text style={styles.subtitleText}>ai Judgment Engine for Equity and Bourse</Text>
       </View>
 
-      {/* In Progress Banner */}
       <View style={styles.inProgressBanner}>
         <Text style={styles.inProgressEmoji}>🚧</Text>
         <View style={styles.inProgressTextWrap}>
@@ -138,7 +134,6 @@ export default function AjeebScreen() {
         </View>
       </View>
 
-      {/* Agent badge */}
       <View style={styles.agentBadge}>
         <View style={styles.statusDot} />
         <Text style={styles.agentBadgeText}>
@@ -146,7 +141,6 @@ export default function AjeebScreen() {
         </Text>
       </View>
 
-      {/* Messages */}
       <ScrollView
         ref={scrollRef}
         style={styles.messages}
@@ -192,7 +186,6 @@ export default function AjeebScreen() {
         )}
       </ScrollView>
 
-      {/* Input row */}
       <View style={styles.inputRow}>
         <TextInput
           style={styles.textInput}
@@ -220,23 +213,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
-  },
-    backgroundColor: Colors.cardBackground,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    alignItems: 'center',
-  },
-
-    fontSize: 11,
-    color: Colors.textSecondary,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-    textAlign: 'center',
-  },
-    color: Colors.primary,
-    fontWeight: '700',
   },
   subtitleBar: {
     backgroundColor: Colors.primary,
