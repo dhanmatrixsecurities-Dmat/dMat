@@ -6,18 +6,18 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors.secondary,
-        tabBarInactiveTintColor: 'rgba(255,255,255,0.5)',
+        tabBarActiveTintColor: Colors.primary,
+        tabBarInactiveTintColor: Colors.textSecondary,
         tabBarStyle: {
-          backgroundColor: Colors.primary,
+          backgroundColor: Colors.cardBackground,
           borderTopWidth: 1,
-          borderTopColor: 'rgba(255,255,255,0.1)',
+          borderTopColor: Colors.border,
           height: 60,
           paddingBottom: 8,
           paddingTop: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: '600',
         },
         headerStyle: {
@@ -45,7 +45,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="active-trades"
         options={{
-          title: 'Active',
+          title: 'Active Trades',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="pulse" size={size} color={color} />
           ),
@@ -56,7 +56,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="closed-trades"
         options={{
-          title: 'Closed',
+          title: 'Closed Trades',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="checkmark-done" size={size} color={color} />
           ),
@@ -67,11 +67,15 @@ export default function TabLayout() {
       <Tabs.Screen
         name="ajeeb"
         options={{
-          title: '🤖 ai',
+          title: '🤖 AI',
           headerTitle: 'Ajeeb AI',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="sparkles" size={size} color={color} />
           ),
+          tabBarLabelStyle: {
+            fontSize: 13,
+            fontWeight: '600',
+          },
         }}
       />
 
