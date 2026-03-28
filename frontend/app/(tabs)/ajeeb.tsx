@@ -92,7 +92,8 @@ export default function AjeebScreen() {
 
       const data = await response.json();
       const botText =
-        data?.content?.[0]?.text || 'Signal lost. Try again.\n\n⚠️ Note: API key not configured yet — add EXPO_PUBLIC_ANTHROPIC_API_KEY to your .env file.';
+        data?.content?.[0]?.text ||
+        'Signal lost. Try again.\n\n⚠️ API key not configured yet — add EXPO_PUBLIC_ANTHROPIC_API_KEY to your .env file.';
 
       setMessages(prev => [
         ...prev,
@@ -101,7 +102,11 @@ export default function AjeebScreen() {
     } catch {
       setMessages(prev => [
         ...prev,
-        { id: Date.now().toString() + 'e', role: 'bot', text: 'Signal lost. Check your connection.\n\n⚠️ Note: API key not configured yet — add EXPO_PUBLIC_ANTHROPIC_API_KEY to your .env file to activate Ajeeb.' },
+        {
+          id: Date.now().toString() + 'e',
+          role: 'bot',
+          text: 'Signal lost. Check your connection.\n\n⚠️ API key not configured yet — add EXPO_PUBLIC_ANTHROPIC_API_KEY to your .env file to activate Ajeeb.',
+        },
       ]);
     } finally {
       setLoading(false);
@@ -115,7 +120,18 @@ export default function AjeebScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={90}
     >
-      {/* Header badge */}
+      {/* In Progress Banner */}
+      <View style={styles.inProgressBanner}>
+        <Text style={styles.inProgressEmoji}>🚧</Text>
+        <View style={styles.inProgressTextWrap}>
+          <Text style={styles.inProgressTitle}>In Progress — Coming Soon</Text>
+          <Text style={styles.inProgressSub}>
+            Get ready for the biggest change in the finance space. We're building something powerful.
+          </Text>
+        </View>
+      </View>
+
+      {/* Agent badge */}
       <View style={styles.agentBadge}>
         <View style={styles.statusDot} />
         <Text style={styles.agentBadgeText}>Ajeeb — Online</Text>
@@ -139,11 +155,7 @@ export default function AjeebScreen() {
             {msg.role === 'bot' && (
               <Text style={styles.senderLabel}>AJEEB //</Text>
             )}
-            <Text
-              style={
-                msg.role === 'user' ? styles.userText : styles.botText
-              }
-            >
+            <Text style={msg.role === 'user' ? styles.userText : styles.botText}>
               {msg.text}
             </Text>
           </View>
@@ -156,7 +168,6 @@ export default function AjeebScreen() {
           </View>
         )}
 
-        {/* Quick question chips */}
         {showQuick && (
           <View style={styles.quickWrap}>
             {QUICK_QUESTIONS.map(q => (
@@ -200,6 +211,33 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  inProgressBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 10,
+  },
+  inProgressEmoji: {
+    fontSize: 20,
+    marginTop: 2,
+  },
+  inProgressTextWrap: {
+    flex: 1,
+  },
+  inProgressTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 2,
+    letterSpacing: 0.3,
+  },
+  inProgressSub: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.75)',
+    lineHeight: 16,
   },
   agentBadge: {
     flexDirection: 'row',
@@ -274,7 +312,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.primary,
     backgroundColor: Colors.cardBackground,
   },
   quickBtnText: {
@@ -289,12 +327,12 @@ const styles = StyleSheet.create({
     padding: 10,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
-    backgroundColor: Colors.cardBackground,
+    backgroundColor: Colors.primary,
   },
   textInput: {
     flex: 1,
     height: 40,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.secondary,
     borderRadius: 20,
     paddingHorizontal: 16,
     fontSize: 13,
@@ -306,9 +344,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.primary,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   sendBtnDisabled: {
     opacity: 0.5,
