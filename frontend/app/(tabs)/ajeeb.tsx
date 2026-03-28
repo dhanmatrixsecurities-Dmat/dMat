@@ -19,7 +19,7 @@ interface Message {
   text: string;
 }
 
-const SYSTEM_PROMPT = `You are Ajeeb, a sharp and knowledgeable AI finance agent built into the dMat trading app. You answer questions about:
+const SYSTEM_PROMPT = `You are Ajeeb, a sharp and knowledgeable ai finance agent built into the dMat trading app. You answer questions about:
 - Stock market (NSE/BSE — Indian markets primarily)
 - Trading strategies (intraday, swing, positional)
 - Mutual funds and SIPs
@@ -93,7 +93,7 @@ export default function AjeebScreen() {
       const data = await response.json();
       const botText =
         data?.content?.[0]?.text ||
-        'Signal lost. Try again.\n\n⚠️ API key not configured yet — add EXPO_PUBLIC_ANTHROPIC_API_KEY to your .env file.';
+        'Signal lost. Try again.\n\n⚠️ api key not configured yet — add EXPO_PUBLIC_ANTHROPIC_API_KEY to your .env file.';
 
       setMessages(prev => [
         ...prev,
@@ -105,7 +105,7 @@ export default function AjeebScreen() {
         {
           id: Date.now().toString() + 'e',
           role: 'bot',
-          text: 'Signal lost. Check your connection.\n\n⚠️ API key not configured yet — add EXPO_PUBLIC_ANTHROPIC_API_KEY to your .env file to activate Ajeeb.',
+          text: 'Signal lost. Check your connection.\n\n⚠️ api key not configured yet — add EXPO_PUBLIC_ANTHROPIC_API_KEY to your .env file to activate Ajeeb.',
         },
       ]);
     } finally {
@@ -134,7 +134,9 @@ export default function AjeebScreen() {
       {/* Agent badge */}
       <View style={styles.agentBadge}>
         <View style={styles.statusDot} />
-        <Text style={styles.agentBadgeText}>Ajeeb — Decoding the <Text style={styles.moneyMatrix}>Money Matrix</Text></Text>
+        <Text style={styles.agentBadgeText}>
+          Ajeeb — Decoding the <Text style={styles.moneyMatrix}>Money Matrix</Text>
+        </Text>
       </View>
 
       {/* Messages */}
@@ -153,7 +155,7 @@ export default function AjeebScreen() {
             ]}
           >
             {msg.role === 'bot' && (
-              <Text style={styles.senderLabel}>AJEEB //</Text>
+              <Text style={styles.senderLabel}>Ajeeb //</Text>
             )}
             <Text style={msg.role === 'user' ? styles.userText : styles.botText}>
               {msg.text}
@@ -163,7 +165,7 @@ export default function AjeebScreen() {
 
         {loading && (
           <View style={[styles.bubble, styles.botBubble]}>
-            <Text style={styles.senderLabel}>AJEEB //</Text>
+            <Text style={styles.senderLabel}>Ajeeb //</Text>
             <ActivityIndicator size="small" color={Colors.primary} />
           </View>
         )}
@@ -332,12 +334,12 @@ const styles = StyleSheet.create({
     padding: 10,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.cardBackground,
   },
   textInput: {
     flex: 1,
     height: 40,
-    backgroundColor: Colors.secondary,
+    backgroundColor: Colors.background,
     borderRadius: 20,
     paddingHorizontal: 16,
     fontSize: 13,
@@ -349,11 +351,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
   },
   sendBtnDisabled: {
     opacity: 0.5,
