@@ -34,7 +34,6 @@ export default function TabLayout() {
           },
         }}
       >
-        {/* ── HOME ── */}
         <Tabs.Screen
           name="index"
           options={{
@@ -45,7 +44,6 @@ export default function TabLayout() {
           }}
         />
 
-        {/* ── ACTIVE TRADES ── */}
         <Tabs.Screen
           name="active-trades"
           options={{
@@ -56,7 +54,6 @@ export default function TabLayout() {
           }}
         />
 
-        {/* ── CLOSED TRADES ── */}
         <Tabs.Screen
           name="closed-trades"
           options={{
@@ -67,7 +64,6 @@ export default function TabLayout() {
           }}
         />
 
-        {/* ── AJEEB AI ── */}
         <Tabs.Screen
           name="ajeeb"
           options={{
@@ -75,10 +71,10 @@ export default function TabLayout() {
             headerTitle: () => (
               <View style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
                 <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' }}>
-                  Ajeeb ai
+                  {'Ajeeb ai'}
                 </Text>
                 <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, fontWeight: '500', letterSpacing: 0.4 }}>
-                  ai Judgment Engine for Equity & Bourse
+                  {'ai Judgment Engine for Equity & Bourse'}
                 </Text>
               </View>
             ),
@@ -92,7 +88,6 @@ export default function TabLayout() {
           }}
         />
 
-        {/* ── PROFILE ── */}
         <Tabs.Screen
           name="profile"
           options={{
