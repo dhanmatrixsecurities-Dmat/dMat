@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
+
 export default function TabLayout() {
   return (
     <Tabs
@@ -39,6 +40,8 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      {/* ── ACTIVE TRADES ── */}
       <Tabs.Screen
         name="active-trades"
         options={{
@@ -48,6 +51,8 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      {/* ── CLOSED TRADES ── */}
       <Tabs.Screen
         name="closed-trades"
         options={{
@@ -57,6 +62,20 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      {/* ── AJEEB AI (Finance Agent) ── */}
+      <Tabs.Screen
+        name="ajeeb"
+        options={{
+          title: '🤖 AI',
+          headerTitle: 'Ajeeb AI — Finance Agent',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="sparkles" size={size} color={color} />
+          ),
+        }}
+      />
+
+      {/* ── PROFILE ── */}
       <Tabs.Screen
         name="profile"
         options={{
