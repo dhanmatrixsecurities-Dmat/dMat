@@ -6,18 +6,18 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.textSecondary,
+        tabBarActiveTintColor: Colors.secondary,
+        tabBarInactiveTintColor: 'rgba(255,255,255,0.5)',
         tabBarStyle: {
-          backgroundColor: Colors.cardBackground,
+          backgroundColor: Colors.primary,
           borderTopWidth: 1,
-          borderTopColor: Colors.border,
+          borderTopColor: 'rgba(255,255,255,0.1)',
           height: 60,
           paddingBottom: 8,
           paddingTop: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 10,
+          fontSize: 11,
           fontWeight: '600',
         },
         headerStyle: {
@@ -30,7 +30,7 @@ export default function TabLayout() {
         },
       }}
     >
-      {/* ── HOME (Performance Overview) ── */}
+      {/* ── HOME ── */}
       <Tabs.Screen
         name="index"
         options={{
@@ -45,7 +45,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="active-trades"
         options={{
-          title: 'Active Trades',
+          title: 'Active',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="pulse" size={size} color={color} />
           ),
@@ -56,14 +56,14 @@ export default function TabLayout() {
       <Tabs.Screen
         name="closed-trades"
         options={{
-          title: 'Closed Trades',
+          title: 'Closed',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="checkmark-done" size={size} color={color} />
           ),
         }}
       />
 
-      {/* ── AJEEB AI (Finance Agent) ── */}
+      {/* ── AJEEB AI ── */}
       <Tabs.Screen
         name="ajeeb"
         options={{
