@@ -120,6 +120,8 @@ export default function AjeebScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={90}
     >
+      </View>
+
       {/* In Progress Banner */}
       <View style={styles.inProgressBanner}>
         <Text style={styles.inProgressEmoji}>🚧</Text>
@@ -213,6 +215,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+    backgroundColor: Colors.cardBackground,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    alignItems: 'center',
+  },
+
+    fontSize: 11,
+    color: Colors.textSecondary,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+    textAlign: 'center',
+  },
+    color: Colors.primary,
+    fontWeight: '700',
   },
   inProgressBanner: {
     flexDirection: 'row',
