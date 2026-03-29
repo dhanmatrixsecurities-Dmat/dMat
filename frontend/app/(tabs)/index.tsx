@@ -7,6 +7,7 @@ import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import Svg, { Circle, G, Ellipse, Polygon, Rect, Line, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { useAuth } from '@/contexts/AuthContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface ClosedTrade {
   id: string; profitLossPercent: number; segment?: 'equity' | 'futures' | 'options';
@@ -23,6 +24,21 @@ function isSubscriptionActive(userData: any): boolean {
   end.setHours(23, 59, 59, 999);
   return end >= new Date();
 }
+
+// ── Greeting helpers ─────────────────────────────────────────────────
+const getGreeting = (): { text: string; emoji: string } => {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12)  return { text: 'Good morning',   emoji: '☀️' };
+  if (hour >= 12 && hour < 17) return { text: 'Good afternoon', emoji: '🌤️' };
+  if (hour >= 17 && hour < 21) return { text: 'Good evening',   emoji: '🌙' };
+  return                               { text: 'Good night',     emoji: '🌙' };
+};
+
+const getTodayKey = (): string => {
+  const d = new Date();
+  return `greeting_shown_${d.getFullYear()}_${d.getMonth()}_${d.getDate()}`;
+};
+// ─────────────────────────────────────────────────────────────────────
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -121,6 +137,43 @@ const RoadSVG = () => (
   </Svg>
 );
 
+// ── Greeting Toast ───────────────────────────────────────────────────
+const GreetingToast = ({ name }: { name: string }) => {
+  const slideAnim = useRef(new Animated.Value(-120)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const { text, emoji } = getGreeting();
+  const firstName = name?.trim().split(' ')[0] || 'there';
+
+  useEffect(() => {
+    // Slide in
+    Animated.parallel([
+      Animated.spring(slideAnim, { toValue: 0, friction: 8, tension: 60, useNativeDriver: true }),
+      Animated.timing(opacityAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+    ]).start();
+
+    // Auto dismiss after 3 seconds
+    const timer = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(slideAnim, { toValue: -120, duration: 350, useNativeDriver: true }),
+        Animated.timing(opacityAnim, { toValue: 0, duration: 350, useNativeDriver: true }),
+      ]).start();
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <Animated.View style={[s.toast, { transform: [{ translateY: slideAnim }], opacity: opacityAnim }]}>
+      <Text style={s.toastEmoji}>{emoji}</Text>
+      <View>
+        <Text style={s.toastText}>{text}, {firstName}!</Text>
+        <Text style={s.toastSub}>Welcome to DhanMatrix</Text>
+      </View>
+    </Animated.View>
+  );
+};
+// ────────────────────────────────────────────────────────────────────
+
 export default function HomeScreen() {
   const { userData } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -132,6 +185,7 @@ export default function HomeScreen() {
   const [showForm, setShowForm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [form, setForm] = useState({ name: '', whatsapp: '', stock: '', buyingPrice: '', qty: '' });
+  const [showGreeting, setShowGreeting] = useState(false);
 
   const calcStats = (trades: ClosedTrade[]): SegmentStats => {
     const total = trades.length;
@@ -160,6 +214,24 @@ export default function HomeScreen() {
     })();
   }, []);
 
+  // ── Show greeting once per day ───────────────────────────────────
+  useEffect(() => {
+    const checkGreeting = async () => {
+      try {
+        const key = getTodayKey();
+        const shown = await AsyncStorage.getItem(key);
+        if (!shown) {
+          setShowGreeting(true);
+          await AsyncStorage.setItem(key, 'true');
+        }
+      } catch (e) {
+        console.error('Greeting error:', e);
+      }
+    };
+    checkGreeting();
+  }, []);
+  // ────────────────────────────────────────────────────────────────
+
   const handleSubmit = () => {
     if (!form.name || !form.whatsapp || !form.stock || !form.buyingPrice || !form.qty) return;
     setShowForm(false);
@@ -173,7 +245,10 @@ export default function HomeScreen() {
   return (
     <View style={s.container}>
 
-      {/* Overall — ORIGINAL SIZE */}
+      {/* ── GREETING TOAST — floats above all content ── */}
+      {showGreeting && <GreetingToast name={userData?.name || ''} />}
+
+      {/* Overall */}
       <View style={s.overallCard}>
         <Text style={s.overallTitle}>Overall Performance</Text>
         <DonutGauge accuracy={overall.accuracy} size={90} strokeWidth={10} fillColor="#3b82f6" />
@@ -191,7 +266,7 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Segments — ORIGINAL SIZE */}
+      {/* Segments */}
       <View style={s.segRow}>
         {[
           { label: 'Equity', stats: equity, color: '#22c55e' },
@@ -217,7 +292,7 @@ export default function HomeScreen() {
         ))}
       </View>
 
-      {/* IPO & Mutual Fund — ORIGINAL SIZE */}
+      {/* IPO & Mutual Fund */}
       <View style={s.quickRow}>
         <TouchableOpacity style={[s.quickCard, { borderLeftColor: '#3b82f6' }]}
           onPress={() => Linking.openURL('https://www.nseindia.com/market-data/all-upcoming-issues-ipo')} activeOpacity={0.85}>
@@ -238,7 +313,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Portfolio Checkup — ORIGINAL SIZE */}
+      {/* Portfolio Checkup */}
       <View style={s.portfolioCard}>
         <Text style={s.portfolioEmoji}>🩺</Text>
         <View style={s.portfolioText}>
@@ -280,12 +355,10 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* ACTIVE → Welcome Card — flex:1 fills only remaining space */}
+      {/* ACTIVE → Welcome Card */}
       {isActive && (
         <View style={s.welcomeCard}>
-          <View style={s.roadTop}>
-            <RoadSVG />
-          </View>
+          <View style={s.roadTop}><RoadSVG /></View>
           <View style={s.welcomeContent}>
             <View style={s.titleRow}>
               <Text style={s.welcomeTitle}>
@@ -354,7 +427,20 @@ const s = StyleSheet.create({
   loading: { flex: 1, backgroundColor: '#eef1f8', alignItems: 'center', justifyContent: 'center' },
   container: { flex: 1, backgroundColor: '#eef1f8', padding: 10, gap: 8 },
 
-  // ── ORIGINAL sizes for all top cards ──
+  // ── Greeting Toast ───────────────────────────────────────────────
+  toast: {
+    position: 'absolute', top: 10, left: 16, right: 16, zIndex: 999,
+    backgroundColor: '#001F3F', borderRadius: 14,
+    paddingHorizontal: 16, paddingVertical: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 }, elevation: 8,
+  },
+  toastEmoji: { fontSize: 26 },
+  toastText: { fontSize: 15, fontWeight: '800', color: '#ffffff' },
+  toastSub: { fontSize: 11, color: '#a0b4cc', marginTop: 1 },
+  // ────────────────────────────────────────────────────────────────
+
   overallCard: { backgroundColor: '#fff', borderRadius: 16, padding: 10, alignItems: 'center', elevation: 3, shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
   overallTitle: { fontSize: 15, fontWeight: '800', color: '#1e3a5f', marginBottom: 6 },
   divider: { width: '100%', height: 1, backgroundColor: '#e2e8f0', marginVertical: 6 },
@@ -408,7 +494,6 @@ const s = StyleSheet.create({
   subBtn: { backgroundColor: '#3b82f6', borderRadius: 10, padding: 10, alignItems: 'center' },
   subBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
 
-  // ── Welcome card: flex:1 fills ONLY leftover space, content is compact ──
   welcomeCard: { flex: 1, borderRadius: 13, overflow: 'hidden', borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
   roadTop: { height: 75, backgroundColor: '#c8d8f0' },
   welcomeContent: { flex: 1, backgroundColor: '#fff', paddingHorizontal: 10, paddingVertical: 6, justifyContent: 'space-evenly' },
