@@ -14,20 +14,22 @@ type FeedbackType = 'complaint' | 'suggestion';
 interface Props {
   visible: boolean;
   onClose: () => void;
+  initialType: FeedbackType;
   userName: string;
   userMobile: string;
   userEmail: string;
 }
 
-export default function FeedbackModal({ visible, onClose, userName, userMobile, userEmail }: Props) {
-  const [type, setType] = useState<FeedbackType>('complaint');
+export default function FeedbackModal({ visible, onClose, initialType, userName, userMobile, userEmail }: Props) {
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  // type is locked to whatever card the user tapped — no toggle
+  const type = initialType;
+
   const handleClose = () => {
     setMessage('');
-    setType('complaint');
     setSubmitted(false);
     onClose();
   };
@@ -90,33 +92,16 @@ export default function FeedbackModal({ visible, onClose, userName, userMobile, 
 
               {/* Type toggle pills */}
               <View style={styles.pillRow}>
-                <TouchableOpacity
-                  style={[styles.pill, type === 'complaint' && styles.pillComplaintActive]}
-                  onPress={() => setType('complaint')}
-                >
+                <View style={[styles.pill, type === 'complaint' ? styles.pillComplaintActive : styles.pillSuggestActive]}>
                   <Ionicons
-                    name="alert-circle"
+                    name={type === 'complaint' ? 'alert-circle' : 'checkmark-circle'}
                     size={14}
-                    color={type === 'complaint' ? '#C62828' : Colors.textSecondary}
+                    color={type === 'complaint' ? '#C62828' : '#2E7D32'}
                   />
-                  <Text style={[styles.pillText, type === 'complaint' && styles.pillComplaintText]}>
-                    Complaint
+                  <Text style={[styles.pillText, type === 'complaint' ? styles.pillComplaintText : styles.pillSuggestText]}>
+                    {type === 'complaint' ? 'Complaint' : 'Suggestion'}
                   </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.pill, type === 'suggestion' && styles.pillSuggestActive]}
-                  onPress={() => setType('suggestion')}
-                >
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={14}
-                    color={type === 'suggestion' ? '#2E7D32' : Colors.textSecondary}
-                  />
-                  <Text style={[styles.pillText, type === 'suggestion' && styles.pillSuggestText]}>
-                    Suggestion
-                  </Text>
-                </TouchableOpacity>
+                </View>
               </View>
 
               {/* Text input */}
