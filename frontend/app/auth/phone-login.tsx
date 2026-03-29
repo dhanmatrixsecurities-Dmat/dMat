@@ -65,7 +65,7 @@ export default function PhoneLogin() {
         );
         return;
       }
-      router.replace('/(tabs)/active-trades');
+      router.replace('/(tabs)');
     } catch (error: any) {
       Alert.alert('Login Failed', error.message || 'Invalid email or password');
     } finally {
