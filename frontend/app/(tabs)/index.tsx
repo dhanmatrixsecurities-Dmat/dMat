@@ -157,7 +157,7 @@ const GreetingToast = ({ name }: { name: string }) => {
         Animated.timing(slideAnim, { toValue: -120, duration: 350, useNativeDriver: true }),
         Animated.timing(opacityAnim, { toValue: 0, duration: 350, useNativeDriver: true }),
       ]).start();
-    }, 3000);
+    }, 5000);
 
     return () => clearTimeout(timer);
   }, []);
