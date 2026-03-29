@@ -3,11 +3,13 @@ import {
   Box, Typography, Paper, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Chip, CircularProgress,
   Alert, Snackbar, TextField, InputAdornment, Tabs, Tab,
-  IconButton, Tooltip,
+  Select, MenuItem, FormControl,
 } from '@mui/material';
-import { Search, CheckCircle } from '@mui/icons-material';
+import { Search } from '@mui/icons-material';
 import { collection, getDocs, orderBy, query, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
+
+type FeedbackStatus = 'new' | 'in_progress' | 'closed';
 
 interface Feedback {
   id: string;
@@ -17,7 +19,7 @@ interface Feedback {
   userMobile: string;
   userEmail: string;
   createdAt: any;
-  status: 'unread' | 'read';
+  status: FeedbackStatus;
 }
 
 const formatDate = (value: any): string => {
@@ -27,11 +29,29 @@ const formatDate = (value: any): string => {
   return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
-const Feedback: React.FC = () => {
+const getStatusColor = (status: FeedbackStatus): 'warning' | 'info' | 'success' | 'default' => {
+  switch (status) {
+    case 'new':         return 'warning';
+    case 'in_progress': return 'info';
+    case 'closed':      return 'success';
+    default:            return 'default';
+  }
+};
+
+const getStatusLabel = (status: FeedbackStatus): string => {
+  switch (status) {
+    case 'new':         return 'New';
+    case 'in_progress': return 'In Progress';
+    case 'closed':      return 'Closed';
+    default:            return status;
+  }
+};
+
+const FeedbackPage: React.FC = () => {
   const [feedbackList, setFeedbackList] = useState<Feedback[]>([]);
   const [filtered, setFiltered] = useState<Feedback[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState(0); // 0=All, 1=Complaints, 2=Suggestions
+  const [tab, setTab] = useState(0);
   const [search, setSearch] = useState('');
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false, message: '', severity: 'success',
@@ -60,7 +80,15 @@ const Feedback: React.FC = () => {
       setLoading(true);
       const q = query(collection(db, 'feedback'), orderBy('createdAt', 'desc'));
       const snap = await getDocs(q);
-      const data = snap.docs.map(d => ({ id: d.id, ...d.data() })) as Feedback[];
+      const data = snap.docs.map(d => {
+        const raw = d.data();
+        // migrate old 'unread'/'read' values to new status system
+        let status: FeedbackStatus = 'new';
+        if (raw.status === 'read' || raw.status === 'closed') status = 'closed';
+        else if (raw.status === 'in_progress') status = 'in_progress';
+        else status = 'new';
+        return { id: d.id, ...raw, status } as Feedback;
+      });
       setFeedbackList(data);
       setFiltered(data);
     } catch {
@@ -70,33 +98,29 @@ const Feedback: React.FC = () => {
     }
   };
 
-  const markAsRead = async (id: string) => {
+  const handleStatusChange = async (id: string, newStatus: FeedbackStatus) => {
     try {
-      await updateDoc(doc(db, 'feedback', id), { status: 'read' });
-      setFeedbackList(prev => prev.map(f => f.id === id ? { ...f, status: 'read' } : f));
-      setSnackbar({ open: true, message: 'Marked as read', severity: 'success' });
+      await updateDoc(doc(db, 'feedback', id), { status: newStatus });
+      setFeedbackList(prev =>
+        prev.map(f => f.id === id ? { ...f, status: newStatus } : f)
+      );
+      setSnackbar({ open: true, message: `Status updated to "${getStatusLabel(newStatus)}"`, severity: 'success' });
     } catch {
       setSnackbar({ open: true, message: 'Error updating status', severity: 'error' });
     }
   };
 
-  const unreadCount = feedbackList.filter(f => f.status === 'unread').length;
+  const newCount = feedbackList.filter(f => f.status === 'new').length;
   const complaintCount = feedbackList.filter(f => f.type === 'complaint').length;
   const suggestionCount = feedbackList.filter(f => f.type === 'suggestion').length;
 
   return (
     <Box>
-      {/* Page header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
         <Typography variant="h4" fontWeight="bold">
           Complaints & Suggestions
-          {unreadCount > 0 && (
-            <Chip
-              label={`${unreadCount} new`}
-              color="error"
-              size="small"
-              sx={{ ml: 2, fontWeight: 'bold' }}
-            />
+          {newCount > 0 && (
+            <Chip label={`${newCount} new`} color="error" size="small" sx={{ ml: 2, fontWeight: 'bold' }} />
           )}
         </Typography>
       </Box>
@@ -104,15 +128,14 @@ const Feedback: React.FC = () => {
         View all user complaints and suggestions submitted from the app
       </Typography>
 
-      {/* Summary chips */}
       <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
         <Chip label={`Total: ${feedbackList.length}`} variant="outlined" />
         <Chip label={`Complaints: ${complaintCount}`} color="error" variant="outlined" />
         <Chip label={`Suggestions: ${suggestionCount}`} color="success" variant="outlined" />
+        <Chip label={`New: ${newCount}`} color="warning" variant="outlined" />
       </Box>
 
       <Paper sx={{ p: 3 }}>
-        {/* Search */}
         <TextField
           fullWidth
           placeholder="Search by name, mobile, email or message..."
@@ -124,7 +147,6 @@ const Feedback: React.FC = () => {
           }}
         />
 
-        {/* Tabs */}
         <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2, borderBottom: '1px solid #e0e0e0' }}>
           <Tab label={`All (${feedbackList.length})`} />
           <Tab label={`Complaints (${complaintCount})`} />
@@ -145,7 +167,7 @@ const Feedback: React.FC = () => {
                   <TableCell><strong>Message</strong></TableCell>
                   <TableCell><strong>Date</strong></TableCell>
                   <TableCell><strong>Status</strong></TableCell>
-                  <TableCell><strong>Action</strong></TableCell>
+                  <TableCell><strong>Update Status</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -160,20 +182,14 @@ const Feedback: React.FC = () => {
                     <TableRow
                       key={item.id}
                       hover
-                      sx={{ backgroundColor: item.status === 'unread' ? '#fffde7' : 'inherit' }}
+                      sx={{ backgroundColor: item.status === 'new' ? '#fffde7' : 'inherit' }}
                     >
-                      {/* User info */}
                       <TableCell>
                         <Typography variant="body2" fontWeight="bold">{item.userName || '—'}</Typography>
-                        <Typography variant="caption" color="text.secondary" display="block">
-                          {item.userMobile || '—'}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" display="block">
-                          {item.userEmail || '—'}
-                        </Typography>
+                        <Typography variant="caption" color="text.secondary" display="block">{item.userMobile || '—'}</Typography>
+                        <Typography variant="caption" color="text.secondary" display="block">{item.userEmail || '—'}</Typography>
                       </TableCell>
 
-                      {/* Type chip */}
                       <TableCell>
                         <Chip
                           label={item.type === 'complaint' ? 'Complaint' : 'Suggestion'}
@@ -183,37 +199,39 @@ const Feedback: React.FC = () => {
                         />
                       </TableCell>
 
-                      {/* Message */}
                       <TableCell sx={{ maxWidth: 280 }}>
                         <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
                           {item.message}
                         </Typography>
                       </TableCell>
 
-                      {/* Date */}
                       <TableCell>
                         <Typography variant="body2">{formatDate(item.createdAt)}</Typography>
                       </TableCell>
 
-                      {/* Status */}
+                      {/* Status badge */}
                       <TableCell>
                         <Chip
-                          label={item.status === 'unread' ? 'New' : 'Read'}
-                          color={item.status === 'unread' ? 'warning' : 'default'}
+                          label={getStatusLabel(item.status)}
+                          color={getStatusColor(item.status)}
                           size="small"
                         />
                       </TableCell>
 
-                      {/* Mark as read */}
+                      {/* Status dropdown */}
                       <TableCell>
-                        {item.status === 'unread' && (
-                          <Tooltip title="Mark as read">
-                            <IconButton size="small" color="success" onClick={() => markAsRead(item.id)}>
-                              <CheckCircle />
-                            </IconButton>
-                          </Tooltip>
-                        )}
+                        <FormControl size="small" sx={{ minWidth: 130 }}>
+                          <Select
+                            value={item.status}
+                            onChange={(e) => handleStatusChange(item.id, e.target.value as FeedbackStatus)}
+                          >
+                            <MenuItem value="new">🆕 New</MenuItem>
+                            <MenuItem value="in_progress">🔄 In Progress</MenuItem>
+                            <MenuItem value="closed">✅ Closed</MenuItem>
+                          </Select>
+                        </FormControl>
                       </TableCell>
+
                     </TableRow>
                   ))
                 )}
@@ -232,4 +250,4 @@ const Feedback: React.FC = () => {
   );
 };
 
-export default Feedback;
+export default FeedbackPage;
