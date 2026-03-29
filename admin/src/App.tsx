@@ -9,22 +9,15 @@ import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
 import ActiveTrades from './pages/ActiveTrades';
 import ClosedTrades from './pages/ClosedTrades';
+import FeedbackPage from './pages/Feedback';  // ← NEW
 import Layout from './components/Layout';
 
 const theme = createTheme({
   palette: {
-    primary: {
-      main: '#001F3F', // Navy Blue
-    },
-    secondary: {
-      main: '#006400', // Dark Green
-    },
-    success: {
-      main: '#00C853',
-    },
-    error: {
-      main: '#D32F2F',
-    },
+    primary:   { main: '#001F3F' },
+    secondary: { main: '#006400' },
+    success:   { main: '#00C853' },
+    error:     { main: '#D32F2F' },
   },
   typography: {
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
@@ -38,7 +31,6 @@ function App() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setIsAuthenticated(!!user);
     });
-
     return unsubscribe;
   }, []);
 
@@ -57,10 +49,11 @@ function App() {
             isAuthenticated ? (
               <Layout>
                 <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/users" element={<Users />} />
+                  <Route path="/"              element={<Dashboard />} />
+                  <Route path="/users"         element={<Users />} />
                   <Route path="/active-trades" element={<ActiveTrades />} />
                   <Route path="/closed-trades" element={<ClosedTrades />} />
+                  <Route path="/feedback"      element={<FeedbackPage />} />  {/* ← NEW */}
                 </Routes>
               </Layout>
             ) : (
