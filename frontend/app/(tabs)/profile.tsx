@@ -7,13 +7,14 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
-import FeedbackModal from '../FeedbackModal';
+import FeedbackModal from '@/components/FeedbackModal';
 
 export default function Profile() {
   const { user, userData, signOut, refreshUserData } = useAuth();
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [feedbackVisible, setFeedbackVisible] = useState(false);
+  const [feedbackType, setFeedbackType] = useState<'complaint' | 'suggestion'>('complaint');
 
   // Avatar animation — runs once on mount, then stops completely
   const scaleAnim = useRef(new Animated.Value(0.7)).current;
@@ -213,7 +214,7 @@ export default function Profile() {
             <TouchableOpacity
               style={styles.feedbackCard}
               activeOpacity={0.75}
-              onPress={() => setFeedbackVisible(true)}
+              onPress={() => { setFeedbackType('complaint'); setFeedbackVisible(true); }}
             >
               <View style={[styles.feedbackIconCircle, { backgroundColor: '#FFEBEE' }]}>
                 <Ionicons name="alert-circle" size={22} color={Colors.error} />
@@ -226,7 +227,7 @@ export default function Profile() {
             <TouchableOpacity
               style={styles.feedbackCard}
               activeOpacity={0.75}
-              onPress={() => setFeedbackVisible(true)}
+              onPress={() => { setFeedbackType('suggestion'); setFeedbackVisible(true); }}
             >
               <View style={[styles.feedbackIconCircle, { backgroundColor: '#E8F5E9' }]}>
                 <Ionicons name="bulb" size={22} color={Colors.accent} />
@@ -272,6 +273,7 @@ export default function Profile() {
       <FeedbackModal
         visible={feedbackVisible}
         onClose={() => setFeedbackVisible(false)}
+        initialType={feedbackType}
         userName={userData?.name || ''}
         userMobile={mobileDisplay}
         userEmail={emailDisplay}
