@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
-import FeedbackModal from '@/components/FeedbackModal';
+import FeedbackModal from '../FeedbackModal';
 
 export default function Profile() {
   const { user, userData, signOut, refreshUserData } = useAuth();
