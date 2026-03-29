@@ -22,6 +22,7 @@ import {
   CheckCircle,
   Logout,
   Menu as MenuIcon,
+  Feedback,
 } from '@mui/icons-material';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
@@ -51,10 +52,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-    { text: 'Users', icon: <People />, path: '/users' },
-    { text: 'Active Trades', icon: <TrendingUp />, path: '/active-trades' },
-    { text: 'Closed Trades', icon: <CheckCircle />, path: '/closed-trades' },
+    { text: 'Dashboard',     icon: <DashboardIcon />, path: '/' },
+    { text: 'Users',         icon: <People />,        path: '/users' },
+    { text: 'Active Trades', icon: <TrendingUp />,    path: '/active-trades' },
+    { text: 'Closed Trades', icon: <CheckCircle />,   path: '/closed-trades' },
+    { text: 'Feedback',      icon: <Feedback />,      path: '/feedback' },  // ← NEW
   ];
 
   const drawer = (
@@ -82,9 +84,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <List>
         <ListItem disablePadding>
           <ListItemButton onClick={handleLogout}>
-            <ListItemIcon>
-              <Logout />
-            </ListItemIcon>
+            <ListItemIcon><Logout /></ListItemIcon>
             <ListItemText primary="Logout" />
           </ListItemButton>
         </ListItem>
@@ -127,9 +127,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           variant="temporary"
           open={mobileOpen}
           onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true,
-          }}
+          ModalProps={{ keepMounted: true }}
           sx={{
             display: { xs: 'block', sm: 'none' },
             '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
