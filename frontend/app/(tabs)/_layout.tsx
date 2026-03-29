@@ -8,6 +8,7 @@ export default function TabLayout() {
     <>
       <StatusBar style="light" backgroundColor={Colors.primary} />
       <Tabs
+        initialRouteName="index"
         screenOptions={{
           tabBarActiveTintColor: Colors.primary,
           tabBarInactiveTintColor: Colors.textSecondary,
@@ -33,9 +34,10 @@ export default function TabLayout() {
           },
         }}
       >
-        <Tabs
-  initialRouteName="index"
-  screenOptions={{            title: 'Home',
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Home',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="home" size={size} color={color} />
             ),
