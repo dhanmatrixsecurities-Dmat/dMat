@@ -1,17 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, SafeAreaView, Linking, RefreshControl,
+  Alert, SafeAreaView, Linking, RefreshControl, Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
+import FeedbackModal from '@/components/FeedbackModal';
 
 export default function Profile() {
   const { user, userData, signOut, refreshUserData } = useAuth();
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
+  const [feedbackVisible, setFeedbackVisible] = useState(false);
+
+  // Avatar animation — runs once on mount, then stops completely
+  const scaleAnim = useRef(new Animated.Value(0.7)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 4,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -79,9 +101,8 @@ export default function Profile() {
     ]);
   };
 
-  // Mobile display — prefer userData.mobile, fallback to user.phoneNumber
-  const mobileDisplay = userData?.mobile || user?.phoneNumber || null;
-  const emailDisplay = userData?.email || user?.email || null;
+  const mobileDisplay = userData?.mobile || user?.phoneNumber || '';
+  const emailDisplay = userData?.email || user?.email || '';
   const subscriptionInfo = getSubscriptionInfo();
 
   return (
@@ -92,19 +113,19 @@ export default function Profile() {
       >
         {/* HEADER */}
         <View style={styles.header}>
-          <View style={[styles.avatarContainer, { backgroundColor: getStatusColor(userData?.status || 'FREE') }]}>
-            <Text style={styles.avatarText}>{getInitials()}</Text>
-          </View>
+          <Animated.View style={{ transform: [{ scale: scaleAnim }], opacity: opacityAnim }}>
+            <View style={[styles.avatarContainer, { backgroundColor: getStatusColor(userData?.status || 'FREE') }]}>
+              <Text style={styles.avatarText}>{getInitials()}</Text>
+            </View>
+          </Animated.View>
 
           {userData?.name ? <Text style={styles.userName}>{userData.name}</Text> : null}
 
-          {/* Mobile */}
           <View style={styles.contactRow}>
             <Ionicons name="call-outline" size={14} color={Colors.textSecondary} />
             <Text style={styles.contactText}>{mobileDisplay || 'Mobile not available'}</Text>
           </View>
 
-          {/* Email */}
           <View style={styles.contactRow}>
             <Ionicons name="mail-outline" size={14} color={Colors.textSecondary} />
             <Text style={styles.contactText}>{emailDisplay || 'Email not available'}</Text>
@@ -183,6 +204,41 @@ export default function Profile() {
           </View>
         </View>
 
+        {/* ── FEEDBACK — NEW SECTION ───────────────────────────── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Feedback</Text>
+          <View style={styles.feedbackRow}>
+
+            {/* Complaint card */}
+            <TouchableOpacity
+              style={styles.feedbackCard}
+              activeOpacity={0.75}
+              onPress={() => setFeedbackVisible(true)}
+            >
+              <View style={[styles.feedbackIconCircle, { backgroundColor: '#FFEBEE' }]}>
+                <Ionicons name="alert-circle" size={22} color={Colors.error} />
+              </View>
+              <Text style={styles.feedbackCardTitle}>Raise a{'\n'}Complaint</Text>
+              <Text style={styles.feedbackCardSub}>Report an issue</Text>
+            </TouchableOpacity>
+
+            {/* Suggestion card */}
+            <TouchableOpacity
+              style={styles.feedbackCard}
+              activeOpacity={0.75}
+              onPress={() => setFeedbackVisible(true)}
+            >
+              <View style={[styles.feedbackIconCircle, { backgroundColor: '#E8F5E9' }]}>
+                <Ionicons name="bulb" size={22} color={Colors.accent} />
+              </View>
+              <Text style={styles.feedbackCardTitle}>Give a{'\n'}Suggestion</Text>
+              <Text style={styles.feedbackCardSub}>Share feedback</Text>
+            </TouchableOpacity>
+
+          </View>
+        </View>
+        {/* ─────────────────────────────────────────────────────── */}
+
         {/* SUPPORT */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Support</Text>
@@ -211,6 +267,16 @@ export default function Profile() {
         </View>
 
       </ScrollView>
+
+      {/* FEEDBACK MODAL */}
+      <FeedbackModal
+        visible={feedbackVisible}
+        onClose={() => setFeedbackVisible(false)}
+        userName={userData?.name || ''}
+        userMobile={mobileDisplay}
+        userEmail={emailDisplay}
+      />
+
     </SafeAreaView>
   );
 }
@@ -240,6 +306,43 @@ const styles = StyleSheet.create({
   featureText: { flex: 1, fontSize: 16, color: Colors.text, marginLeft: 12 },
   disabledText: { color: Colors.textSecondary },
   premiumLabel: { fontSize: 10, fontWeight: 'bold', color: Colors.warning, backgroundColor: '#FFF3E0', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
+
+  // ── Feedback section ──────────────────────────────────────────
+  feedbackRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  feedbackCard: {
+    flex: 1,
+    backgroundColor: Colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  feedbackIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  feedbackCardTitle: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: Colors.text,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  feedbackCardSub: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  // ─────────────────────────────────────────────────────────────
+
   menuItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.cardBackground, padding: 16, borderRadius: 12, marginBottom: 8 },
   menuText: { flex: 1, fontSize: 16, color: Colors.text, marginLeft: 12 },
   signOutButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.cardBackground, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: Colors.error, marginTop: 16 },
