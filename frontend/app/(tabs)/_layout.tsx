@@ -6,8 +6,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
-  
-  // Gesture navigation = bottom inset > 0
   const isGestureNav = insets.bottom > 0;
 
   return (
@@ -18,80 +16,28 @@ export default function TabLayout() {
         screenOptions={{
           tabBarActiveTintColor: Colors.primary,
           tabBarInactiveTintColor: Colors.textSecondary,
-          tabBarStyle: isGestureNav
-            ? { display: 'none' } // ✅ Full screen for gesture users
-            : {
-                backgroundColor: Colors.cardBackground,
-                borderTopWidth: 1,
-                borderTopColor: Colors.border,
-                height: 60,
-                paddingBottom: 8,
-                paddingTop: 8,
-              },
+          tabBarStyle: {
+            backgroundColor: Colors.cardBackground,
+            borderTopWidth: 1,
+            borderTopColor: Colors.border,
+            height: isGestureNav ? 60 + insets.bottom : 60,
+            paddingBottom: isGestureNav ? insets.bottom : 8,
+            paddingTop: 8,
+          },
           tabBarLabelStyle: {
             fontSize: 10,
             fontWeight: '600',
           },
-          headerStyle: {
-            backgroundColor: Colors.primary,
-          },
+          headerStyle: { backgroundColor: Colors.primary },
           headerTintColor: Colors.secondary,
-          headerTitleStyle: {
-            fontWeight: 'bold',
-            fontSize: 20,
-          },
+          headerTitleStyle: { fontWeight: 'bold', fontSize: 20 },
         }}
       >
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: 'Home',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="home" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="active-trades"
-          options={{
-            title: 'Active Trades',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="pulse" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="closed-trades"
-          options={{
-            title: 'Closed Trades',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="checkmark-done" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="ajeeb"
-          options={{
-            title: '🤖 ai',
-            headerTitle: 'Ajeeb ai',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="sparkles" size={size} color={color} />
-            ),
-            tabBarLabelStyle: {
-              fontSize: 11,
-              fontWeight: '600',
-            },
-          }}
-        />
-        <Tabs.Screen
-          name="profile"
-          options={{
-            title: 'Profile',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="person" size={size} color={color} />
-            ),
-          }}
-        />
+        <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} /> }} />
+        <Tabs.Screen name="active-trades" options={{ title: 'Active Trades', tabBarIcon: ({ color, size }) => <Ionicons name="pulse" size={size} color={color} /> }} />
+        <Tabs.Screen name="closed-trades" options={{ title: 'Closed Trades', tabBarIcon: ({ color, size }) => <Ionicons name="checkmark-done" size={size} color={color} /> }} />
+        <Tabs.Screen name="ajeeb" options={{ title: '🤖 ai', headerTitle: 'Ajeeb ai', tabBarIcon: ({ color, size }) => <Ionicons name="sparkles" size={size} color={color} />, tabBarLabelStyle: { fontSize: 11, fontWeight: '600' } }} />
+        <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} /> }} />
       </Tabs>
     </>
   );
