@@ -2,12 +2,8 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { StatusBar } from 'expo-status-bar';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
-  const insets = useSafeAreaInsets();
-  const isGestureNav = insets.bottom > 0;
-
   return (
     <>
       <StatusBar style="light" backgroundColor={Colors.primary} />
@@ -20,9 +16,6 @@ export default function TabLayout() {
             backgroundColor: Colors.cardBackground,
             borderTopWidth: 1,
             borderTopColor: Colors.border,
-            height: isGestureNav ? 60 + insets.bottom : 60,
-            paddingBottom: isGestureNav ? insets.bottom : 8,
-            paddingTop: 8,
           },
           tabBarLabelStyle: {
             fontSize: 10,
