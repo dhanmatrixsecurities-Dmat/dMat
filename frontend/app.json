@@ -30,13 +30,7 @@
       "permissions": ["NOTIFICATIONS", "RECEIVE_BOOT_COMPLETED", "VIBRATE"],
       "jsEngine": "hermes",
       "enableProguardInRelease": true,
-      "softwareKeyboardLayoutMode": "pan",
-      "navigationBar": {
-        "visible": "leanback",
-        "barStyle": "dark-content"
-      },
-      "windowSoftInputMode": "adjustResize",
-      "edgeToEdgeLayoutEnabled": true
+      "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
       "bundler": "metro",
