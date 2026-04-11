@@ -76,6 +76,19 @@ const segmentLabel = (seg?: string): string => {
   return 'Equity';
 };
 
+// ── TODAY HELPER ──────────────────────────────────────────────────────────────
+const isToday = (val: any): boolean => {
+  const d = val?.toDate ? val.toDate() : new Date(val || 0);
+  if (isNaN(d.getTime())) return false;
+  const now = new Date();
+  return (
+    d.getDate() === now.getDate() &&
+    d.getMonth() === now.getMonth() &&
+    d.getFullYear() === now.getFullYear()
+  );
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function ActiveTrades() {
   const { userData } = useAuth();
   const router = useRouter();
@@ -87,11 +100,10 @@ export default function ActiveTrades() {
   const prevTradeIdsRef = useRef<Set<string>>(new Set());
   const isFirstLoadRef = useRef(true);
 
-  // ── BUG 3 FIX: Handle notification tap → navigate to Active Trades ─────────
+  // ── Handle notification tap → navigate to Active Trades ───────────────────
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as { tradeId?: string; segment?: string };
-      // Navigate to ActiveTrades tab; segment can be used to pre-select the tab
       router.push({
         pathname: '/(tabs)/active-trades',
         params: { tradeId: data?.tradeId, segment: data?.segment },
@@ -99,7 +111,7 @@ export default function ActiveTrades() {
     });
     return () => subscription.remove();
   }, []);
-  // ───────────────────────────────────────────────────────────────────────────
+  // ──────────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (userData?.status !== 'ACTIVE') { setLoading(false); return; }
@@ -118,17 +130,15 @@ export default function ActiveTrades() {
               const tradeType = t.type || t.action || 'TRADE';
               const seg = segmentLabel(t.segment);
 
-              // ── BUG 2 FIX: Include segment in notification + tradeId in data ──
               Notifications.scheduleNotificationAsync({
                 content: {
                   title: `New ${tradeType} Trade Alert! [${seg}]`,
                   body: `${t.stockName} | ${seg} | Entry: ₹${t.entryPrice} | Target: ₹${t.targetPrice}`,
                   sound: true,
-                  data: { tradeId: t.id, segment: t.segment ?? 'equity' }, // used by Bug 3 handler
+                  data: { tradeId: t.id, segment: t.segment ?? 'equity' },
                 },
                 trigger: null,
               });
-              // ────────────────────────────────────────────────────────────────
             }
           }
         });
@@ -136,12 +146,14 @@ export default function ActiveTrades() {
 
       prevTradeIdsRef.current = new Set(tradesData.map((t) => t.id));
       isFirstLoadRef.current = false;
+
       const getTime = (val: any) => {
         if (!val) return 0;
         if (typeof val.toDate === 'function') return val.toDate().getTime();
         const d = new Date(val);
         return isNaN(d.getTime()) ? 0 : d.getTime();
       };
+
       const sorted = [...tradesData].sort((a, b) => getTime(b.createdAt) - getTime(a.createdAt));
       setTrades(sorted);
       setLoading(false);
@@ -180,24 +192,20 @@ export default function ActiveTrades() {
     const seg = normalizeSegment(item.segment);
     const isFnO = seg === 'options' || seg === 'futures';
 
-    // Potential gain: always positive means moving toward target
     const potential = entryPrice > 0
       ? isBuy
-        ? ((targetPrice - entryPrice) / entryPrice) * 100   // BUY: target > entry
-        : ((entryPrice - targetPrice) / entryPrice) * 100   // SELL: entry > target
+        ? ((targetPrice - entryPrice) / entryPrice) * 100
+        : ((entryPrice - targetPrice) / entryPrice) * 100
       : 0;
 
-    // Risk: always a positive magnitude (displayed with explicit − sign below)
     const risk = entryPrice > 0
       ? isBuy
-        ? ((entryPrice - stopLoss) / entryPrice) * 100      // BUY: stop below entry
-        : ((stopLoss - entryPrice) / entryPrice) * 100      // SELL: stop above entry
+        ? ((entryPrice - stopLoss) / entryPrice) * 100
+        : ((stopLoss - entryPrice) / entryPrice) * 100
       : 0;
 
-    // ── BUG 4 FIX: format signs safely so we never get +- or -- ─────────────
     const potentialDisplay = `${potential >= 0 ? '+' : ''}${potential.toFixed(2)}%`;
     const riskDisplay = stopLoss > 0 ? `-${Math.abs(risk).toFixed(2)}%` : 'N/A';
-    // ─────────────────────────────────────────────────────────────────────────
 
     return (
       <View style={styles.tradeCard}>
@@ -205,6 +213,15 @@ export default function ActiveTrades() {
           <View style={styles.stockInfo}>
             <View style={styles.stockNameRow}>
               <Text style={styles.stockName}>{item.stockName || item.symbol}</Text>
+
+              {/* ── TODAY BADGE ─────────────────────────────────────────── */}
+              {isToday(item.createdAt) && (
+                <View style={styles.todayBadge}>
+                  <Text style={styles.todayBadgeText}>Today</Text>
+                </View>
+              )}
+              {/* ─────────────────────────────────────────────────────────── */}
+
               {seg === 'options' && item.strikePrice && (
                 <View style={styles.strikeBadge}>
                   <Text style={styles.strikeText}>{item.strikePrice} {item.optionType || ''}</Text>
@@ -262,14 +279,12 @@ export default function ActiveTrades() {
         <View style={styles.metricsRow}>
           <View style={styles.metric}>
             <Text style={styles.metricLabel}>Potential Gain</Text>
-            {/* BUG 4 FIX: use pre-computed potentialDisplay — never +- */}
             <Text style={[styles.metricValue, potential >= 0 ? styles.gainText : styles.riskText]}>
               {potentialDisplay}
             </Text>
           </View>
           <View style={styles.metric}>
             <Text style={styles.metricLabel}>Risk</Text>
-            {/* BUG 4 FIX: use pre-computed riskDisplay — never -- */}
             <Text style={[styles.metricValue, styles.riskText]}>{riskDisplay}</Text>
           </View>
         </View>
@@ -336,6 +351,11 @@ export default function ActiveTrades() {
       <View style={styles.tabRow}>
         {tabLabels.map(({ key, label }) => {
           const count = countBySegment(key);
+          // ── TODAY DOT: true if any trade in this segment was posted today ──
+          const hasToday = trades.some(
+            (t) => normalizeSegment(t.segment) === key && isToday(t.createdAt)
+          );
+          // ──────────────────────────────────────────────────────────────────
           return (
             <TouchableOpacity key={key}
               style={[styles.tab, activeSegment === key && styles.tabActive]}
@@ -346,6 +366,9 @@ export default function ActiveTrades() {
                   <Text style={[styles.badgeText, activeSegment === key && styles.badgeTextActive]}>{count}</Text>
                 </View>
               )}
+              {/* ── TODAY DOT ON TAB ──────────────────────────────────────── */}
+              {hasToday && <View style={styles.todayDot} />}
+              {/* ─────────────────────────────────────────────────────────── */}
             </TouchableOpacity>
           );
         })}
@@ -429,4 +452,10 @@ const styles = StyleSheet.create({
   featuresList: { marginTop: 32, alignSelf: 'stretch' },
   featureItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   featureText: { fontSize: 16, color: Colors.text, marginLeft: 12 },
+
+  // ── TODAY BADGE & DOT ────────────────────────────────────────────────────
+  todayBadge: { backgroundColor: '#dcfce7', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+  todayBadgeText: { fontSize: 11, fontWeight: '700', color: '#15803d' },
+  todayDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#4ade80', marginLeft: 2 },
+  // ─────────────────────────────────────────────────────────────────────────
 });
