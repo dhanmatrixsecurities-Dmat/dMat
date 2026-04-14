@@ -11,9 +11,6 @@ import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { User, UserStatus } from '../types';
 
-// ── Firebase Auth REST API (create user without signing out admin) ──
-const FIREBASE_API_KEY = (window as any).__FIREBASE_API_KEY__ || '';
-
 const parseDate = (value: any): Date | null => {
   if (!value) return null;
   if (typeof value?.toDate === 'function') return value.toDate();
@@ -41,17 +38,22 @@ const formatDisplayDate = (value: any): string => {
   return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
+const ACCESS_OPTIONS = [
+  { value: 'none',   label: 'No Access',    color: '#9e9e9e' },
+  { value: 'equity', label: 'Equity Only',  color: '#1565c0' },
+  { value: 'fno',    label: 'F&O Only',     color: '#7b1fa2' },
+  { value: 'all',    label: 'All Pages',    color: '#2e7d32' },
+];
+
 const Users: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Editing states
   const [editingStartDate, setEditingStartDate] = useState<{ [id: string]: string }>({});
   const [editingEndDate, setEditingEndDate] = useState<{ [id: string]: string }>({});
 
-  // Add User dialog
   const [addUserOpen, setAddUserOpen] = useState(false);
   const [newUserName, setNewUserName] = useState('');
   const [newUserMobile, setNewUserMobile] = useState('');
@@ -85,7 +87,6 @@ const Users: React.FC = () => {
         if (!db2) return -1;
         return db2.getTime() - da.getTime();
       });
-      // Auto status management based on subscription end date
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       for (const user of usersData) {
@@ -94,13 +95,11 @@ const Users: React.FC = () => {
           endDate.setHours(0, 0, 0, 0);
           const daysLeft = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
           if (daysLeft < 1 && user.status === 'ACTIVE') {
-            // Expired — set to FREE
             try {
               await updateDoc(doc(db, 'users', user.id), { status: 'FREE' });
               user.status = 'FREE' as UserStatus;
             } catch {}
           } else if (daysLeft >= 1 && user.status === 'FREE') {
-            // Has valid subscription — set to ACTIVE
             try {
               await updateDoc(doc(db, 'users', user.id), { status: 'ACTIVE' });
               user.status = 'ACTIVE' as UserStatus;
@@ -127,6 +126,20 @@ const Users: React.FC = () => {
     }
   };
 
+  // ── NEW: Subscription Access handler ──────────────────────────────
+  const handleAccessChange = async (userId: string, access: string) => {
+    try {
+      await updateDoc(doc(db, 'users', userId), { subscriptionAccess: access });
+      setUsers(prev => prev.map(u =>
+        u.id === userId ? { ...u, subscriptionAccess: access } as any : u
+      ));
+      const label = ACCESS_OPTIONS.find(o => o.value === access)?.label || access;
+      showSnackbar(`Page access updated to: ${label}`, 'success');
+    } catch {
+      showSnackbar('Error updating page access', 'error');
+    }
+  };
+
   const handleSaveStartDate = async (userId: string) => {
     const dateValue = editingStartDate[userId];
     if (!dateValue) return;
@@ -149,7 +162,6 @@ const Users: React.FC = () => {
       await updateDoc(doc(db, 'users', userId), { subscriptionEndDate: isoDate });
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, subscriptionEndDate: isoDate } : u));
       setEditingEndDate(prev => { const u = { ...prev }; delete u[userId]; return u; });
-      // Auto-manage status after end date change
       const updatedUser = users.find(u => u.id === userId);
       await autoManageStatus(userId, isoDate, updatedUser?.status);
       showSnackbar('Subscription end date saved!', 'success');
@@ -158,7 +170,6 @@ const Users: React.FC = () => {
     }
   };
 
-  // Days remaining: End Date - Today + 1 (end date counts as 1 day)
   const getDaysRemaining = (subscriptionEndDate?: string) => {
     if (!subscriptionEndDate) return null;
     const endDate = new Date(subscriptionEndDate);
@@ -168,8 +179,6 @@ const Users: React.FC = () => {
     return Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
   };
 
-  // Total days: End Date - Start Date + 1 (both start and end date inclusive)
-  // Example: 01 Mar to 04 Mar = 4 days
   const getTotalSubDays = (startDate: any, endDate?: string) => {
     if (!endDate || !startDate) return null;
     const start = parseDate(startDate);
@@ -177,7 +186,6 @@ const Users: React.FC = () => {
     const end = new Date(endDate);
     start.setHours(0, 0, 0, 0);
     end.setHours(0, 0, 0, 0);
-    // +1 because both start day and end day are counted
     const total = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     return total > 0 ? total : null;
   };
@@ -199,7 +207,6 @@ const Users: React.FC = () => {
     }
   };
 
-  // ── Add User ──────────────────────────────────────────────────────
   const handleAddUser = async () => {
     if (!newUserName.trim() || !newUserMobile.trim()) {
       showSnackbar('Name and mobile are required', 'error');
@@ -207,21 +214,15 @@ const Users: React.FC = () => {
     }
     setAddingUser(true);
     try {
-      // Strip to digits only, keep last 10
       const digitsOnly = newUserMobile.replace(/\D/g, '').slice(-10);
       if (digitsOnly.length < 10) {
         showSnackbar('Please enter a valid 10-digit mobile number', 'error');
         setAddingUser(false);
         return;
       }
-      // Generate login ID and password
       const loginId = `${digitsOnly}@dhanmatrix.ai`;
       const password = `DhanMatrix@${digitsOnly.slice(-4)}`;
-
-      // Get Firebase API key from environment
       const apiKey = 'AIzaSyAB15tMu9OpirH-u9TjyUVhCe-V-oEcK_8';
-
-      // Create user via Firebase Auth REST API (doesn't sign out current admin)
       const res = await fetch(
         `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${apiKey}`,
         {
@@ -232,17 +233,15 @@ const Users: React.FC = () => {
       );
       const data = await res.json();
       if (data.error) throw new Error(data.error.message);
-
-      // Save user profile in Firestore
       const { setDoc, doc: firestoreDoc } = await import('firebase/firestore');
       await setDoc(firestoreDoc(db, 'users', data.localId), {
         name: newUserName.trim(),
         mobile: newUserMobile.trim(),
         email: loginId,
         status: 'FREE',
+        subscriptionAccess: 'none',
         createdAt: new Date().toISOString(),
       });
-
       setGeneratedCreds({ loginId, password });
       setNewUserName('');
       setNewUserMobile('');
@@ -258,7 +257,6 @@ const Users: React.FC = () => {
     setSnackbar({ open: true, message, severity });
   };
 
-  // Auto-manage status based on subscription end date
   const autoManageStatus = async (userId: string, endDateStr?: string, currentStatus?: UserStatus) => {
     if (!endDateStr || currentStatus === 'BLOCKED') return;
     const today = new Date();
@@ -299,14 +297,19 @@ const Users: React.FC = () => {
 
       <Paper sx={{ p: 3, mt: 2 }}>
         <Box sx={{ mb: 3 }}>
-          <TextField fullWidth placeholder="Search by phone number or name..."
-            value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+          <TextField
+            fullWidth
+            placeholder="Search by phone number or name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
             InputProps={{ startAdornment: <InputAdornment position="start"><Search /></InputAdornment> }}
           />
         </Box>
 
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <CircularProgress />
+          </Box>
         ) : (
           <TableContainer>
             <Table>
@@ -318,13 +321,15 @@ const Users: React.FC = () => {
                   <TableCell><strong>Sub Start Date</strong></TableCell>
                   <TableCell><strong>Sub End Date</strong></TableCell>
                   <TableCell><strong>Days Remaining</strong></TableCell>
+                  {/* ── NEW COLUMN ── */}
+                  <TableCell><strong>Subscription Access</strong></TableCell>
                   <TableCell><strong>Actions</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} align="center">
+                    <TableCell colSpan={8} align="center">
                       <Typography color="text.secondary">
                         {searchTerm ? 'No users found' : 'No users registered yet'}
                       </Typography>
@@ -334,6 +339,8 @@ const Users: React.FC = () => {
                   filteredUsers.map((user) => {
                     const daysLeft = getDaysRemaining(user.subscriptionEndDate);
                     const totalDays = getTotalSubDays((user as any).subscriptionStartDate, user.subscriptionEndDate);
+                    const currentAccess = (user as any).subscriptionAccess || 'none';
+                    const accessOption = ACCESS_OPTIONS.find(o => o.value === currentAccess) || ACCESS_OPTIONS[0];
 
                     return (
                       <TableRow key={user.id} hover>
@@ -364,14 +371,14 @@ const Users: React.FC = () => {
                           <Chip label={user.status} color={getStatusColor(user.status)} size="small" />
                         </TableCell>
 
-                        {/* Registered — plain text, no picker */}
+                        {/* Registered */}
                         <TableCell>
                           <Typography variant="body2">
                             {formatDisplayDate((user as any).createdAt)}
                           </Typography>
                         </TableCell>
 
-                        {/* Sub Start Date — editable */}
+                        {/* Sub Start Date */}
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <TextField
@@ -404,7 +411,7 @@ const Users: React.FC = () => {
                           </Box>
                         </TableCell>
 
-                        {/* Sub End Date — editable */}
+                        {/* Sub End Date */}
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <TextField
@@ -458,6 +465,41 @@ const Users: React.FC = () => {
                           </Box>
                         </TableCell>
 
+                        {/* ── NEW: Subscription Access dropdown ── */}
+                        <TableCell>
+                          <FormControl size="small" sx={{ minWidth: 145 }}>
+                            <Select
+                              value={currentAccess}
+                              onChange={(e) => handleAccessChange(user.id, e.target.value)}
+                              renderValue={() => (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <Box sx={{
+                                    width: 8, height: 8, borderRadius: '50%',
+                                    backgroundColor: accessOption.color,
+                                    flexShrink: 0,
+                                  }} />
+                                  <Typography variant="body2" sx={{ fontSize: 13 }}>
+                                    {accessOption.label}
+                                  </Typography>
+                                </Box>
+                              )}
+                            >
+                              {ACCESS_OPTIONS.map((opt) => (
+                                <MenuItem key={opt.value} value={opt.value}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Box sx={{
+                                      width: 8, height: 8, borderRadius: '50%',
+                                      backgroundColor: opt.color,
+                                      flexShrink: 0,
+                                    }} />
+                                    {opt.label}
+                                  </Box>
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        </TableCell>
+
                         {/* Actions */}
                         <TableCell>
                           <FormControl size="small" sx={{ minWidth: 120 }}>
@@ -482,7 +524,7 @@ const Users: React.FC = () => {
         )}
       </Paper>
 
-      {/* ── Add User Dialog ─────────────────────────────────── */}
+      {/* ── Add User Dialog ── */}
       <Dialog open={addUserOpen} onClose={() => setAddUserOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 'bold' }}>➕ Add New User</DialogTitle>
         <DialogContent>
@@ -554,7 +596,11 @@ const Users: React.FC = () => {
               </Button>
             </>
           ) : (
-            <Button variant="contained" onClick={() => { setAddUserOpen(false); setGeneratedCreds(null); }} sx={{ backgroundColor: '#1a237e' }}>
+            <Button
+              variant="contained"
+              onClick={() => { setAddUserOpen(false); setGeneratedCreds(null); }}
+              sx={{ backgroundColor: '#1a237e' }}
+            >
               Done
             </Button>
           )}
