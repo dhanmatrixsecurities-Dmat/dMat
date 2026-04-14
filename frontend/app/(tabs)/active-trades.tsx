@@ -76,7 +76,7 @@ const segmentLabel = (seg?: string): string => {
   return 'Equity';
 };
 
-// ── CHANGE 1: isToday helper ──────────────────────────────────────────────────
+// ── isToday helper ────────────────────────────────────────────────────────────
 const isToday = (val: any): boolean => {
   try {
     let d: Date;
@@ -108,7 +108,7 @@ export default function ActiveTrades() {
   const prevTradeIdsRef = useRef<Set<string>>(new Set());
   const isFirstLoadRef = useRef(true);
 
-  // ── BUG 3 FIX: Handle notification tap → navigate to Active Trades ─────────
+  // ── Handle notification tap → navigate to Active Trades ───────────────────
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as { tradeId?: string; segment?: string };
@@ -119,7 +119,7 @@ export default function ActiveTrades() {
     });
     return () => subscription.remove();
   }, []);
-  // ───────────────────────────────────────────────────────────────────────────
+  // ──────────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (userData?.status !== 'ACTIVE') { setLoading(false); return; }
@@ -138,7 +138,6 @@ export default function ActiveTrades() {
               const tradeType = t.type || t.action || 'TRADE';
               const seg = segmentLabel(t.segment);
 
-              // ── CHANGE 2: added SL at end of body, nothing else changed ───
               Notifications.scheduleNotificationAsync({
                 content: {
                   title: `New ${tradeType} Trade Alert! [${seg}]`,
@@ -148,7 +147,6 @@ export default function ActiveTrades() {
                 },
                 trigger: null,
               });
-              // ──────────────────────────────────────────────────────────────
             }
           }
         });
@@ -222,13 +220,12 @@ export default function ActiveTrades() {
             <View style={styles.stockNameRow}>
               <Text style={styles.stockName}>{item.stockName || item.symbol}</Text>
 
-              {/* ── CHANGE 3: Today badge ───────────────────────────────── */}
+              {/* Today badge next to stock name */}
               {isToday(item.createdAt) && (
                 <View style={styles.todayBadge}>
                   <Text style={styles.todayBadgeText}>Today</Text>
                 </View>
               )}
-              {/* ─────────────────────────────────────────────────────────── */}
 
               {seg === 'options' && item.strikePrice && (
                 <View style={styles.strikeBadge}>
@@ -302,8 +299,19 @@ export default function ActiveTrades() {
             <Ionicons name="time-outline" size={14} color={Colors.textSecondary} />
             <Text style={styles.dateText}>
               {(() => {
-                const d = item.createdAt?.toDate ? item.createdAt.toDate() : new Date(item.createdAt || Date.now());
-                return isNaN(d.getTime()) ? '—' : d.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                const d = item.createdAt?.toDate
+                  ? item.createdAt.toDate()
+                  : new Date(item.createdAt || Date.now());
+                if (isNaN(d.getTime())) return '—';
+                const now = new Date();
+                const todayFlag =
+                  d.getFullYear() === now.getFullYear() &&
+                  d.getMonth() === now.getMonth() &&
+                  d.getDate() === now.getDate();
+                const timeStr = d.toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit' });
+                return todayFlag
+                  ? `Today, ${timeStr}`
+                  : d.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
               })()}
             </Text>
           </View>
@@ -359,11 +367,9 @@ export default function ActiveTrades() {
       <View style={styles.tabRow}>
         {tabLabels.map(({ key, label }) => {
           const count = countBySegment(key);
-          // ── CHANGE 4: green dot on tab if any trade today ─────────────────
           const hasToday = trades.some(
             (t) => normalizeSegment(t.segment) === key && isToday(t.createdAt)
           );
-          // ──────────────────────────────────────────────────────────────────
           return (
             <TouchableOpacity key={key}
               style={[styles.tab, activeSegment === key && styles.tabActive]}
@@ -374,9 +380,8 @@ export default function ActiveTrades() {
                   <Text style={[styles.badgeText, activeSegment === key && styles.badgeTextActive]}>{count}</Text>
                 </View>
               )}
-              {/* ── CHANGE 4: green dot ──────────────────────────────────── */}
+              {/* Green dot on tab if any trade posted today */}
               {hasToday && <View style={styles.todayDot} />}
-              {/* ─────────────────────────────────────────────────────────── */}
             </TouchableOpacity>
           );
         })}
@@ -460,7 +465,6 @@ const styles = StyleSheet.create({
   featuresList: { marginTop: 32, alignSelf: 'stretch' },
   featureItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   featureText: { fontSize: 16, color: Colors.text, marginLeft: 12 },
-  // ── NEW styles only ───────────────────────────────────────────────────────
   todayBadge: { backgroundColor: '#dcfce7', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
   todayBadgeText: { fontSize: 11, fontWeight: '700', color: '#15803d' },
   todayDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#4ade80', marginLeft: 2 },
