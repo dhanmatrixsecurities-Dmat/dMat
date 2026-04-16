@@ -22,6 +22,9 @@ Notifications.setNotificationHandler({
 
 export type UserStatus = 'FREE' | 'ACTIVE' | 'BLOCKED';
 
+// ✅ 'equity' = only equity tab, 'fno' = futures+options, 'all' = everything, 'none' = locked
+export type SubscriptionAccess = 'equity' | 'fno' | 'all' | 'none';
+
 interface UserData {
   phone: string;
   email: string;
@@ -30,6 +33,7 @@ interface UserData {
   createdAt: string;
   name?: string;
   subscriptionEndDate?: string;
+  subscriptionAccess?: SubscriptionAccess; // ✅ ADDED — controls which tabs are visible
 }
 
 interface AuthContextType {
@@ -50,7 +54,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const notificationListener = useRef<Notifications.Subscription>();
   const responseListener = useRef<Notifications.Subscription>();
-  // ✅ Store real-time user listener ref
   const userDataUnsubscribeRef = useRef<(() => void) | null>(null);
 
   const registerForPushNotifications = async () => {
@@ -89,7 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // ✅ Manual refresh still works for pull-to-refresh on profile
+  // Manual refresh still works for pull-to-refresh on profile
   const refreshUserData = async () => {
     if (user) {
       const userDoc = await getDoc(doc(db, 'users', user.uid));
@@ -97,14 +100,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // ✅ Real-time listener — fires automatically when admin changes status/subscription
+  // Real-time listener — fires automatically when admin changes status/subscription/access
   const startUserDataListener = (uid: string) => {
     if (userDataUnsubscribeRef.current) userDataUnsubscribeRef.current();
 
     const unsubscribe = onSnapshot(
       doc(db, 'users', uid),
       (docSnap) => {
-        if (docSnap.exists()) setUserData(docSnap.data() as UserData);
+        if (docSnap.exists()) {
+          // ✅ Cast full Firestore doc including subscriptionAccess
+          setUserData(docSnap.data() as UserData);
+        }
         setLoading(false);
       },
       (error) => {
@@ -151,7 +157,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await updateDoc(doc(db, 'users', firebaseUser.uid), updates);
           }
         } else {
-          // New user
+          // New user — subscriptionAccess defaults to 'none'
           await setDoc(doc(db, 'users', firebaseUser.uid), {
             phone: firebaseUser.phoneNumber || '',
             email: firebaseUser.email || '',
@@ -160,14 +166,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             createdAt: new Date().toISOString(),
             name: '',
             subscriptionEndDate: '',
+            subscriptionAccess: 'none', // ✅ default for new users
           });
         }
 
-        // ✅ Start real-time listener — updates instantly when admin changes anything
+        // Start real-time listener — updates instantly when admin changes anything
         startUserDataListener(firebaseUser.uid);
 
       } else {
-        // Logged out
         if (userDataUnsubscribeRef.current) {
           userDataUnsubscribeRef.current();
           userDataUnsubscribeRef.current = null;
