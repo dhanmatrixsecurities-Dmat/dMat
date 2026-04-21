@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform, ScrollView, Alert,
-  ActivityIndicator, SafeAreaView,
+  ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { auth, db } from '@/firebaseConfig';
 import {
@@ -256,9 +257,9 @@ export default function PhoneLogin() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1, backgroundColor: Colors.background  },
   keyboardView: { flex: 1 },
-  scrollContent: { flexGrow: 1, padding: 24, paddingTop: 50 },
+  scrollContent: { flexGrow: 1, padding: 24, paddingTop: 50  },
   header: { alignItems: 'center', marginBottom: 28 },
   title: { fontSize: 32, fontWeight: 'bold', color: Colors.primary, marginTop: 12 },
   subtitle: { fontSize: 15, color: Colors.textSecondary, marginTop: 6, textAlign: 'center' },

@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator, Animated, TouchableOpacity,
-  Linking, Modal, TextInput, KeyboardAvoidingView, Platform,
+  Linking, Modal, TextInput, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import Svg, { Circle, G, Ellipse, Polygon, Rect, Line, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { useAuth } from '@/contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface ClosedTrade {
   id: string; profitLossPercent: number; segment?: 'equity' | 'futures' | 'options';
@@ -138,20 +139,18 @@ const RoadSVG = () => (
 );
 
 // ── Greeting Toast ───────────────────────────────────────────────────
-const GreetingToast = ({ name }: { name: string }) => {
+const GreetingToast = ({ name, topInset = 0 }: { name: string; topInset?: number }) => {
   const slideAnim = useRef(new Animated.Value(-120)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const { text, emoji } = getGreeting();
   const firstName = name?.trim().split(' ')[0] || 'there';
 
   useEffect(() => {
-    // Slide in
     Animated.parallel([
       Animated.spring(slideAnim, { toValue: 0, friction: 8, tension: 60, useNativeDriver: true }),
       Animated.timing(opacityAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
     ]).start();
 
-    // Auto dismiss after 3 seconds
     const timer = setTimeout(() => {
       Animated.parallel([
         Animated.timing(slideAnim, { toValue: -120, duration: 350, useNativeDriver: true }),
@@ -163,7 +162,7 @@ const GreetingToast = ({ name }: { name: string }) => {
   }, []);
 
   return (
-    <Animated.View style={[s.toast, { transform: [{ translateY: slideAnim }], opacity: opacityAnim }]}>
+    <Animated.View style={[s.toast, { top: topInset + 10, transform: [{ translateY: slideAnim }], opacity: opacityAnim }]}>
       <Text style={s.toastEmoji}>{emoji}</Text>
       <View>
         <Text style={s.toastText}>{text}, {firstName}!</Text>
@@ -176,6 +175,7 @@ const GreetingToast = ({ name }: { name: string }) => {
 
 export default function HomeScreen() {
   const { userData } = useAuth();
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [overall, setOverall] = useState<SegmentStats>({ total: 0, profitable: 0, losing: 0, accuracy: 0 });
   const [equity, setEquity] = useState<SegmentStats>({ total: 0, profitable: 0, losing: 0, accuracy: 0 });
@@ -240,154 +240,165 @@ export default function HomeScreen() {
   };
 
   const isActive = isSubscriptionActive(userData);
-  if (loading) return <View style={s.loading}><ActivityIndicator size="large" color="#3b82f6" /></View>;
+
+  if (loading) {
+    return <View style={s.loading}><ActivityIndicator size="large" color="#3b82f6" /></View>;
+  }
 
   return (
-    <View style={s.container}>
+    <View style={s.wrapper}>
 
-      {/* ── GREETING TOAST — floats above all content ── */}
-      {showGreeting && <GreetingToast name={userData?.name || ''} />}
+      {/* ── GREETING TOAST — floats above ScrollView ── */}
+      {showGreeting && <GreetingToast name={userData?.name || ''} topInset={insets.top} />}
 
-      {/* Overall */}
-      <View style={s.overallCard}>
-        <Text style={s.overallTitle}>Overall Performance</Text>
-        <DonutGauge accuracy={overall.accuracy} size={90} strokeWidth={10} fillColor="#3b82f6" />
-        <View style={s.divider} />
-        <View style={s.overallRow}>
-          <View style={s.overallStat}>
-            <Text style={s.statLabel}>Winning Trades</Text>
-            <Text style={[s.statVal, { color: '#22c55e' }]}>{overall.profitable}</Text>
-          </View>
-          <View style={s.sep} />
-          <View style={s.overallStat}>
-            <Text style={s.statLabel}>Losing Trades</Text>
-            <Text style={[s.statVal, { color: '#ef4444' }]}>{overall.losing}</Text>
+      <ScrollView
+        style={s.scroll}
+        contentContainerStyle={[s.container, { paddingBottom: insets.bottom + 16 }]}
+        showsVerticalScrollIndicator={false}
+      >
+
+        {/* Overall */}
+        <View style={s.overallCard}>
+          <Text style={s.overallTitle}>Overall Performance</Text>
+          <DonutGauge accuracy={overall.accuracy} size={90} strokeWidth={10} fillColor="#3b82f6" />
+          <View style={s.divider} />
+          <View style={s.overallRow}>
+            <View style={s.overallStat}>
+              <Text style={s.statLabel}>Winning Trades</Text>
+              <Text style={[s.statVal, { color: '#22c55e' }]}>{overall.profitable}</Text>
+            </View>
+            <View style={s.sep} />
+            <View style={s.overallStat}>
+              <Text style={s.statLabel}>Losing Trades</Text>
+              <Text style={[s.statVal, { color: '#ef4444' }]}>{overall.losing}</Text>
+            </View>
           </View>
         </View>
-      </View>
 
-      {/* Segments */}
-      <View style={s.segRow}>
-        {[
-          { label: 'Equity', stats: equity, color: '#22c55e' },
-          { label: 'Futures', stats: futures, color: '#f59e0b' },
-          { label: 'Options', stats: options, color: '#a855f7' },
-        ].map((seg) => (
-          <View key={seg.label} style={[s.segCard, { borderTopColor: seg.color }]}>
-            <Text style={s.segTitle}>{seg.label}</Text>
-            <DonutGauge accuracy={seg.stats.accuracy} size={65} strokeWidth={7} fillColor={seg.color} />
-            <View style={s.segDivider} />
-            <View style={s.segRow2}>
-              <View style={s.segStat}>
-                <Text style={s.segStatLabel}>Win</Text>
-                <Text style={[s.segStatVal, { color: '#22c55e' }]}>{seg.stats.profitable}</Text>
-              </View>
-              <View style={s.segSep} />
-              <View style={s.segStat}>
-                <Text style={s.segStatLabel}>Loss</Text>
-                <Text style={[s.segStatVal, { color: '#ef4444' }]}>{seg.stats.losing}</Text>
+        {/* Segments */}
+        <View style={s.segRow}>
+          {[
+            { label: 'Equity',  stats: equity,  color: '#22c55e' },
+            { label: 'Futures', stats: futures, color: '#f59e0b' },
+            { label: 'Options', stats: options, color: '#a855f7' },
+          ].map((seg) => (
+            <View key={seg.label} style={[s.segCard, { borderTopColor: seg.color }]}>
+              <Text style={s.segTitle}>{seg.label}</Text>
+              <DonutGauge accuracy={seg.stats.accuracy} size={65} strokeWidth={7} fillColor={seg.color} />
+              <View style={s.segDivider} />
+              <View style={s.segRow2}>
+                <View style={s.segStat}>
+                  <Text style={s.segStatLabel}>Win</Text>
+                  <Text style={[s.segStatVal, { color: '#22c55e' }]}>{seg.stats.profitable}</Text>
+                </View>
+                <View style={s.segSep} />
+                <View style={s.segStat}>
+                  <Text style={s.segStatLabel}>Loss</Text>
+                  <Text style={[s.segStatVal, { color: '#ef4444' }]}>{seg.stats.losing}</Text>
+                </View>
               </View>
             </View>
-          </View>
-        ))}
-      </View>
-
-      {/* IPO & Mutual Fund */}
-      <View style={s.quickRow}>
-        <TouchableOpacity style={[s.quickCard, { borderLeftColor: '#3b82f6' }]}
-          onPress={() => Linking.openURL('https://www.nseindia.com/market-data/all-upcoming-issues-ipo')} activeOpacity={0.85}>
-          <View style={s.quickIcon}><Text style={s.quickEmoji}>📋</Text></View>
-          <View style={s.quickText}>
-            <Text style={s.quickTitle}>IPO</Text>
-            <Text style={s.quickSub}>View Upcoming IPOs</Text>
-          </View>
-          <Text style={s.quickArrow}>›</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[s.quickCard, { borderLeftColor: '#22c55e' }]} activeOpacity={0.85}>
-          <View style={s.quickIcon}><Text style={s.quickEmoji}>💼</Text></View>
-          <View style={s.quickText}>
-            <Text style={s.quickTitle}>Mutual Fund</Text>
-            <Text style={s.quickSub}>Explore Mutual Funds</Text>
-          </View>
-          <Text style={s.quickArrow}>›</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Portfolio Checkup */}
-      <View style={s.portfolioCard}>
-        <Text style={s.portfolioEmoji}>🩺</Text>
-        <View style={s.portfolioText}>
-          <Text style={s.portfolioTitle}>FREE Portfolio Health Checkup</Text>
-          <Text style={s.portfolioSub}>Analyze your investment portfolio for free!</Text>
+          ))}
         </View>
-        <TouchableOpacity style={s.checkBtn} onPress={() => setShowForm(true)} activeOpacity={0.85}>
-          <Text style={s.checkBtnText}>Check Now</Text>
-        </TouchableOpacity>
-      </View>
 
-      {/* FREE / EXPIRED → Subscription */}
-      {!isActive && (
-        <View style={s.subCard}>
-          <View style={s.subTop}>
-            <View style={s.subLeft}>
-              <Animated.Text style={[s.crown, { transform: [{ translateY: crownAnim }] }]}>👑</Animated.Text>
-              <Text style={s.subHeading}>Subscription Plan</Text>
+        {/* IPO & Mutual Fund */}
+        <View style={s.quickRow}>
+          <TouchableOpacity style={[s.quickCard, { borderLeftColor: '#3b82f6' }]}
+            onPress={() => Linking.openURL('https://www.nseindia.com/market-data/all-upcoming-issues-ipo')} activeOpacity={0.85}>
+            <View style={s.quickIcon}><Text style={s.quickEmoji}>📋</Text></View>
+            <View style={s.quickText}>
+              <Text style={s.quickTitle}>IPO</Text>
+              <Text style={s.quickSub}>View Upcoming IPOs</Text>
             </View>
-            <View style={s.subRight}>
-              <Text style={s.gst}>Incl. of GST </Text>
-              <Text style={s.price}>₹5,000</Text>
+            <Text style={s.quickArrow}>›</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[s.quickCard, { borderLeftColor: '#22c55e' }]} activeOpacity={0.85}>
+            <View style={s.quickIcon}><Text style={s.quickEmoji}>💼</Text></View>
+            <View style={s.quickText}>
+              <Text style={s.quickTitle}>Mutual Fund</Text>
+              <Text style={s.quickSub}>Explore Mutual Funds</Text>
             </View>
-          </View>
-          <Text style={s.planLabel}>Quarterly · 3 Months</Text>
-          <View style={s.subDivider} />
-          <View style={s.features}>
-            {[{ icon: '📊', label: 'Swing Trade' }, { icon: '📈', label: 'Option Trades' }, { icon: '🔮', label: 'Future Trades' }].map((f) => (
-              <View key={f.label} style={s.featurePill}>
-                <Text style={s.featureIcon}>{f.icon}</Text>
-                <Text style={s.featureLabel}>{f.label}</Text>
-              </View>
-            ))}
-          </View>
-          <TouchableOpacity style={s.subBtn} activeOpacity={0.85}
-            onPress={() => Linking.openURL('https://wa.me/918383898886')}>
-            <Text style={s.subBtnText}>Subscribe Now  →</Text>
+            <Text style={s.quickArrow}>›</Text>
           </TouchableOpacity>
         </View>
-      )}
 
-      {/* ACTIVE → Welcome Card */}
-      {isActive && (
-        <View style={s.welcomeCard}>
-          <View style={s.roadTop}><RoadSVG /></View>
-          <View style={s.welcomeContent}>
-            <View style={s.titleRow}>
-              <Text style={s.welcomeTitle}>
-                Welcome to <Text style={s.welcomeBrand}>DhanMatrix</Text> family!
-              </Text>
-              <EvilEye />
+        {/* Portfolio Checkup */}
+        <View style={s.portfolioCard}>
+          <Text style={s.portfolioEmoji}>🩺</Text>
+          <View style={s.portfolioText}>
+            <Text style={s.portfolioTitle}>FREE Portfolio Health Checkup</Text>
+            <Text style={s.portfolioSub}>Analyze your investment portfolio for free!</Text>
+          </View>
+          <TouchableOpacity style={s.checkBtn} onPress={() => setShowForm(true)} activeOpacity={0.85}>
+            <Text style={s.checkBtnText}>Check Now</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* FREE / EXPIRED → Subscription */}
+        {!isActive && (
+          <View style={s.subCard}>
+            <View style={s.subTop}>
+              <View style={s.subLeft}>
+                <Animated.Text style={[s.crown, { transform: [{ translateY: crownAnim }] }]}>👑</Animated.Text>
+                <Text style={s.subHeading}>Subscription Plan</Text>
+              </View>
+              <View style={s.subRight}>
+                <Text style={s.gst}>Incl. of GST </Text>
+                <Text style={s.price}>₹5,000</Text>
+              </View>
             </View>
-            <View style={s.quoteBox}>
-              <Text style={s.quoteIcon}>❝</Text>
-              <Text style={s.quoteText}>
-                "<Text style={{ fontWeight: '900' }}>No loss</Text> is also a <Text style={{ fontWeight: '900' }}>profit</Text> in trading"
-              </Text>
-              <Text style={s.quoteAuthor}>— DhanMatrix</Text>
+            <Text style={s.planLabel}>Quarterly · 3 Months</Text>
+            <View style={s.subDivider} />
+            <View style={s.features}>
+              {[{ icon: '📊', label: 'Swing Trade' }, { icon: '📈', label: 'Option Trades' }, { icon: '🔮', label: 'Future Trades' }].map((f) => (
+                <View key={f.label} style={s.featurePill}>
+                  <Text style={s.featureIcon}>{f.icon}</Text>
+                  <Text style={s.featureLabel}>{f.label}</Text>
+                </View>
+              ))}
             </View>
-            <View style={[s.quoteBox, { marginBottom: 0 }]}>
-              <Text style={s.quoteIcon}>❝</Text>
-              <Text style={s.quoteText}>
-                "When everyone is greedy be <Text style={{ fontWeight: '900' }}>fearful</Text>, and when everyone is fearful be <Text style={{ fontWeight: '900' }}>greedy</Text>"
-              </Text>
-              <Text style={s.quoteAuthor}>— Warren Buffett</Text>
+            <TouchableOpacity style={s.subBtn} activeOpacity={0.85}
+              onPress={() => Linking.openURL('https://wa.me/918383898886')}>
+              <Text style={s.subBtnText}>Subscribe Now  →</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* ACTIVE → Welcome Card */}
+        {isActive && (
+          <View style={s.welcomeCard}>
+            <View style={s.roadTop}><RoadSVG /></View>
+            <View style={s.welcomeContent}>
+              <View style={s.titleRow}>
+                <Text style={s.welcomeTitle}>
+                  Welcome to <Text style={s.welcomeBrand}>DhanMatrix</Text> family!
+                </Text>
+                <EvilEye />
+              </View>
+              <View style={s.quoteBox}>
+                <Text style={s.quoteIcon}>❝</Text>
+                <Text style={s.quoteText}>
+                  "<Text style={{ fontWeight: '900' }}>No loss</Text> is also a <Text style={{ fontWeight: '900' }}>profit</Text> in trading"
+                </Text>
+                <Text style={s.quoteAuthor}>— DhanMatrix</Text>
+              </View>
+              <View style={[s.quoteBox, { marginBottom: 0 }]}>
+                <Text style={s.quoteIcon}>❝</Text>
+                <Text style={s.quoteText}>
+                  "When everyone is greedy be <Text style={{ fontWeight: '900' }}>fearful</Text>, and when everyone is fearful be <Text style={{ fontWeight: '900' }}>greedy</Text>"
+                </Text>
+                <Text style={s.quoteAuthor}>— Warren Buffett</Text>
+              </View>
             </View>
           </View>
-        </View>
-      )}
+        )}
+
+      </ScrollView>
 
       {/* Form Modal */}
       <Modal visible={showForm} transparent animationType="slide">
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.modalOverlay}>
-          <View style={s.modalBox}>
+          <View style={[s.modalBox, { paddingBottom: insets.bottom + 24 }]}>
             <Text style={s.modalTitle}>🩺 Portfolio Health Checkup</Text>
             <Text style={s.modalSub}>Fill in details — we'll send a free analysis on WhatsApp</Text>
             <TextInput style={s.input} placeholder="Your Name" placeholderTextColor="#94a3b8" value={form.name} onChangeText={v => setForm({ ...form, name: v })} />
@@ -425,11 +436,19 @@ export default function HomeScreen() {
 
 const s = StyleSheet.create({
   loading: { flex: 1, backgroundColor: '#eef1f8', alignItems: 'center', justifyContent: 'center' },
-  container: { flex: 1, backgroundColor: '#eef1f8', padding: 10, gap: 8 },
+
+  // ── Root wrapper — fills the screen, toast sits here absolutely ──
+  wrapper: { flex: 1, backgroundColor: '#eef1f8' },
+
+  // ── ScrollView fills wrapper ──────────────────────────────────────
+  scroll: { flex: 1 },
+
+  // ── contentContainerStyle — no flex:1, just padding + gap ────────
+  container: { padding: 10, gap: 8 },
 
   // ── Greeting Toast ───────────────────────────────────────────────
   toast: {
-    position: 'absolute', top: 10, left: 16, right: 16, zIndex: 999,
+    position: 'absolute', left: 16, right: 16, zIndex: 999,
     backgroundColor: '#001F3F', borderRadius: 14,
     paddingHorizontal: 16, paddingVertical: 12,
     flexDirection: 'row', alignItems: 'center', gap: 12,
@@ -477,7 +496,7 @@ const s = StyleSheet.create({
   checkBtn: { backgroundColor: '#3b82f6', borderRadius: 8, paddingHorizontal: 11, paddingVertical: 7 },
   checkBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
 
-  subCard: { flex: 1, backgroundColor: '#fff', borderRadius: 15, padding: 11, borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
+  subCard: { backgroundColor: '#fff', borderRadius: 15, padding: 11, borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
   subTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   subLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   crown: { fontSize: 20 },
@@ -494,9 +513,9 @@ const s = StyleSheet.create({
   subBtn: { backgroundColor: '#3b82f6', borderRadius: 10, padding: 10, alignItems: 'center' },
   subBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
 
-  welcomeCard: { flex: 1, borderRadius: 13, overflow: 'hidden', borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
+  welcomeCard: { borderRadius: 13, overflow: 'hidden', borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
   roadTop: { height: 75, backgroundColor: '#c8d8f0' },
-  welcomeContent: { flex: 1, backgroundColor: '#fff', paddingHorizontal: 10, paddingVertical: 6, justifyContent: 'space-evenly' },
+  welcomeContent: { backgroundColor: '#fff', paddingHorizontal: 10, paddingVertical: 10, gap: 8 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' },
   welcomeTitle: { fontSize: 13, fontWeight: '700', color: '#1e3a5f', textAlign: 'center' },
   welcomeBrand: { fontSize: 13, fontWeight: '900', color: '#3b82f6' },
@@ -506,7 +525,7 @@ const s = StyleSheet.create({
   quoteAuthor: { fontSize: 10, color: '#64748b', fontWeight: '600', textAlign: 'right', marginTop: 2 },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalBox: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 36 },
+  modalBox: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
   modalTitle: { fontSize: 17, fontWeight: '800', color: '#1e3a5f', marginBottom: 4 },
   modalSub: { fontSize: 12, color: '#64748b', marginBottom: 16 },
   input: { borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, color: '#1e3a5f', marginBottom: 10, backgroundColor: '#f8fafc' },
