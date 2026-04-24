@@ -21,8 +21,6 @@ Notifications.setNotificationHandler({
 });
 
 export type UserStatus = 'FREE' | 'ACTIVE' | 'BLOCKED';
-
-// ✅ 'equity' = only equity tab, 'fno' = futures+options, 'all' = everything, 'none' = locked
 export type SubscriptionAccess = 'equity' | 'fno' | 'all' | 'none';
 
 interface UserData {
@@ -33,7 +31,7 @@ interface UserData {
   createdAt: string;
   name?: string;
   subscriptionEndDate?: string;
-  subscriptionAccess?: SubscriptionAccess; // ✅ ADDED — controls which tabs are visible
+  subscriptionAccess?: SubscriptionAccess;
 }
 
 interface AuthContextType {
@@ -92,7 +90,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Manual refresh still works for pull-to-refresh on profile
   const refreshUserData = async () => {
     if (user) {
       const userDoc = await getDoc(doc(db, 'users', user.uid));
@@ -100,7 +97,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Real-time listener — fires automatically when admin changes status/subscription/access
   const startUserDataListener = (uid: string) => {
     if (userDataUnsubscribeRef.current) userDataUnsubscribeRef.current();
 
@@ -108,7 +104,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       doc(db, 'users', uid),
       (docSnap) => {
         if (docSnap.exists()) {
-          // ✅ Cast full Firestore doc including subscriptionAccess
           setUserData(docSnap.data() as UserData);
         }
         setLoading(false);
@@ -146,18 +141,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (userDoc.exists()) {
           const data = userDoc.data() as UserData;
+
+          // ✅ FIX: Set userData immediately so tabs render correctly on login
+          setUserData(data);
+
           const updates: Partial<UserData> = {};
-
           if (fcmToken && fcmToken !== data.fcmToken) updates.fcmToken = fcmToken;
-
           const currentEmail = firebaseUser.email || '';
           if (currentEmail && currentEmail !== data.email) updates.email = currentEmail;
-
           if (Object.keys(updates).length > 0) {
             await updateDoc(doc(db, 'users', firebaseUser.uid), updates);
           }
         } else {
-          // New user — subscriptionAccess defaults to 'none'
           await setDoc(doc(db, 'users', firebaseUser.uid), {
             phone: firebaseUser.phoneNumber || '',
             email: firebaseUser.email || '',
@@ -166,11 +161,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             createdAt: new Date().toISOString(),
             name: '',
             subscriptionEndDate: '',
-            subscriptionAccess: 'none', // ✅ default for new users
+            subscriptionAccess: 'none',
           });
         }
 
-        // Start real-time listener — updates instantly when admin changes anything
         startUserDataListener(firebaseUser.uid);
 
       } else {
