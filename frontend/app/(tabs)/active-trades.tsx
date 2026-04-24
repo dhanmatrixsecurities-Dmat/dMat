@@ -40,16 +40,13 @@ interface Trade {
   segment?: Segment;
 }
 
-// ── Subscription Access Helper ────────────────────────────────────────────────
-// Returns which segments the user can access based on subscriptionAccess field
 const getAccessibleSegments = (subscriptionAccess?: string): Segment[] => {
   if (subscriptionAccess === 'equity') return ['equity'];
   if (subscriptionAccess === 'fno') return ['futures', 'options'];
   if (subscriptionAccess === 'all') return ['equity', 'futures', 'options'];
-  return []; // 'none' or undefined → no access
+  return [];
 };
 
-// ── Locked Tab Screen ─────────────────────────────────────────────────────────
 function LockedSegmentScreen({ segment }: { segment: Segment }) {
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -72,16 +69,11 @@ function LockedSegmentScreen({ segment }: { segment: Segment }) {
       <Animated.View style={[styles.lockedIconWrap, { transform: [{ scale: pulseAnim }] }]}>
         <Ionicons name="lock-closed" size={52} color="#fff" />
       </Animated.View>
-
-      <Text style={styles.lockedTitle}>
-        {label} Access Locked
-      </Text>
-
+      <Text style={styles.lockedTitle}>{label} Access Locked</Text>
       <Text style={styles.lockedSubtitle}>
         Your current plan does not include{' '}
         <Text style={styles.lockedHighlight}>{label}</Text> trading signals.
       </Text>
-
       <View style={styles.lockedCard}>
         <Text style={styles.lockedCardTitle}>
           {isFno ? '📈 Upgrade to F&O Plan' : '📊 Upgrade to Equity Plan'}
@@ -103,7 +95,6 @@ function LockedSegmentScreen({ segment }: { segment: Segment }) {
           ))}
         </View>
       </View>
-
       <View style={styles.lockedContactBox}>
         <Ionicons name="headset-outline" size={18} color="#6366f1" />
         <Text style={styles.lockedContactText}>
@@ -114,7 +105,6 @@ function LockedSegmentScreen({ segment }: { segment: Segment }) {
   );
 }
 
-// ── Subscription Blink Banner ─────────────────────────────────────────────────
 function SubscriptionBanner({ endDate }: { endDate?: string }) {
   const blinkAnim = useRef(new Animated.Value(1)).current;
 
@@ -143,14 +133,12 @@ function SubscriptionBanner({ endDate }: { endDate?: string }) {
   );
 }
 
-// ── Segment label helper ──────────────────────────────────────────────────────
 const segmentLabel = (seg?: string): string => {
   if (seg === 'futures') return 'Futures';
   if (seg === 'options') return 'Options';
   return 'Equity';
 };
 
-// ── isToday helper ────────────────────────────────────────────────────────────
 const isToday = (val: any): boolean => {
   try {
     let d: Date;
@@ -169,7 +157,6 @@ const isToday = (val: any): boolean => {
     return false;
   }
 };
-// ─────────────────────────────────────────────────────────────────────────────
 
 export default function ActiveTrades() {
   const { userData } = useAuth();
@@ -182,17 +169,15 @@ export default function ActiveTrades() {
   const prevTradeIdsRef = useRef<Set<string>>(new Set());
   const isFirstLoadRef = useRef(true);
 
-  // Get this user's accessible segments from their subscriptionAccess field
-  const accessibleSegments = getAccessibleSegments((userData as any)?.subscriptionAccess);
+  // ✅ No more 'as any' cast
+  const accessibleSegments = getAccessibleSegments(userData?.subscriptionAccess);
 
-  // Auto-switch to first accessible tab on load
   useEffect(() => {
     if (accessibleSegments.length > 0 && !accessibleSegments.includes(activeSegment)) {
       setActiveSegment(accessibleSegments[0]);
     }
-  }, [(userData as any)?.subscriptionAccess]);
+  }, [userData?.subscriptionAccess]);
 
-  // ── Handle notification tap → navigate to Active Trades ───────────────────
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as { tradeId?: string; segment?: string };
@@ -203,7 +188,6 @@ export default function ActiveTrades() {
     });
     return () => subscription.remove();
   }, []);
-  // ──────────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (userData?.status !== 'ACTIVE') { setLoading(false); return; }
@@ -219,7 +203,6 @@ export default function ActiveTrades() {
           if (change.type === 'added') {
             const t = { id: change.doc.id, ...change.doc.data() } as Trade;
             if (!prevTradeIdsRef.current.has(t.id)) {
-              // Only notify for segments the user can access
               const tradeSeg = normalizeSegment(t.segment);
               if (accessibleSegments.includes(tradeSeg)) {
                 const tradeType = t.type || t.action || 'TRADE';
@@ -412,7 +395,11 @@ export default function ActiveTrades() {
     );
   };
 
-  if (loading) return <View style={styles.centerContainer}><ActivityIndicator size="large" color={Colors.primary} /></View>;
+  if (loading) return (
+    <View style={styles.centerContainer}>
+      <ActivityIndicator size="large" color={Colors.primary} />
+    </View>
+  );
 
   if (userData?.status === 'BLOCKED') {
     return (
@@ -448,7 +435,6 @@ export default function ActiveTrades() {
     <View style={styles.container}>
       <SubscriptionBanner endDate={userData?.subscriptionEndDate} />
 
-      {/* ── Tab Row — all 3 tabs always visible, locked ones show lock icon ── */}
       <View style={styles.tabRow}>
         {tabLabels.map(({ key, label }) => {
           const count = countBySegment(key);
@@ -494,7 +480,6 @@ export default function ActiveTrades() {
         })}
       </View>
 
-      {/* ── If current tab is locked → show upgrade screen, else show trades ── */}
       {!accessibleSegments.includes(activeSegment) ? (
         <LockedSegmentScreen segment={activeSegment} />
       ) : filteredTrades.length === 0 ? (
@@ -527,11 +512,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   centerContainer: { flex: 1, backgroundColor: Colors.background, alignItems: 'center', justifyContent: 'center', padding: 32 },
   listContent: { padding: 16 },
-
   subBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#dc2626', paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
   subBannerText: { color: '#fff', fontSize: 13, fontWeight: '700', flex: 1 },
-
-  // ── Tabs ──
   tabRow: { flexDirection: 'row', backgroundColor: '#fff', marginHorizontal: 16, marginTop: 14, marginBottom: 8, borderRadius: 12, padding: 4, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4 },
   tab: { flex: 1, paddingVertical: 9, alignItems: 'center', borderRadius: 9, flexDirection: 'row', justifyContent: 'center', gap: 4 },
   tabActive: { backgroundColor: '#001F3F', elevation: 2 },
@@ -543,8 +525,6 @@ const styles = StyleSheet.create({
   badgeActive: { backgroundColor: 'rgba(255,255,255,0.25)' },
   badgeText: { fontSize: 10, fontWeight: '700', color: '#374151' },
   badgeTextActive: { color: '#fff' },
-
-  // ── Locked Screen ──
   lockedContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28, backgroundColor: Colors.background },
   lockedIconWrap: { width: 96, height: 96, borderRadius: 48, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
   lockedTitle: { fontSize: 22, fontWeight: '800', color: Colors.text, textAlign: 'center', marginBottom: 8 },
@@ -558,8 +538,6 @@ const styles = StyleSheet.create({
   lockedFeatureText: { fontSize: 13, color: Colors.text, fontWeight: '500' },
   lockedContactBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#eef2ff', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 12, width: '100%' },
   lockedContactText: { fontSize: 13, color: '#4338ca', fontWeight: '600', flex: 1 },
-
-  // ── Trade Cards ──
   tradeCard: { backgroundColor: Colors.cardBackground, borderRadius: 16, padding: 16, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
   tradeHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
   stockInfo: { flex: 1 },
@@ -597,13 +575,9 @@ const styles = StyleSheet.create({
   chartBtnEmoji: { fontSize: 12 },
   chartBtnText: { fontSize: 10, fontWeight: '700', color: '#3b82f6' },
   dateText: { fontSize: 12, color: Colors.textSecondary, marginLeft: 4 },
-
-  // ── Empty ──
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   emptyText: { fontSize: 18, fontWeight: '600', color: Colors.text, marginTop: 16, textAlign: 'center' },
   emptySubtext: { fontSize: 14, color: Colors.textSecondary, marginTop: 8, textAlign: 'center' },
-
-  // ── Blocked / Free ──
   blockedTitle: { fontSize: 24, fontWeight: 'bold', color: Colors.error, marginTop: 24 },
   blockedText: { fontSize: 16, color: Colors.textSecondary, textAlign: 'center', marginTop: 16 },
   upgradeTitle: { fontSize: 24, fontWeight: 'bold', color: Colors.primary, marginTop: 24 },
@@ -611,8 +585,6 @@ const styles = StyleSheet.create({
   featuresList: { marginTop: 32, alignSelf: 'stretch' },
   featureItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   featureText: { fontSize: 16, color: Colors.text, marginLeft: 12 },
-
-  // ── Today badges ──
   todayBadge: { backgroundColor: '#dcfce7', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
   todayBadgeText: { fontSize: 11, fontWeight: '700', color: '#15803d' },
   todayDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#4ade80', marginLeft: 2 },
