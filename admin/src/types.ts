@@ -1,4 +1,5 @@
 export type UserStatus = 'FREE' | 'ACTIVE' | 'BLOCKED';
+export type SubscriptionAccess = 'equity' | 'fno' | 'all' | 'none';
 
 export interface User {
   id: string;
@@ -7,7 +8,8 @@ export interface User {
   fcmToken?: string;
   createdAt: string;
   name?: string;
-  subscriptionEndDate?: string; // ISO string e.g. "2025-12-31T00:00:00.000Z"
+  subscriptionEndDate?: string;
+  subscriptionAccess?: SubscriptionAccess; // ✅ THIS WAS MISSING
 }
 
 export interface ActiveTrade {
