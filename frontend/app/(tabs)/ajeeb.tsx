@@ -48,13 +48,17 @@ const QUICK_QUESTIONS = [
   'How to pick a good stock?',
 ];
 
-function KookyLogo() {
+function KookyHeader() {
   const pulseL = useRef(new Animated.Value(0)).current;
   const pulseR = useRef(new Animated.Value(0)).current;
   const blinkL = useRef(new Animated.Value(1)).current;
   const blinkR = useRef(new Animated.Value(1)).current;
+  const scanAnim = useRef(new Animated.Value(0)).current;
+  const flickerAnim = useRef(new Animated.Value(1)).current;
+  const glowText = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    // Eye pulse
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseL, { toValue: 1, duration: 1000, useNativeDriver: false }),
@@ -71,6 +75,7 @@ function KookyLogo() {
       ).start();
     }, 300);
 
+    // Blink
     const blinkLoop = (anim: Animated.Value, delay: number) => {
       setTimeout(() => {
         Animated.loop(
@@ -84,194 +89,123 @@ function KookyLogo() {
     };
     blinkLoop(blinkL, 0);
     blinkLoop(blinkR, 150);
+
+    // Scanline
+    Animated.loop(
+      Animated.timing(scanAnim, { toValue: 1, duration: 2400, useNativeDriver: true })
+    ).start();
+
+    // Flicker
+    Animated.loop(
+      Animated.sequence([
+        Animated.delay(4800),
+        Animated.timing(flickerAnim, { toValue: 0.3, duration: 60, useNativeDriver: true }),
+        Animated.timing(flickerAnim, { toValue: 1, duration: 60, useNativeDriver: true }),
+      ])
+    ).start();
+
+    // Glow text pulse
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowText, { toValue: 1, duration: 1200, useNativeDriver: false }),
+        Animated.timing(glowText, { toValue: 0, duration: 1200, useNativeDriver: false }),
+      ])
+    ).start();
   }, []);
 
-  const EyeTile = ({ pulse, blink }: { pulse: Animated.Value; blink: Animated.Value }) => {
+  const Eye = ({ pulse, blink }: { pulse: Animated.Value; blink: Animated.Value }) => {
     const borderColor = pulse.interpolate({
       inputRange: [0, 1],
       outputRange: ['#D85A30', '#EF9F27'],
     });
-    const shadowOpacity = pulse.interpolate({
+    const irisColor = pulse.interpolate({
       inputRange: [0, 1],
-      outputRange: [0.3, 0.9],
+      outputRange: ['#D85A30', '#EF9F27'],
     });
 
     return (
       <Animated.View
         style={[
-          logo.eyeTile,
+          header.eye,
           {
             borderColor,
+            transform: [{ scaleY: blink }],
             shadowColor: '#EF9F27',
-            shadowOpacity,
+            shadowOpacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }),
             shadowRadius: 10,
             shadowOffset: { width: 0, height: 0 },
             elevation: 6,
           },
         ]}
       >
-        <Animated.View style={[logo.eyeOuter, { transform: [{ scaleY: blink }], borderColor }]}>
-          <View style={logo.eyeIris}>
-            <View style={logo.eyePupil} />
-          </View>
-          <View style={logo.eyeShine} />
+        <Animated.View style={[header.iris, { backgroundColor: irisColor }]}>
+          <View style={header.pupil} />
         </Animated.View>
-        <View style={logo.tileLed} />
+        <View style={header.eyeShine} />
       </Animated.View>
     );
   };
 
-  const LetterTile = ({ letter }: { letter: string }) => (
-    <View style={logo.tile}>
-      <View style={logo.tileTopBar} />
-      <Text style={logo.tileLetter}>{letter}</Text>
-      <View style={logo.tileLed} />
-    </View>
-  );
+  const scanTranslate = scanAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-2, 70],
+  });
 
   return (
-    <View style={logo.wrap}>
-      <View style={[logo.screw, { top: 8, left: 8 }]} />
-      <View style={[logo.screw, { top: 8, right: 8 }]} />
-      <View style={[logo.screw, { bottom: 8, left: 8 }]} />
-      <View style={[logo.screw, { bottom: 8, right: 8 }]} />
-      <View style={[logo.ear, logo.earL]} />
-      <View style={[logo.ear, logo.earR]} />
-      <View style={logo.antennaBall} />
-      <View style={logo.antenna} />
-      <View style={logo.tilesRow}>
-        <LetterTile letter="K" />
-        <View style={logo.dot} />
-        <EyeTile pulse={pulseL} blink={blinkL} />
-        <View style={logo.dot} />
-        <EyeTile pulse={pulseR} blink={blinkR} />
-        <View style={logo.dot} />
-        <LetterTile letter="K" />
-        <View style={logo.dot} />
-        <LetterTile letter="Y" />
+    <Animated.View style={[header.wrap, { opacity: flickerAnim }]}>
+      {/* Scanline */}
+      <Animated.View
+        style={[header.scanLine, { transform: [{ translateY: scanTranslate }] }]}
+      />
+
+      {/* K OO KY row */}
+      <View style={header.row}>
+        <Text style={header.letter}>K</Text>
+        <Eye pulse={pulseL} blink={blinkL} />
+        <Eye pulse={pulseR} blink={blinkR} />
+        <Text style={header.letter}>KY</Text>
       </View>
-      <Text style={logo.tagline}>AI · Finance · Agent</Text>
-    </View>
+
+      <Text style={header.tagline}>AI · FINANCE · AGENT</Text>
+    </Animated.View>
   );
 }
 
-const logo = StyleSheet.create({
+const header = StyleSheet.create({
   wrap: {
-    borderWidth: 1.5,
-    borderColor: '#D85A30',
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    paddingBottom: 8,
+    backgroundColor: '#0a0400',
+    paddingVertical: 14,
     alignItems: 'center',
-    backgroundColor: '#0d0d0d',
-    position: 'relative',
-  },
-  screw: {
-    position: 'absolute',
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    borderWidth: 1,
-    borderColor: '#D85A30',
-    opacity: 0.5,
-  },
-  ear: {
-    position: 'absolute',
-    width: 8,
-    height: 18,
-    backgroundColor: '#1a0a00',
-    top: '50%',
-    marginTop: -9,
-  },
-  earL: {
-    left: -8,
-    borderWidth: 1.5,
-    borderColor: '#D85A30',
-    borderRightWidth: 0,
-    borderTopLeftRadius: 3,
-    borderBottomLeftRadius: 3,
-  },
-  earR: {
-    right: -8,
-    borderWidth: 1.5,
-    borderColor: '#D85A30',
-    borderLeftWidth: 0,
-    borderTopRightRadius: 3,
-    borderBottomRightRadius: 3,
-  },
-  antennaBall: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#EF9F27',
-    marginBottom: 3,
-    shadowColor: '#EF9F27',
-    shadowOpacity: 0.9,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 0 },
-  },
-  antenna: {
-    width: 2,
-    height: 10,
-    backgroundColor: '#D85A30',
-    borderRadius: 2,
-    marginBottom: 4,
-  },
-  tilesRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  tile: {
-    width: 36,
-    height: 44,
-    backgroundColor: '#1a0a00',
-    borderWidth: 1.5,
-    borderColor: '#D85A30',
-    borderRadius: 7,
-    alignItems: 'center',
-    justifyContent: 'center',
     overflow: 'hidden',
+    borderBottomWidth: 1,
+    borderBottomColor: '#D85A3033',
     position: 'relative',
   },
-  tileTopBar: {
+  scanLine: {
     position: 'absolute',
-    top: 0,
     left: 0,
     right: 0,
     height: 2,
-    backgroundColor: '#D85A30',
-    opacity: 0.5,
+    backgroundColor: '#EF9F2755',
   },
-  tileLetter: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#D85A30',
-    lineHeight: 24,
-    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
-  },
-  tileLed: {
-    width: '65%',
-    height: 3,
-    backgroundColor: '#D85A30',
-    borderRadius: 2,
-    marginTop: 3,
-    opacity: 0.35,
-  },
-  eyeTile: {
-    width: 36,
-    height: 44,
-    backgroundColor: '#0d0300',
-    borderWidth: 1.5,
-    borderRadius: 7,
+  row: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 8,
   },
-  eyeOuter: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+  letter: {
+    fontSize: 30,
+    fontWeight: '900',
+    color: '#EF9F27',
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    textShadowColor: '#EF9F27',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
+  },
+  eye: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     borderWidth: 2,
     borderColor: '#EF9F27',
     backgroundColor: '#1a0500',
@@ -279,45 +213,37 @@ const logo = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
   },
-  eyeIris: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+  iris: {
+    width: 17,
+    height: 17,
+    borderRadius: 9,
     backgroundColor: '#EF9F27',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  eyePupil: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+  pupil: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
     backgroundColor: '#0d0200',
   },
   eyeShine: {
     position: 'absolute',
-    top: 3,
-    right: 3,
-    width: 4,
-    height: 4,
-    borderRadius: 2,
+    top: 4,
+    right: 4,
+    width: 5,
+    height: 5,
+    borderRadius: 3,
     backgroundColor: 'white',
     opacity: 0.9,
   },
-  dot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: '#D85A30',
-    opacity: 0.5,
-  },
   tagline: {
-    marginTop: 7,
     fontSize: 7,
-    letterSpacing: 3,
+    letterSpacing: 4,
     color: '#F0997B',
+    marginTop: 6,
     fontWeight: '600',
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
-    textTransform: 'uppercase',
   },
 });
 
@@ -411,9 +337,7 @@ export default function KookyScreen() {
         </Text>
       </View>
 
-      <View style={styles.logoContainer}>
-        <KookyLogo />
-      </View>
+      <KookyHeader />
 
       <ScrollView
         ref={scrollRef}
@@ -541,13 +465,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontWeight: '600',
     letterSpacing: 0.5,
-  },
-  logoContainer: {
-    backgroundColor: Colors.background,
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
   },
   messages: {
     flex: 1,
