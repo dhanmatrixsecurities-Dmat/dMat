@@ -19,7 +19,7 @@ interface Message {
   text: string;
 }
 
-const SYSTEM_PROMPT = `You are Ajeeb, a sharp and knowledgeable ai finance agent built into the dMat trading app. You answer questions about:
+const SYSTEM_PROMPT = `You are Kooky, a sharp and knowledgeable ai finance agent built into the dMat trading app. You answer questions about:
 - Stock market (NSE/BSE — Indian markets primarily)
 - Trading strategies (intraday, swing, positional)
 - Mutual funds and SIPs
@@ -47,12 +47,12 @@ const QUICK_QUESTIONS = [
   'How to pick a good stock?',
 ];
 
-export default function AjeebScreen() {
+export default function KookyScreen() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '0',
       role: 'bot',
-      text: 'Ajeeb online. Ask me anything about trading, stocks, mutual funds, or the finance world. I operate only in the money matrix.',
+      text: 'Kooky online. Ask me anything about trading, stocks, mutual funds, or the finance world. I operate only in the money matrix.',
     },
   ]);
   const [input, setInput] = useState('');
@@ -105,7 +105,7 @@ export default function AjeebScreen() {
         {
           id: Date.now().toString() + 'e',
           role: 'bot',
-          text: 'Signal lost. Check your connection.\n\nNote: Add EXPO_PUBLIC_ANTHROPIC_API_KEY to your .env file to activate Ajeeb.',
+          text: 'Signal lost. Check your connection.\n\nNote: Add EXPO_PUBLIC_ANTHROPIC_API_KEY to your .env file to activate Kooky.',
         },
       ]);
     } finally {
@@ -120,10 +120,6 @@ export default function AjeebScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={90}
     >
-      <View style={styles.subtitleBar}>
-        <Text style={styles.subtitleText}>ai Judgment Engine for Equity and Bourse</Text>
-      </View>
-
       <View style={styles.inProgressBanner}>
         <Text style={styles.inProgressEmoji}>🚧</Text>
         <View style={styles.inProgressTextWrap}>
@@ -137,7 +133,7 @@ export default function AjeebScreen() {
       <View style={styles.agentBadge}>
         <View style={styles.statusDot} />
         <Text style={styles.agentBadgeText}>
-          Ajeeb — Decoding the <Text style={styles.moneyMatrix}>Money Matrix</Text>
+          Kooky — Decoding the <Text style={styles.moneyMatrix}>Money Matrix</Text>
         </Text>
       </View>
 
@@ -156,7 +152,7 @@ export default function AjeebScreen() {
             ]}
           >
             {msg.role === 'bot' && (
-              <Text style={styles.senderLabel}>Ajeeb //</Text>
+              <Text style={styles.senderLabel}>Kooky //</Text>
             )}
             <Text style={msg.role === 'user' ? styles.userText : styles.botText}>
               {msg.text}
@@ -166,7 +162,7 @@ export default function AjeebScreen() {
 
         {loading && (
           <View style={[styles.bubble, styles.botBubble]}>
-            <Text style={styles.senderLabel}>Ajeeb //</Text>
+            <Text style={styles.senderLabel}>Kooky //</Text>
             <ActivityIndicator size="small" color={Colors.primary} />
           </View>
         )}
@@ -191,7 +187,7 @@ export default function AjeebScreen() {
           style={styles.textInput}
           value={input}
           onChangeText={setInput}
-          placeholder="Ask Ajeeb about markets..."
+          placeholder="Ask Kooky about markets..."
           placeholderTextColor={Colors.textSecondary}
           onSubmitEditing={() => sendMessage()}
           returnKeyType="send"
@@ -213,17 +209,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
-  },
-  subtitleBar: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 5,
-  },
-  subtitleText: {
-    color: 'rgba(255,255,255,0.65)',
-    fontSize: 10,
-    fontWeight: '500',
-    letterSpacing: 0.4,
   },
   inProgressBanner: {
     flexDirection: 'row',
