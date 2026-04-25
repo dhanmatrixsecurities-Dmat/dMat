@@ -40,7 +40,6 @@
     "plugins": [
   "expo-router",
   "expo-notifications",
-  "react-native-edge-to-edge",
   [
     "expo-splash-screen",
     {
