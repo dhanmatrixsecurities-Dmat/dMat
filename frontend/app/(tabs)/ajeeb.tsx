@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
@@ -46,6 +47,279 @@ const QUICK_QUESTIONS = [
   'SIP vs lump sum — which is better?',
   'How to pick a good stock?',
 ];
+
+function KookyLogo() {
+  const pulseL = useRef(new Animated.Value(0)).current;
+  const pulseR = useRef(new Animated.Value(0)).current;
+  const blinkL = useRef(new Animated.Value(1)).current;
+  const blinkR = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseL, { toValue: 1, duration: 1000, useNativeDriver: false }),
+        Animated.timing(pulseL, { toValue: 0, duration: 1000, useNativeDriver: false }),
+      ])
+    ).start();
+
+    setTimeout(() => {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseR, { toValue: 1, duration: 1000, useNativeDriver: false }),
+          Animated.timing(pulseR, { toValue: 0, duration: 1000, useNativeDriver: false }),
+        ])
+      ).start();
+    }, 300);
+
+    const blinkLoop = (anim: Animated.Value, delay: number) => {
+      setTimeout(() => {
+        Animated.loop(
+          Animated.sequence([
+            Animated.delay(3500),
+            Animated.timing(anim, { toValue: 0.08, duration: 80, useNativeDriver: true }),
+            Animated.timing(anim, { toValue: 1, duration: 80, useNativeDriver: true }),
+          ])
+        ).start();
+      }, delay);
+    };
+    blinkLoop(blinkL, 0);
+    blinkLoop(blinkR, 150);
+  }, []);
+
+  const EyeTile = ({ pulse, blink }: { pulse: Animated.Value; blink: Animated.Value }) => {
+    const borderColor = pulse.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['#D85A30', '#EF9F27'],
+    });
+    const shadowOpacity = pulse.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0.3, 0.9],
+    });
+
+    return (
+      <Animated.View
+        style={[
+          logo.eyeTile,
+          {
+            borderColor,
+            shadowColor: '#EF9F27',
+            shadowOpacity,
+            shadowRadius: 10,
+            shadowOffset: { width: 0, height: 0 },
+            elevation: 6,
+          },
+        ]}
+      >
+        <Animated.View style={[logo.eyeOuter, { transform: [{ scaleY: blink }], borderColor }]}>
+          <View style={logo.eyeIris}>
+            <View style={logo.eyePupil} />
+          </View>
+          <View style={logo.eyeShine} />
+        </Animated.View>
+        <View style={logo.tileLed} />
+      </Animated.View>
+    );
+  };
+
+  const LetterTile = ({ letter }: { letter: string }) => (
+    <View style={logo.tile}>
+      <View style={logo.tileTopBar} />
+      <Text style={logo.tileLetter}>{letter}</Text>
+      <View style={logo.tileLed} />
+    </View>
+  );
+
+  return (
+    <View style={logo.wrap}>
+      <View style={[logo.screw, { top: 8, left: 8 }]} />
+      <View style={[logo.screw, { top: 8, right: 8 }]} />
+      <View style={[logo.screw, { bottom: 8, left: 8 }]} />
+      <View style={[logo.screw, { bottom: 8, right: 8 }]} />
+      <View style={[logo.ear, logo.earL]} />
+      <View style={[logo.ear, logo.earR]} />
+      <View style={logo.antennaBall} />
+      <View style={logo.antenna} />
+      <View style={logo.tilesRow}>
+        <LetterTile letter="K" />
+        <View style={logo.dot} />
+        <EyeTile pulse={pulseL} blink={blinkL} />
+        <View style={logo.dot} />
+        <EyeTile pulse={pulseR} blink={blinkR} />
+        <View style={logo.dot} />
+        <LetterTile letter="K" />
+        <View style={logo.dot} />
+        <LetterTile letter="Y" />
+      </View>
+      <Text style={logo.tagline}>AI · Finance · Agent</Text>
+    </View>
+  );
+}
+
+const logo = StyleSheet.create({
+  wrap: {
+    borderWidth: 1.5,
+    borderColor: '#D85A30',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 8,
+    alignItems: 'center',
+    backgroundColor: '#0d0d0d',
+    position: 'relative',
+  },
+  screw: {
+    position: 'absolute',
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    borderWidth: 1,
+    borderColor: '#D85A30',
+    opacity: 0.5,
+  },
+  ear: {
+    position: 'absolute',
+    width: 8,
+    height: 18,
+    backgroundColor: '#1a0a00',
+    top: '50%',
+    marginTop: -9,
+  },
+  earL: {
+    left: -8,
+    borderWidth: 1.5,
+    borderColor: '#D85A30',
+    borderRightWidth: 0,
+    borderTopLeftRadius: 3,
+    borderBottomLeftRadius: 3,
+  },
+  earR: {
+    right: -8,
+    borderWidth: 1.5,
+    borderColor: '#D85A30',
+    borderLeftWidth: 0,
+    borderTopRightRadius: 3,
+    borderBottomRightRadius: 3,
+  },
+  antennaBall: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#EF9F27',
+    marginBottom: 3,
+    shadowColor: '#EF9F27',
+    shadowOpacity: 0.9,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  antenna: {
+    width: 2,
+    height: 10,
+    backgroundColor: '#D85A30',
+    borderRadius: 2,
+    marginBottom: 4,
+  },
+  tilesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  tile: {
+    width: 36,
+    height: 44,
+    backgroundColor: '#1a0a00',
+    borderWidth: 1.5,
+    borderColor: '#D85A30',
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  tileTopBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: '#D85A30',
+    opacity: 0.5,
+  },
+  tileLetter: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#D85A30',
+    lineHeight: 24,
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+  },
+  tileLed: {
+    width: '65%',
+    height: 3,
+    backgroundColor: '#D85A30',
+    borderRadius: 2,
+    marginTop: 3,
+    opacity: 0.35,
+  },
+  eyeTile: {
+    width: 36,
+    height: 44,
+    backgroundColor: '#0d0300',
+    borderWidth: 1.5,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  eyeOuter: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#EF9F27',
+    backgroundColor: '#1a0500',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  eyeIris: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#EF9F27',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  eyePupil: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#0d0200',
+  },
+  eyeShine: {
+    position: 'absolute',
+    top: 3,
+    right: 3,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'white',
+    opacity: 0.9,
+  },
+  dot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: '#D85A30',
+    opacity: 0.5,
+  },
+  tagline: {
+    marginTop: 7,
+    fontSize: 7,
+    letterSpacing: 3,
+    color: '#F0997B',
+    fontWeight: '600',
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    textTransform: 'uppercase',
+  },
+});
 
 export default function KookyScreen() {
   const [messages, setMessages] = useState<Message[]>([
@@ -135,6 +409,10 @@ export default function KookyScreen() {
         <Text style={styles.agentBadgeText}>
           Kooky — Decoding the <Text style={styles.moneyMatrix}>Money Matrix</Text>
         </Text>
+      </View>
+
+      <View style={styles.logoContainer}>
+        <KookyLogo />
       </View>
 
       <ScrollView
@@ -263,6 +541,13 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontWeight: '600',
     letterSpacing: 0.5,
+  },
+  logoContainer: {
+    backgroundColor: Colors.background,
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
   },
   messages: {
     flex: 1,
