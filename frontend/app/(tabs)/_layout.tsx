@@ -29,7 +29,7 @@ export default function TabLayout() {
         <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} /> }} />
         <Tabs.Screen name="active-trades" options={{ title: 'Active Trades', tabBarIcon: ({ color, size }) => <Ionicons name="pulse" size={size} color={color} /> }} />
         <Tabs.Screen name="closed-trades" options={{ title: 'Closed Trades', tabBarIcon: ({ color, size }) => <Ionicons name="checkmark-done" size={size} color={color} /> }} />
-        <Tabs.Screen name="ajeeb" options={{ title: '🤖 ai', headerTitle: 'Ajeeb ai', tabBarIcon: ({ color, size }) => <Ionicons name="sparkles" size={size} color={color} />, tabBarLabelStyle: { fontSize: 11, fontWeight: '600' } }} />
+        <Tabs.Screen name="ajeeb" options={{ title: '🤖 ai', headerTitle: 'Kooky ai', tabBarIcon: ({ color, size }) => <Ionicons name="sparkles" size={size} color={color} />, tabBarLabelStyle: { fontSize: 11, fontWeight: '600' } }} />
         <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} /> }} />
       </Tabs>
     </>
