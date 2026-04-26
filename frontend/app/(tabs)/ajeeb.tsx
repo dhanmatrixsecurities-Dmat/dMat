@@ -54,11 +54,8 @@ function KookyHeader() {
   const blinkL = useRef(new Animated.Value(1)).current;
   const blinkR = useRef(new Animated.Value(1)).current;
   const scanAnim = useRef(new Animated.Value(0)).current;
-  const flickerAnim = useRef(new Animated.Value(1)).current;
-  const glowText = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Eye pulse
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseL, { toValue: 1, duration: 1000, useNativeDriver: false }),
@@ -75,14 +72,13 @@ function KookyHeader() {
       ).start();
     }, 300);
 
-    // Blink
     const blinkLoop = (anim: Animated.Value, delay: number) => {
       setTimeout(() => {
         Animated.loop(
           Animated.sequence([
             Animated.delay(3500),
-            Animated.timing(anim, { toValue: 0.08, duration: 80, useNativeDriver: true }),
-            Animated.timing(anim, { toValue: 1, duration: 80, useNativeDriver: true }),
+            Animated.timing(anim, { toValue: 0.08, duration: 80, useNativeDriver: false }),
+            Animated.timing(anim, { toValue: 1, duration: 80, useNativeDriver: false }),
           ])
         ).start();
       }, delay);
@@ -90,26 +86,8 @@ function KookyHeader() {
     blinkLoop(blinkL, 0);
     blinkLoop(blinkR, 150);
 
-    // Scanline
     Animated.loop(
-      Animated.timing(scanAnim, { toValue: 1, duration: 2400, useNativeDriver: true })
-    ).start();
-
-    // Flicker
-    Animated.loop(
-      Animated.sequence([
-        Animated.delay(4800),
-        Animated.timing(flickerAnim, { toValue: 0.3, duration: 60, useNativeDriver: true }),
-        Animated.timing(flickerAnim, { toValue: 1, duration: 60, useNativeDriver: true }),
-      ])
-    ).start();
-
-    // Glow text pulse
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowText, { toValue: 1, duration: 1200, useNativeDriver: false }),
-        Animated.timing(glowText, { toValue: 0, duration: 1200, useNativeDriver: false }),
-      ])
+      Animated.timing(scanAnim, { toValue: 1, duration: 2400, useNativeDriver: false })
     ).start();
   }, []);
 
@@ -118,9 +96,9 @@ function KookyHeader() {
       inputRange: [0, 1],
       outputRange: ['#D85A30', '#EF9F27'],
     });
-    const irisColor = pulse.interpolate({
+    const shadowOpacity = pulse.interpolate({
       inputRange: [0, 1],
-      outputRange: ['#D85A30', '#EF9F27'],
+      outputRange: [0.4, 1],
     });
 
     return (
@@ -131,14 +109,14 @@ function KookyHeader() {
             borderColor,
             transform: [{ scaleY: blink }],
             shadowColor: '#EF9F27',
-            shadowOpacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }),
+            shadowOpacity,
             shadowRadius: 10,
             shadowOffset: { width: 0, height: 0 },
             elevation: 6,
           },
         ]}
       >
-        <Animated.View style={[header.iris, { backgroundColor: irisColor }]}>
+        <Animated.View style={[header.iris, { backgroundColor: borderColor }]}>
           <View style={header.pupil} />
         </Animated.View>
         <View style={header.eyeShine} />
@@ -146,39 +124,33 @@ function KookyHeader() {
     );
   };
 
-  const scanTranslate = scanAnim.interpolate({
+  const scanTop = scanAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [-2, 70],
+    outputRange: [0, 70],
   });
 
   return (
-    <Animated.View style={[header.wrap, { opacity: flickerAnim }]}>
-      {/* Scanline */}
-      <Animated.View
-        style={[header.scanLine, { transform: [{ translateY: scanTranslate }] }]}
-      />
-
-      {/* K OO KY row */}
+    <View style={header.wrap}>
+      <Animated.View style={[header.scanLine, { top: scanTop }]} />
       <View style={header.row}>
         <Text style={header.letter}>K</Text>
         <Eye pulse={pulseL} blink={blinkL} />
         <Eye pulse={pulseR} blink={blinkR} />
         <Text style={header.letter}>KY</Text>
       </View>
-
       <Text style={header.tagline}>AI · FINANCE · AGENT</Text>
-    </Animated.View>
+    </View>
   );
 }
 
 const header = StyleSheet.create({
   wrap: {
-    backgroundColor: '#0a0400',
+    backgroundColor: Colors.background,
     paddingVertical: 14,
     alignItems: 'center',
     overflow: 'hidden',
     borderBottomWidth: 1,
-    borderBottomColor: '#D85A3033',
+    borderBottomColor: Colors.border,
     position: 'relative',
   },
   scanLine: {
@@ -186,7 +158,7 @@ const header = StyleSheet.create({
     left: 0,
     right: 0,
     height: 2,
-    backgroundColor: '#EF9F2755',
+    backgroundColor: '#EF9F2744',
   },
   row: {
     flexDirection: 'row',
@@ -240,7 +212,7 @@ const header = StyleSheet.create({
   tagline: {
     fontSize: 7,
     letterSpacing: 4,
-    color: '#F0997B',
+    color: '#D85A30',
     marginTop: 6,
     fontWeight: '600',
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
