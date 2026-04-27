@@ -14,39 +14,25 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 
+// ─── CHANGE THIS TO YOUR VERCEL BACKEND URL ───────────────────
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://your-vercel-app.vercel.app';
+// ──────────────────────────────────────────────────────────────
+
 interface Message {
   id: string;
-  role: 'user' | 'bot';
+  role: 'user' | 'assistant'; // changed 'bot' → 'assistant' to match Anthropic API
   text: string;
 }
 
-const SYSTEM_PROMPT = `You are Kooky, a sharp and knowledgeable ai finance agent built into the dMat trading app. You answer questions about:
-- Stock market (NSE/BSE — Indian markets primarily)
-- Trading strategies (intraday, swing, positional)
-- Mutual funds and SIPs
-- Portfolio management and allocation
-- Technical analysis (chart patterns, indicators)
-- Fundamental analysis (P/E, EPS, ratios)
-- IPOs, F&O, derivatives
-- Crypto basics
-- Personal finance and investing
-- Market news and macroeconomics
-
-Rules:
-- Only answer finance, investing, trading, and money-related questions
-- If asked anything unrelated, say you only operate in the finance world
-- Be concise, sharp, and data-aware
-- Speak like a smart trading desk analyst — direct, no fluff
-- Never give guaranteed return promises or specific "buy this now" advice without adding a disclaimer
-- Always add a short disclaimer for specific stock tips: "This is not SEBI-registered advice."`;
-
 const QUICK_QUESTIONS = [
+  'Analyze Reliance Industries',
   'What is intraday trading?',
-  'How to read candlestick charts?',
-  'What is F&O trading?',
+  'How to read RSI indicator?',
+  'Analyze my portfolio',
   'SIP vs lump sum — which is better?',
-  'How to pick a good stock?',
 ];
+
+// ─── ANIMATED KOOKY HEADER (unchanged — your design is great) ─
 
 function KookyHeader() {
   const pulseL = useRef(new Animated.Value(0)).current;
@@ -219,18 +205,24 @@ const header = StyleSheet.create({
   },
 });
 
+// ─── MAIN SCREEN ──────────────────────────────────────────────
+
 export default function KookyScreen() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '0',
-      role: 'bot',
-      text: 'Kooky online. Ask me anything about trading, stocks, mutual funds, or the finance world. I operate only in the money matrix.',
+      role: 'assistant',
+      text: 'Kooky online. Ask me anything about trading, stocks, or mutual funds.\n\nTry: "Analyze Reliance" or share your portfolio holdings for a full analysis.',
     },
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [showQuick, setShowQuick] = useState(true);
   const scrollRef = useRef<ScrollView>(null);
+
+  // ── PORTFOLIO MODE ─────────────────────────────────────────
+  const [portfolioMode, setPortfolioMode] = useState(false);
+  const [portfolioInput, setPortfolioInput] = useState('');
 
   const sendMessage = async (text?: string) => {
     const msgText = text || input.trim();
@@ -243,41 +235,40 @@ export default function KookyScreen() {
       role: 'user',
       text: msgText,
     };
-    setMessages(prev => [...prev, userMsg]);
+
+    const updatedMessages = [...messages, userMsg];
+    setMessages(updatedMessages);
     setLoading(true);
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      // ── Calls YOUR backend — API key stays safe on server ──
+      const response = await fetch(`${BACKEND_URL}/api/kooky`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY || '',
-          'anthropic-version': '2023-06-01',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 400,
-          system: SYSTEM_PROMPT,
-          messages: [{ role: 'user', content: msgText }],
+          // Send full conversation history — Kooky now remembers context
+          messages: updatedMessages.map(m => ({
+            role: m.role,
+            content: m.text,
+          })),
+          user_id: null, // Add user ID here if you have auth
         }),
       });
 
       const data = await response.json();
-      const botText =
-        data?.content?.[0]?.text ||
-        'Signal lost. Try again.\n\nNote: API key not configured yet.';
+      const botText = data?.reply || 'Signal lost. Try again.';
 
       setMessages(prev => [
         ...prev,
-        { id: Date.now().toString() + 'b', role: 'bot', text: botText },
+        { id: Date.now().toString() + 'b', role: 'assistant', text: botText },
       ]);
     } catch {
       setMessages(prev => [
         ...prev,
         {
           id: Date.now().toString() + 'e',
-          role: 'bot',
-          text: 'Signal lost. Check your connection.\n\nNote: Add EXPO_PUBLIC_ANTHROPIC_API_KEY to your .env file to activate Kooky.',
+          role: 'assistant',
+          text: '📡 Signal lost. Check your connection and try again.',
         },
       ]);
     } finally {
@@ -286,31 +277,82 @@ export default function KookyScreen() {
     }
   };
 
+  const sendPortfolioAnalysis = () => {
+    if (!portfolioInput.trim()) return;
+    const prompt = `Analyze my portfolio:\n${portfolioInput}`;
+    setPortfolioMode(false);
+    setPortfolioInput('');
+    sendMessage(prompt);
+  };
+
+  // ── PORTFOLIO INPUT OVERLAY ────────────────────────────────
+  if (portfolioMode) {
+    return (
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={90}
+      >
+        <View style={styles.portfolioOverlay}>
+          <View style={styles.portfolioHeader}>
+            <Text style={styles.portfolioTitle}>💼 Portfolio Analysis</Text>
+            <TouchableOpacity onPress={() => setPortfolioMode(false)}>
+              <Ionicons name="close" size={22} color={Colors.text} />
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.portfolioHint}>
+            Enter your holdings (one per line){'\n'}
+            Example:{'\n'}
+            Reliance - ₹50,000{'\n'}
+            TCS - ₹30,000{'\n'}
+            HDFC Bank - ₹20,000
+          </Text>
+          <TextInput
+            style={styles.portfolioTextArea}
+            value={portfolioInput}
+            onChangeText={setPortfolioInput}
+            placeholder="Enter your stocks and amounts..."
+            placeholderTextColor={Colors.textSecondary}
+            multiline
+            autoFocus
+          />
+          <TouchableOpacity
+            style={styles.portfolioSubmitBtn}
+            onPress={sendPortfolioAnalysis}
+          >
+            <Text style={styles.portfolioSubmitText}>Analyze My Portfolio →</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    );
+  }
+
+  // ── MAIN CHAT UI ───────────────────────────────────────────
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={90}
     >
-      <View style={styles.inProgressBanner}>
-        <Text style={styles.inProgressEmoji}>🚧</Text>
-        <View style={styles.inProgressTextWrap}>
-          <Text style={styles.inProgressTitle}>In Progress — Coming Soon</Text>
-          <Text style={styles.inProgressSub}>
-            Get ready for the biggest change in the finance space. We're building something powerful.
-          </Text>
-        </View>
-      </View>
-
+      {/* Status bar */}
       <View style={styles.agentBadge}>
         <View style={styles.statusDot} />
         <Text style={styles.agentBadgeText}>
           Kooky — Decoding the <Text style={styles.moneyMatrix}>Money Matrix</Text>
         </Text>
+        {/* Portfolio button */}
+        <TouchableOpacity
+          style={styles.portfolioBtn}
+          onPress={() => setPortfolioMode(true)}
+        >
+          <Ionicons name="pie-chart-outline" size={14} color={Colors.primary} />
+          <Text style={styles.portfolioBtnText}>Portfolio</Text>
+        </TouchableOpacity>
       </View>
 
       <KookyHeader />
 
+      {/* Chat messages */}
       <ScrollView
         ref={scrollRef}
         style={styles.messages}
@@ -325,7 +367,7 @@ export default function KookyScreen() {
               msg.role === 'user' ? styles.userBubble : styles.botBubble,
             ]}
           >
-            {msg.role === 'bot' && (
+            {msg.role === 'assistant' && (
               <Text style={styles.senderLabel}>Kooky //</Text>
             )}
             <Text style={msg.role === 'user' ? styles.userText : styles.botText}>
@@ -337,12 +379,16 @@ export default function KookyScreen() {
         {loading && (
           <View style={[styles.bubble, styles.botBubble]}>
             <Text style={styles.senderLabel}>Kooky //</Text>
-            <ActivityIndicator size="small" color={Colors.primary} />
+            <View style={styles.loadingRow}>
+              <ActivityIndicator size="small" color="#EF9F27" />
+              <Text style={styles.loadingText}>Analyzing...</Text>
+            </View>
           </View>
         )}
 
         {showQuick && (
           <View style={styles.quickWrap}>
+            <Text style={styles.quickLabel}>Quick Actions</Text>
             {QUICK_QUESTIONS.map(q => (
               <TouchableOpacity
                 key={q}
@@ -350,13 +396,21 @@ export default function KookyScreen() {
                 onPress={() => sendMessage(q)}
               >
                 <Text style={styles.quickBtnText}>{q}</Text>
+                <Ionicons name="arrow-forward" size={10} color={Colors.primary} />
               </TouchableOpacity>
             ))}
           </View>
         )}
       </ScrollView>
 
+      {/* Input row */}
       <View style={styles.inputRow}>
+        <TouchableOpacity
+          style={styles.portfolioIconBtn}
+          onPress={() => setPortfolioMode(true)}
+        >
+          <Ionicons name="pie-chart-outline" size={20} color={Colors.primary} />
+        </TouchableOpacity>
         <TextInput
           style={styles.textInput}
           value={input}
@@ -384,33 +438,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  inProgressBanner: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 10,
-  },
-  inProgressEmoji: {
-    fontSize: 20,
-    marginTop: 2,
-  },
-  inProgressTextWrap: {
-    flex: 1,
-  },
-  inProgressTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 2,
-    letterSpacing: 0.3,
-  },
-  inProgressSub: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.75)',
-    lineHeight: 16,
-  },
   agentBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -437,6 +464,23 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontWeight: '600',
     letterSpacing: 0.5,
+    flex: 1,
+  },
+  portfolioBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    backgroundColor: Colors.background,
+  },
+  portfolioBtnText: {
+    fontSize: 11,
+    color: Colors.primary,
+    fontWeight: '700',
   },
   messages: {
     flex: 1,
@@ -477,25 +521,43 @@ const styles = StyleSheet.create({
     color: Colors.secondary,
     lineHeight: 20,
   },
-  quickWrap: {
+  loadingRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
     gap: 8,
+  },
+  loadingText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  quickWrap: {
     marginTop: 12,
     paddingHorizontal: 4,
+    gap: 6,
+  },
+  quickLabel: {
+    fontSize: 10,
+    color: Colors.textSecondary,
+    letterSpacing: 2,
+    fontWeight: '700',
+    marginBottom: 4,
   },
   quickBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: Colors.primary,
+    borderColor: Colors.border,
     backgroundColor: Colors.cardBackground,
   },
   quickBtnText: {
-    fontSize: 11,
-    color: Colors.primary,
-    fontWeight: '600',
+    fontSize: 12,
+    color: Colors.text,
+    fontWeight: '500',
   },
   inputRow: {
     flexDirection: 'row',
@@ -505,6 +567,16 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.border,
     backgroundColor: Colors.cardBackground,
+  },
+  portfolioIconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   textInput: {
     flex: 1,
@@ -527,5 +599,59 @@ const styles = StyleSheet.create({
   },
   sendBtnDisabled: {
     opacity: 0.5,
+  },
+  // ── Portfolio overlay styles ─────────────────────────────
+  portfolioOverlay: {
+    flex: 1,
+    backgroundColor: Colors.background,
+    padding: 20,
+  },
+  portfolioHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    marginTop: 20,
+  },
+  portfolioTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: Colors.text,
+  },
+  portfolioHint: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    lineHeight: 22,
+    marginBottom: 16,
+    backgroundColor: Colors.cardBackground,
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  portfolioTextArea: {
+    flex: 1,
+    backgroundColor: Colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 14,
+    color: Colors.text,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    textAlignVertical: 'top',
+    marginBottom: 16,
+  },
+  portfolioSubmitBtn: {
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  portfolioSubmitText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: Colors.secondary,
+    letterSpacing: 0.5,
   },
 });
