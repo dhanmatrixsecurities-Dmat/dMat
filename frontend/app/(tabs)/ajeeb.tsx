@@ -14,6 +14,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
+import { useAuth } from '@/contexts/AuthContext';
+import { PremiumUpgradeScreen } from './active-trades';
 
 // ─── CHANGE THIS TO YOUR VERCEL BACKEND URL ───────────────────
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://your-vercel-app.vercel.app';
@@ -46,7 +48,6 @@ function KookyLogo({ size = 'large' }: { size?: 'small' | 'large' }) {
   const pupilSize = isSmall ? 4 : 6;
 
   useEffect(() => {
-    // Both eyes blink together - slow and smooth
     Animated.loop(
       Animated.sequence([
         Animated.delay(4000),
@@ -55,7 +56,6 @@ function KookyLogo({ size = 'large' }: { size?: 'small' | 'large' }) {
       ])
     ).start();
 
-    // Subtle glow pulse
     Animated.loop(
       Animated.sequence([
         Animated.timing(glowAnim, { toValue: 1, duration: 2000, useNativeDriver: false }),
@@ -141,6 +141,8 @@ const logo = StyleSheet.create({
 // ─── MAIN SCREEN ──────────────────────────────────────────────
 
 export default function KookyScreen() {
+  const { userData } = useAuth();
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '0',
@@ -154,6 +156,11 @@ export default function KookyScreen() {
   const [portfolioMode, setPortfolioMode] = useState(false);
   const [portfolioInput, setPortfolioInput] = useState('');
   const scrollRef = useRef<ScrollView>(null);
+
+  // ── FREE USER → Show premium screen ──
+  if (userData?.status === 'FREE') {
+    return <PremiumUpgradeScreen />;
+  }
 
   const sendMessage = async (text?: string) => {
     const msgText = text || input.trim();
@@ -339,8 +346,6 @@ export default function KookyScreen() {
 }
 
 const styles = StyleSheet.create({
-
-  // ── TOP HEADER ──
   topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -351,8 +356,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#173772',
   },
-
-  // ── STATUS BAR ──
   agentBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -366,7 +369,6 @@ const styles = StyleSheet.create({
   statusDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#00C853' },
   agentBadgeText: { fontSize: 12, color: Colors.textSecondary, fontWeight: '600', flex: 1 },
   moneyMatrix: { color: '#00C853', fontWeight: '700' },
-
   portfolioTopBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -378,8 +380,6 @@ const styles = StyleSheet.create({
     borderColor: '#2979FF',
   },
   portfolioTopBtnText: { fontSize: 11, color: '#4A9EFF', fontWeight: '700' },
-
-  // ── MESSAGES ──
   messages: { flex: 1, paddingHorizontal: 12 },
   bubble: { maxWidth: '82%', marginVertical: 4, padding: 12, borderRadius: 12 },
   botBubble: {
@@ -397,11 +397,8 @@ const styles = StyleSheet.create({
   senderLabel: { fontSize: 10, color: Colors.textSecondary, letterSpacing: 1, marginBottom: 4, fontWeight: '600' },
   botText: { fontSize: 13, color: Colors.text, lineHeight: 20 },
   userText: { fontSize: 13, color: '#fff', lineHeight: 20 },
-
   loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   loadingText: { fontSize: 12, color: Colors.textSecondary, fontStyle: 'italic' },
-
-  // ── QUICK ACTIONS ──
   quickWrap: { marginTop: 12, paddingHorizontal: 4, gap: 6 },
   quickLabel: { fontSize: 9, color: Colors.textSecondary, letterSpacing: 2, fontWeight: '700', marginBottom: 2 },
   quickBtn: {
@@ -416,8 +413,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.cardBackground,
   },
   quickBtnText: { fontSize: 12, color: Colors.text, fontWeight: '500' },
-
-  // ── INPUT ──
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -456,8 +451,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sendBtnDisabled: { opacity: 0.5 },
-
-  // ── PORTFOLIO SCREEN ──
   portfolioOverlay: { flex: 1, backgroundColor: Colors.background, padding: 16 },
   portfolioHeader: {
     flexDirection: 'row',
