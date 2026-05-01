@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator, Animated,
-  TouchableOpacity, Linking, ScrollView,
+  TouchableOpacity, Linking, ScrollView, Modal,
 } from 'react-native';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
@@ -11,6 +11,7 @@ import Svg, {
 import { useAuth } from '@/contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import { PremiumUpgradeScreen } from './active-trades';
 
 interface ClosedTrade {
   id: string;
@@ -116,6 +117,7 @@ export default function HomeScreen() {
   const [futures,      setFutures]      = useState<SegmentStats>({ total: 0, profitable: 0, losing: 0, accuracy: 0 });
   const [options,      setOptions]      = useState<SegmentStats>({ total: 0, profitable: 0, losing: 0, accuracy: 0 });
   const [showGreeting, setShowGreeting] = useState(false);
+  const [showUpgrade,  setShowUpgrade]  = useState(false);
 
   const tickerAnim  = useRef(new Animated.Value(0)).current;
   const robotFloat  = useRef(new Animated.Value(0)).current;
@@ -185,9 +187,32 @@ export default function HomeScreen() {
     { label: 'Options', stats: options, color: '#8b5cf6', trackColor: '#f0eaff', borderColor: '#8b5cf6' },
   ];
 
+  const handlePortfolioStocksPress = () => {
+    if (userData?.status === 'FREE') {
+      setShowUpgrade(true);
+    }
+  };
+
   return (
     <View style={s.outer}>
       {showGreeting && <GreetingToast name={userData?.name || ''} />}
+
+      {/* Upgrade Modal for Portfolio Stocks */}
+      <Modal
+        visible={showUpgrade}
+        animationType="slide"
+        onRequestClose={() => setShowUpgrade(false)}
+      >
+        <View style={{ flex: 1 }}>
+          <TouchableOpacity
+            style={s.modalClose}
+            onPress={() => setShowUpgrade(false)}
+          >
+            <Text style={s.modalCloseText}>✕ Close</Text>
+          </TouchableOpacity>
+          <PremiumUpgradeScreen />
+        </View>
+      </Modal>
 
       {/* HEADER */}
       <View style={s.header}>
@@ -282,15 +307,19 @@ export default function HomeScreen() {
         {/* 3. Round icon cards */}
         <View style={s.roundRow}>
           {/* Portfolio Stocks */}
-          <TouchableOpacity style={s.rc} activeOpacity={0.82}>
+          <TouchableOpacity style={s.rc} activeOpacity={0.82} onPress={handlePortfolioStocksPress}>
             <View style={[s.circle, { backgroundColor: '#1a6030', shadowColor: '#1a6030' }]}>
-              <Svg width={32} height={32} viewBox="0 0 34 34" fill="none">
-                <Polyline points="4,25 11,14 17,19 26,8" stroke="#c8f5d0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                <Polyline points="21,8 26,8 26,13" stroke="#c8f5d0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                <Circle cx="11" cy="14" r="2" fill="#c8f5d0" />
-                <Circle cx="17" cy="19" r="2" fill="#c8f5d0" />
-                <Circle cx="26" cy="8"  r="2" fill="#c8f5d0" />
-              </Svg>
+              {userData?.status === 'FREE' ? (
+                <Text style={{ fontSize: 28 }}>🔒</Text>
+              ) : (
+                <Svg width={32} height={32} viewBox="0 0 34 34" fill="none">
+                  <Polyline points="4,25 11,14 17,19 26,8" stroke="#c8f5d0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <Polyline points="21,8 26,8 26,13" stroke="#c8f5d0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <Circle cx="11" cy="14" r="2" fill="#c8f5d0" />
+                  <Circle cx="17" cy="19" r="2" fill="#c8f5d0" />
+                  <Circle cx="26" cy="8"  r="2" fill="#c8f5d0" />
+                </Svg>
+              )}
             </View>
             <Text style={s.rcLabel}>Portfolio{'\n'}Stocks</Text>
           </TouchableOpacity>
@@ -410,6 +439,14 @@ const s = StyleSheet.create({
   outer:   { flex: 1, backgroundColor: '#eef1f6' },
   loading: { flex: 1, backgroundColor: '#eef1f6', alignItems: 'center', justifyContent: 'center' },
   scroll:  { padding: 8, paddingBottom: 24 },
+
+  modalClose: {
+    backgroundColor: '#001F3F',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    alignItems: 'flex-end',
+  },
+  modalCloseText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 
   toast: {
     position: 'absolute', top: 10, left: 16, right: 16, zIndex: 999,
