@@ -48,9 +48,9 @@ const getAccessibleSegments = (subscriptionAccess?: string): Segment[] => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  NEW PREMIUM UPGRADE SCREEN  (replaces old FREE screen)
+//  PREMIUM UPGRADE SCREEN
 // ─────────────────────────────────────────────────────────────────────────────
-function PremiumUpgradeScreen() {
+export function PremiumUpgradeScreen() {
   const crownAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -110,13 +110,6 @@ function PremiumUpgradeScreen() {
 
       <Text style={up.title}>Upgrade to Premium</Text>
 
-      <Text style={up.subtitle}>
-        Active trades are only available to{' '}
-        <Text style={up.subtitleBold}>ACTIVE</Text>
-        {'\n'}subscribers.
-      </Text>
-      <Text style={up.contact}>Contact admin to upgrade.</Text>
-
       {/* Warning banner */}
       <View style={up.banner}>
         <Text style={up.bannerIcon}>🔒</Text>
@@ -163,7 +156,7 @@ function PremiumUpgradeScreen() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  LOCKED SEGMENT SCREEN  (unchanged)
+//  LOCKED SEGMENT SCREEN
 // ─────────────────────────────────────────────────────────────────────────────
 function LockedSegmentScreen({ segment }: { segment: Segment }) {
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -221,7 +214,7 @@ function LockedSegmentScreen({ segment }: { segment: Segment }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  SUBSCRIPTION EXPIRY BANNER  (unchanged)
+//  SUBSCRIPTION EXPIRY BANNER
 // ─────────────────────────────────────────────────────────────────────────────
 function SubscriptionBanner({ endDate }: { endDate?: string }) {
   const blinkAnim = useRef(new Animated.Value(1)).current;
@@ -251,7 +244,7 @@ function SubscriptionBanner({ endDate }: { endDate?: string }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  HELPERS  (unchanged)
+//  HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
 const segmentLabel = (seg?: string): string => {
   if (seg === 'futures') return 'Futures';
@@ -529,7 +522,7 @@ export default function ActiveTrades() {
     );
   }
 
-  // ── FREE → New premium upgrade UI ──
+  // ── FREE → Premium upgrade UI ──
   if (userData?.status === 'FREE') {
     return <PremiumUpgradeScreen />;
   }
@@ -608,7 +601,7 @@ export default function ActiveTrades() {
 // ─────────────────────────────────────────────────────────────────────────────
 //  STYLES
 // ─────────────────────────────────────────────────────────────────────────────
-const up = StyleSheet.create({
+export const up = StyleSheet.create({
   scroll:    { flex: 1, backgroundColor: '#f0f4ff' },
   container: { alignItems: 'center', paddingTop: 36, paddingHorizontal: 24, paddingBottom: 40 },
   crownWrap: {
@@ -620,10 +613,7 @@ const up = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 }, elevation: 6,
   },
   crownEmoji:      { fontSize: 38 },
-  title:           { fontSize: 24, fontWeight: '900', color: '#111827', textAlign: 'center', marginBottom: 10 },
-  subtitle:        { fontSize: 14, color: '#4b5563', textAlign: 'center', lineHeight: 22, marginBottom: 4 },
-  subtitleBold:    { fontWeight: '900', color: '#111827' },
-  contact:         { fontSize: 13, color: '#4b5563', textAlign: 'center', marginBottom: 20 },
+  title:           { fontSize: 24, fontWeight: '900', color: '#111827', textAlign: 'center', marginBottom: 20 },
   banner: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: '#fff7ed', borderWidth: 1, borderColor: '#fed7aa',
