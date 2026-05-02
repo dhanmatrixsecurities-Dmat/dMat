@@ -23,6 +23,7 @@ import {
   Logout,
   Menu as MenuIcon,
   Feedback,
+  Spa,
 } from '@mui/icons-material';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
@@ -52,11 +53,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   const menuItems = [
-    { text: 'Dashboard',     icon: <DashboardIcon />, path: '/' },
-    { text: 'Users',         icon: <People />,        path: '/users' },
-    { text: 'Active Trades', icon: <TrendingUp />,    path: '/active-trades' },
-    { text: 'Closed Trades', icon: <CheckCircle />,   path: '/closed-trades' },
-    { text: 'Feedback',      icon: <Feedback />,      path: '/feedback' },  // ← NEW
+    { text: 'Dashboard',       icon: <DashboardIcon />, path: '/' },
+    { text: 'Users',           icon: <People />,        path: '/users' },
+    { text: 'Active Trades',   icon: <TrendingUp />,    path: '/active-trades' },
+    { text: 'Closed Trades',   icon: <CheckCircle />,   path: '/closed-trades' },
+    { text: 'Portfolio',       icon: <Spa />,           path: '/portfolio' },
+    { text: 'Feedback',        icon: <Feedback />,      path: '/feedback' },
   ];
 
   const drawer = (
