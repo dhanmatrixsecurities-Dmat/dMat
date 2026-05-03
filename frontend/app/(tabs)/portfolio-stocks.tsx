@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, RefreshControl,
-  TouchableOpacity, ActivityIndicator, Linking, ScrollView,
+  TouchableOpacity, ActivityIndicator, Linking,
 } from 'react-native';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import { PremiumUpgradeScreen } from './active-trades';
 
 interface PortfolioStock {
   id: string;
@@ -48,46 +49,6 @@ const formatDate = (val: any): string => {
   } catch { return '—'; }
 };
 
-function UpgradeScreen() {
-  const features = [
-    { title: 'Kooky', badge: 'AI', titleColor: '#4f46e5', badgeColor: '#4f46e5', desc: 'Analyze your portfolio holdings & get expert stock insights' },
-    { title: 'Portfolio Stocks', titleColor: '#f59e0b', desc: '3–10 stocks/month · FA + TA + Micro-indicator analysis' },
-    { title: 'Swing Trading', titleColor: '#22c55e', desc: '10–50 stocks/month based on market conditions' },
-    { title: 'Future Trading', titleColor: '#f59e0b', desc: '10–30 calls/month · Entry, exit & stop-loss levels' },
-    { title: 'Option Trading', titleColor: '#a855f7', desc: '30–70 calls/month · Risk-managed setups' },
-    { title: 'Mutual Fund', titleColor: '#3b82f6', desc: 'Personal SIP management · We adjust your SIP based on market conditions' },
-  ];
-  return (
-    <ScrollView style={{ flex: 1, backgroundColor: '#f0f4ff' }} contentContainerStyle={{ alignItems: 'center', paddingTop: 36, paddingHorizontal: 24, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-      <Text style={{ fontSize: 24, fontWeight: '900', color: '#111827', textAlign: 'center', marginBottom: 20 }}>Upgrade to Premium</Text>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#fff7ed', borderWidth: 1, borderColor: '#fed7aa', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, width: '100%', marginBottom: 24 }}>
-        <Text style={{ fontSize: 15 }}>🔒</Text>
-        <Text style={{ flex: 1, fontSize: 13, color: '#ea580c', lineHeight: 18 }}>These services are available only to <Text style={{ fontWeight: '800' }}>Premium subscribers</Text></Text>
-      </View>
-      <View style={{ width: '100%', gap: 14, marginBottom: 28 }}>
-        {features.map((f, i) => (
-          <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-            <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: '#22c55e', alignItems: 'center', justifyContent: 'center', marginTop: 2 }}>
-              <Ionicons name="checkmark" size={14} color="#fff" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                <Text style={{ fontSize: 15, fontWeight: '800', color: f.titleColor }}>{f.title}</Text>
-                {f.badge && <View style={{ borderRadius: 6, borderWidth: 1, paddingHorizontal: 6, paddingVertical: 1, backgroundColor: f.badgeColor + '18', borderColor: f.badgeColor + '40' }}><Text style={{ fontSize: 10, fontWeight: '800', color: f.badgeColor }}>{f.badge}</Text></View>}
-              </View>
-              <Text style={{ fontSize: 13, color: '#4b5563', lineHeight: 18 }}>{f.desc}</Text>
-            </View>
-          </View>
-        ))}
-      </View>
-      <TouchableOpacity style={{ width: '100%', backgroundColor: '#f97316', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginBottom: 12 }} onPress={() => Linking.openURL('https://wa.me/918383898886')} activeOpacity={0.87}>
-        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '900' }}>Upgrade to Premium</Text>
-      </TouchableOpacity>
-      <Text style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center' }}>Contact admin for subscription</Text>
-    </ScrollView>
-  );
-}
-
 function PortfolioCard({ item }: { item: PortfolioStock }) {
   const action = item.action || item.type || 'BUY';
   const isBuy = action === 'BUY';
@@ -96,8 +57,18 @@ function PortfolioCard({ item }: { item: PortfolioStock }) {
   const targetPrice = Number(item.targetPrice) || 0;
   const stopLoss    = Number(item.stopLoss)    || 0;
 
-  const potential = entryPrice > 0 ? isBuy ? ((targetPrice - entryPrice) / entryPrice) * 100 : ((entryPrice - targetPrice) / entryPrice) * 100 : 0;
-  const risk = entryPrice > 0 ? isBuy ? ((entryPrice - stopLoss) / entryPrice) * 100 : ((stopLoss - entryPrice) / entryPrice) * 100 : 0;
+  const potential = entryPrice > 0
+    ? isBuy ? ((targetPrice - entryPrice) / entryPrice) * 100
+             : ((entryPrice - targetPrice) / entryPrice) * 100
+    : 0;
+  const risk = entryPrice > 0
+    ? isBuy ? ((entryPrice - stopLoss) / entryPrice) * 100
+             : ((stopLoss - entryPrice) / entryPrice) * 100
+    : 0;
+
+  const openChart = () => {
+    Linking.openURL(`https://www.tradingview.com/chart/?symbol=NSE:${stockName.toUpperCase().trim()}`);
+  };
 
   return (
     <View style={s.card}>
@@ -105,7 +76,9 @@ function PortfolioCard({ item }: { item: PortfolioStock }) {
         <View style={s.cardTopLeft}>
           <View style={s.stockNameRow}>
             <Text style={s.stockName}>{stockName}</Text>
-            {isToday(item.createdAt) && <View style={s.todayBadge}><Text style={s.todayBadgeText}>Today</Text></View>}
+            {isToday(item.createdAt) && (
+              <View style={s.todayBadge}><Text style={s.todayBadgeText}>Today</Text></View>
+            )}
           </View>
           <View style={s.badgeRow}>
             <View style={[s.typeBadge, isBuy ? s.buyBadge : s.sellBadge]}>
@@ -116,32 +89,54 @@ function PortfolioCard({ item }: { item: PortfolioStock }) {
             </View>
           </View>
         </View>
-        <TouchableOpacity style={s.chartBtn} onPress={() => Linking.openURL(`https://www.tradingview.com/chart/?symbol=NSE:${stockName.toUpperCase().trim()}`)} activeOpacity={0.75}>
+        <TouchableOpacity style={s.chartBtn} onPress={openChart} activeOpacity={0.75}>
           <Text style={s.chartBtnEmoji}>📈</Text>
           <Text style={s.chartBtnText}>Live Chart</Text>
         </TouchableOpacity>
       </View>
 
       <View style={s.priceGrid}>
-        <View style={s.priceItem}><Text style={s.priceLabel}>Entry</Text><Text style={s.priceValue}>₹{entryPrice.toFixed(2)}</Text></View>
-        <View style={[s.priceItem, s.priceBorder]}><Text style={s.priceLabel}>Target</Text><Text style={[s.priceValue, s.targetColor]}>₹{targetPrice.toFixed(2)}</Text></View>
-        <View style={s.priceItem}><Text style={s.priceLabel}>Stop Loss</Text><Text style={[s.priceValue, s.slColor]}>{stopLoss > 0 ? `₹${stopLoss.toFixed(2)}` : 'N/A'}</Text></View>
+        <View style={s.priceItem}>
+          <Text style={s.priceLabel}>Entry</Text>
+          <Text style={s.priceValue}>₹{entryPrice.toFixed(2)}</Text>
+        </View>
+        <View style={[s.priceItem, s.priceBorder]}>
+          <Text style={s.priceLabel}>Target</Text>
+          <Text style={[s.priceValue, s.targetColor]}>₹{targetPrice.toFixed(2)}</Text>
+        </View>
+        <View style={s.priceItem}>
+          <Text style={s.priceLabel}>Stop Loss</Text>
+          <Text style={[s.priceValue, s.slColor]}>{stopLoss > 0 ? `₹${stopLoss.toFixed(2)}` : 'N/A'}</Text>
+        </View>
       </View>
 
       <View style={s.metricsRow}>
-        <View style={s.metricBox}><Text style={s.metricLabel}>Potential</Text><Text style={[s.metricValue, s.targetColor]}>{`+${potential.toFixed(2)}%`}</Text></View>
-        <View style={s.metricBox}><Text style={s.metricLabel}>Risk</Text><Text style={[s.metricValue, s.slColor]}>{stopLoss > 0 ? `-${Math.abs(risk).toFixed(2)}%` : 'N/A'}</Text></View>
-        <View style={s.metricBox}><Text style={s.metricLabel}>Horizon</Text><Text style={s.metricValue}>{item.horizon || '1–5 Yr'}</Text></View>
+        <View style={s.metricBox}>
+          <Text style={s.metricLabel}>Potential</Text>
+          <Text style={[s.metricValue, s.targetColor]}>{`+${potential.toFixed(2)}%`}</Text>
+        </View>
+        <View style={s.metricBox}>
+          <Text style={s.metricLabel}>Risk</Text>
+          <Text style={[s.metricValue, s.slColor]}>{stopLoss > 0 ? `-${Math.abs(risk).toFixed(2)}%` : 'N/A'}</Text>
+        </View>
+        <View style={s.metricBox}>
+          <Text style={s.metricLabel}>Horizon</Text>
+          <Text style={s.metricValue}>{item.horizon || '1–5 Yr'}</Text>
+        </View>
       </View>
 
       {item.pdfUrl ? (
         <TouchableOpacity style={s.pdfBanner} onPress={() => Linking.openURL(item.pdfUrl!)} activeOpacity={0.8}>
-          <View style={s.pdfIconWrap}><Ionicons name="document-text-outline" size={16} color="#a5d6a7" /></View>
+          <View style={s.pdfIconWrap}>
+            <Ionicons name="document-text-outline" size={16} color="#a5d6a7" />
+          </View>
           <View style={s.pdfTextWrap}>
             <Text style={s.pdfTitle}>Research Report</Text>
             <Text style={s.pdfName} numberOfLines={1}>{item.pdfName || 'View Research PDF'}</Text>
           </View>
-          <View style={s.pdfBtn}><Text style={s.pdfBtnText}>View PDF</Text></View>
+          <View style={s.pdfBtn}>
+            <Text style={s.pdfBtnText}>View PDF</Text>
+          </View>
         </TouchableOpacity>
       ) : null}
 
@@ -201,7 +196,11 @@ export default function PortfolioStocksScreen() {
     return () => { unsub1(); unsub2(); };
   }, [userData]);
 
-  if (loading) return <View style={s.center}><ActivityIndicator size="large" color="#4caf50" /></View>;
+  if (loading) return (
+    <View style={s.center}>
+      <ActivityIndicator size="large" color="#4caf50" />
+    </View>
+  );
 
   if (userData?.status === 'BLOCKED') return (
     <View style={s.center}>
@@ -210,7 +209,7 @@ export default function PortfolioStocksScreen() {
     </View>
   );
 
-  if (userData?.status === 'FREE') return <UpgradeScreen />;
+  if (userData?.status === 'FREE') return <PremiumUpgradeScreen />;
 
   if (stocks.length === 0) return (
     <View style={s.center}>
@@ -242,46 +241,52 @@ export default function PortfolioStocksScreen() {
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#f1f8f4' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, backgroundColor: '#f1f8f4' },
-  card: { backgroundColor: '#0f4a24', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#2e7d32', shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 5 },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
+
+  card: {
+    backgroundColor: '#0f4a24', borderRadius: 16, padding: 16, marginBottom: 16,
+    borderWidth: 1, borderColor: '#2e7d32',
+    shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 }, elevation: 5,
+  },
+  cardTop:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
   cardTopLeft: { flex: 1 },
   stockNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' },
-  stockName: { fontSize: 20, fontWeight: '900', color: '#f1f8e9' },
-  todayBadge: { backgroundColor: '#1b5e20', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, borderWidth: 1, borderColor: '#2e7d32' },
+  stockName:    { fontSize: 20, fontWeight: '900', color: '#f1f8e9' },
+  todayBadge:   { backgroundColor: '#1b5e20', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, borderWidth: 1, borderColor: '#2e7d32' },
   todayBadgeText: { fontSize: 10, fontWeight: '700', color: '#69f0ae' },
-  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  typeBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 6 },
-  buyBadge: { backgroundColor: '#2e7d32', borderWidth: 1, borderColor: '#43a047' },
-  sellBadge: { backgroundColor: '#b71c1c', borderWidth: 1, borderColor: '#c62828' },
-  typeText: { fontSize: 11, fontWeight: '800' },
-  buyText: { color: '#b9f6ca' },
-  sellText: { color: '#ffcdd2' },
+  badgeRow:      { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  typeBadge:     { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 6 },
+  buyBadge:      { backgroundColor: '#2e7d32', borderWidth: 1, borderColor: '#43a047' },
+  sellBadge:     { backgroundColor: '#b71c1c', borderWidth: 1, borderColor: '#c62828' },
+  typeText:      { fontSize: 11, fontWeight: '800' },
+  buyText:       { color: '#b9f6ca' },
+  sellText:      { color: '#ffcdd2' },
   portfolioBadge: { backgroundColor: '#1b5e20', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: '#33691e' },
   portfolioBadgeText: { fontSize: 10, fontWeight: '700', color: '#ccff90' },
   chartBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#1b5e20', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: '#2e7d32' },
   chartBtnEmoji: { fontSize: 12 },
-  chartBtnText: { fontSize: 11, fontWeight: '700', color: '#69f0ae' },
-  priceGrid: { flexDirection: 'row', backgroundColor: '#1b5e20', borderRadius: 10, padding: 10, marginBottom: 10, borderWidth: 1, borderColor: '#2e7d32' },
-  priceItem: { flex: 1, alignItems: 'center' },
+  chartBtnText:  { fontSize: 11, fontWeight: '700', color: '#69f0ae' },
+  priceGrid:  { flexDirection: 'row', backgroundColor: '#1b5e20', borderRadius: 10, padding: 10, marginBottom: 10, borderWidth: 1, borderColor: '#2e7d32' },
+  priceItem:  { flex: 1, alignItems: 'center' },
   priceBorder: { borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: '#2e7d32' },
   priceLabel: { fontSize: 10, color: '#a5d6a7', marginBottom: 3 },
   priceValue: { fontSize: 15, fontWeight: '800', color: '#f1f8e9' },
   targetColor: { color: '#69f0ae' },
-  slColor: { color: '#ff8a80' },
+  slColor:     { color: '#ff8a80' },
   metricsRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
-  metricBox: { flex: 1, backgroundColor: '#1b5e20', borderRadius: 8, padding: 8, alignItems: 'center', borderWidth: 1, borderColor: '#2e7d32' },
+  metricBox:  { flex: 1, backgroundColor: '#1b5e20', borderRadius: 8, padding: 8, alignItems: 'center', borderWidth: 1, borderColor: '#2e7d32' },
   metricLabel: { fontSize: 10, color: '#a5d6a7', marginBottom: 2 },
   metricValue: { fontSize: 14, fontWeight: '800', color: '#f1f8e9' },
   pdfBanner: { backgroundColor: '#1b3a0a', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: '#2e6b10', flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
   pdfIconWrap: { backgroundColor: '#2e6b10', borderRadius: 6, padding: 6 },
   pdfTextWrap: { flex: 1 },
-  pdfTitle: { fontSize: 12, fontWeight: '700', color: '#c8e6c9' },
-  pdfName: { fontSize: 10, color: '#81c784', marginTop: 1 },
-  pdfBtn: { backgroundColor: '#2e7d32', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: '#388e3c' },
-  pdfBtnText: { fontSize: 11, fontWeight: '700', color: '#f1f8e9' },
-  footer: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  pdfTitle:    { fontSize: 12, fontWeight: '700', color: '#c8e6c9' },
+  pdfName:     { fontSize: 10, color: '#81c784', marginTop: 1 },
+  pdfBtn:      { backgroundColor: '#2e7d32', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: '#388e3c' },
+  pdfBtnText:  { fontSize: 11, fontWeight: '700', color: '#f1f8e9' },
+  footer:     { flexDirection: 'row', alignItems: 'center', gap: 5 },
   footerDate: { fontSize: 11, color: '#81c784' },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#2e7d32', marginTop: 16, textAlign: 'center' },
-  emptySub: { fontSize: 13, color: '#558b2f', marginTop: 8, textAlign: 'center', lineHeight: 20 },
+  emptyTitle:   { fontSize: 18, fontWeight: '700', color: '#2e7d32', marginTop: 16, textAlign: 'center' },
+  emptySub:     { fontSize: 13, color: '#558b2f', marginTop: 8, textAlign: 'center', lineHeight: 20 },
   blockedTitle: { fontSize: 22, fontWeight: '800', color: '#ef5350', marginTop: 16 },
 });
