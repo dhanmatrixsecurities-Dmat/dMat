@@ -175,6 +175,14 @@ export default function HomeScreen() {
   const firstName    = userData?.name?.trim().split(' ')[0] || 'there';
   const avatarLetter = (userData?.name || 'U')[0].toUpperCase();
 
+  const handlePortfolioStocksPress = () => {
+    if (userData?.status === 'FREE') {
+      setShowUpgrade(true);
+    } else {
+      router.push('/(home)/portfolio-stocks');
+    }
+  };
+
   if (loading) return (
     <View style={s.loading}>
       <ActivityIndicator size="large" color="#3b82f6" />
@@ -187,34 +195,19 @@ export default function HomeScreen() {
     { label: 'Options', stats: options, color: '#8b5cf6', trackColor: '#f0eaff', borderColor: '#8b5cf6' },
   ];
 
-  const handlePortfolioStocksPress = () => {
-    if (userData?.status === 'FREE') {
-      setShowUpgrade(true);
-    }
-  };
-
   return (
     <View style={s.outer}>
       {showGreeting && <GreetingToast name={userData?.name || ''} />}
 
-      {/* Upgrade Modal for Portfolio Stocks */}
-      <Modal
-        visible={showUpgrade}
-        animationType="slide"
-        onRequestClose={() => setShowUpgrade(false)}
-      >
+      <Modal visible={showUpgrade} animationType="slide" onRequestClose={() => setShowUpgrade(false)}>
         <View style={{ flex: 1 }}>
-          <TouchableOpacity
-            style={s.modalClose}
-            onPress={() => setShowUpgrade(false)}
-          >
+          <TouchableOpacity style={s.modalClose} onPress={() => setShowUpgrade(false)}>
             <Text style={s.modalCloseText}>✕ Close</Text>
           </TouchableOpacity>
           <PremiumUpgradeScreen />
         </View>
       </Modal>
 
-      {/* HEADER */}
       <View style={s.header}>
         <View style={s.hdrRow}>
           <View>
@@ -227,40 +220,25 @@ export default function HomeScreen() {
             <Text style={s.avatarTxt}>{avatarLetter}</Text>
           </View>
         </View>
-
-        {/* VIEW ticker pill */}
-        <TouchableOpacity
-          style={s.tickerPill}
-          onPress={() => router.push('/(tabs)/active-trades')}
-          activeOpacity={0.82}
-        >
+        <TouchableOpacity style={s.tickerPill} onPress={() => router.push('/(tabs)/active-trades')} activeOpacity={0.82}>
           <Animated.View style={[s.tickerIcon, { transform: [{ scale: iconPopAnim }] }]}>
             <Svg width={10} height={10} viewBox="0 0 12 12" fill="none">
-              <Polyline points="2,6 5,9 10,3" stroke="#4ecfa8" strokeWidth="2"
-                strokeLinecap="round" strokeLinejoin="round" />
+              <Polyline points="2,6 5,9 10,3" stroke="#4ecfa8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </Svg>
           </Animated.View>
           <Text style={s.tickerTag}>View</Text>
           <View style={s.tickerTrack}>
             <Animated.View style={[s.tickerInner, { transform: [{ translateX: tickerAnim }] }]}>
               {[0,1,2,3,4,5,6,7].map(i => (
-                <View key={i} style={s.chipWrap}>
-                  <TickerChip />
-                </View>
+                <View key={i} style={s.chipWrap}><TickerChip /></View>
               ))}
             </Animated.View>
           </View>
         </TouchableOpacity>
       </View>
 
-      {/* SCROLLABLE CONTENT */}
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={s.scroll}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
-        {/* 1. Overall Performance */}
         <View style={s.perfCard}>
           <Text style={s.perfTitle}>Overall Performance</Text>
           <DonutGauge accuracy={overall.accuracy} size={88} strokeWidth={9} fillColor="#2563eb" trackColor="#eaecf5" />
@@ -278,14 +256,9 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* 2. Segment cards */}
         <View style={s.segRow}>
           {segments.map((seg, idx) => (
-            <View key={seg.label} style={[
-              s.segCard,
-              { borderTopColor: seg.borderColor },
-              idx < segments.length - 1 && { marginRight: 6 },
-            ]}>
+            <View key={seg.label} style={[s.segCard, { borderTopColor: seg.borderColor }, idx < segments.length - 1 && { marginRight: 6 }]}>
               <Text style={s.segName}>{seg.label}</Text>
               <DonutGauge accuracy={seg.stats.accuracy} size={62} strokeWidth={7} fillColor={seg.color} trackColor={seg.trackColor} />
               <View style={s.segDivider} />
@@ -304,9 +277,7 @@ export default function HomeScreen() {
           ))}
         </View>
 
-        {/* 3. Round icon cards */}
         <View style={s.roundRow}>
-          {/* Portfolio Stocks */}
           <TouchableOpacity style={s.rc} activeOpacity={0.82} onPress={handlePortfolioStocksPress}>
             <View style={[s.circle, { backgroundColor: '#1a6030', shadowColor: '#1a6030' }]}>
               {userData?.status === 'FREE' ? (
@@ -324,7 +295,6 @@ export default function HomeScreen() {
             <Text style={s.rcLabel}>Portfolio{'\n'}Stocks</Text>
           </TouchableOpacity>
 
-          {/* Mutual Funds */}
           <TouchableOpacity style={s.rc} activeOpacity={0.82}>
             <View style={[s.circle, { backgroundColor: '#8c5000', shadowColor: '#8c5000' }]}>
               <Svg width={32} height={32} viewBox="0 0 34 34" fill="none">
@@ -337,19 +307,14 @@ export default function HomeScreen() {
             <Text style={s.rcLabel}>Mutual{'\n'}Funds</Text>
           </TouchableOpacity>
 
-          {/* IPO */}
-          <TouchableOpacity
-            style={s.rc}
-            onPress={() => Linking.openURL('https://www.nseindia.com/market-data/all-upcoming-issues-ipo')}
-            activeOpacity={0.82}
-          >
+          <TouchableOpacity style={s.rc} onPress={() => Linking.openURL('https://www.nseindia.com/market-data/all-upcoming-issues-ipo')} activeOpacity={0.82}>
             <View style={[s.circle, { backgroundColor: '#1030a0', shadowColor: '#1030a0' }]}>
               <Svg width={32} height={32} viewBox="0 0 34 34" fill="none">
                 <Path d="M17 6C17 6 22 10 22 17L17 20L12 17C12 10 17 6 17 6Z" fill="#a0c4ff" />
                 <Path d="M12 17L10 22L14 20Z" fill="#80aaff" />
                 <Path d="M22 17L24 22L20 20Z" fill="#80aaff" />
                 <Circle cx="17" cy="15" r="2.5" fill="#0b1e5c" />
-                <Line x1="14"   y1="22" x2="20"   y2="22" stroke="#a0c4ff" strokeWidth="1.8" strokeLinecap="round" />
+                <Line x1="14" y1="22" x2="20" y2="22" stroke="#a0c4ff" strokeWidth="1.8" strokeLinecap="round" />
                 <Line x1="15.5" y1="25" x2="18.5" y2="25" stroke="#a0c4ff" strokeWidth="1.5" strokeLinecap="round" />
               </Svg>
             </View>
@@ -357,16 +322,9 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* 4. KOOKY AI Card */}
-        <TouchableOpacity
-          style={s.kookyCard}
-          onPress={() => router.push('/(tabs)/ajeeb')}
-          activeOpacity={0.88}
-        >
+        <TouchableOpacity style={s.kookyCard} onPress={() => router.push('/(tabs)/ajeeb')} activeOpacity={0.88}>
           <View style={s.kOrb1} pointerEvents="none" />
           <View style={s.kOrb2} pointerEvents="none" />
-
-          {/* Robot */}
           <Animated.View style={[s.kRobot, { transform: [{ translateY: robotFloat }] }]}>
             <Svg width={84} height={112} viewBox="0 0 84 112" fill="none">
               <Line x1="42" y1="4" x2="42" y2="16" stroke="#60aaff" strokeWidth="2.4" strokeLinecap="round" />
@@ -379,27 +337,25 @@ export default function HomeScreen() {
               <Rect x="24" y="27" width="16" height="14" rx="7" fill="#0a2060" />
               <Rect x="44" y="27" width="16" height="14" rx="7" fill="#0a2060" />
               <Rect x="25.5" y="28.5" width="13" height="11" rx="5.5" fill="#3d7fff" />
-              <Circle cx="29.5" cy="33" r="3"   fill="white" opacity="0.75" />
-              <Circle cx="34"   cy="30" r="1.4" fill="white" opacity="0.35" />
+              <Circle cx="29.5" cy="33" r="3" fill="white" opacity="0.75" />
+              <Circle cx="34" cy="30" r="1.4" fill="white" opacity="0.35" />
               <Rect x="45.5" y="28.5" width="13" height="11" rx="5.5" fill="#00c6ff" />
-              <Circle cx="49.5" cy="33" r="3"   fill="white" opacity="0.75" />
-              <Circle cx="54"   cy="30" r="1.4" fill="white" opacity="0.35" />
+              <Circle cx="49.5" cy="33" r="3" fill="white" opacity="0.75" />
+              <Circle cx="54" cy="30" r="1.4" fill="white" opacity="0.35" />
               <Path d="M27 56 Q42 66 57 56" stroke="#60aaff" strokeWidth="2.2" fill="none" strokeLinecap="round" />
               <Rect x="35" y="64" width="14" height="9" rx="4" fill="#0c2d7a" />
               <Rect x="11" y="73" width="62" height="37" rx="16" fill="#0c2d7a" stroke="#3060c0" strokeWidth="1.5" />
               <Circle cx="42" cy="89" r="14" fill="#3d7fff" opacity="0.25" />
               <Rect x="27" y="81" width="30" height="18" rx="8" fill="#0e3580" stroke="#3060c0" strokeWidth="1.1" />
               <Polyline points="30,93 34,88 38,91 42,85 46,89 50,86" stroke="#60c0ff" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-              <Rect x="0"  y="76" width="10" height="22" rx="5" fill="#0c2d7a" stroke="#3060c0" strokeWidth="1.3" />
+              <Rect x="0" y="76" width="10" height="22" rx="5" fill="#0c2d7a" stroke="#3060c0" strokeWidth="1.3" />
               <Rect x="74" y="76" width="10" height="22" rx="5" fill="#0c2d7a" stroke="#3060c0" strokeWidth="1.3" />
-              <Circle cx="5"  cy="101" r="4.5" fill="#0c2d7a" stroke="#3060c0" strokeWidth="1.3" />
+              <Circle cx="5" cy="101" r="4.5" fill="#0c2d7a" stroke="#3060c0" strokeWidth="1.3" />
               <Circle cx="79" cy="101" r="4.5" fill="#0c2d7a" stroke="#3060c0" strokeWidth="1.3" />
               <Rect x="18" y="110" width="14" height="2" rx="1" fill="#3060c0" />
               <Rect x="52" y="110" width="14" height="2" rx="1" fill="#3060c0" />
             </Svg>
           </Animated.View>
-
-          {/* Text */}
           <View style={s.kText}>
             <View style={s.kLivePill}>
               <Animated.View style={[s.kLiveDot, { opacity: liveDotAnim }]} />
@@ -416,9 +372,7 @@ export default function HomeScreen() {
               <View style={s.kBracketLine} />
               <View style={s.kBracketTick} />
             </View>
-            <Text style={s.kSub}>
-              Ask me anything about your portfolio and financial market.
-            </Text>
+            <Text style={s.kSub}>Ask me anything about your portfolio and financial market.</Text>
             <View style={s.kBtn}>
               <Svg width={13} height={13} viewBox="0 0 16 16" fill="none">
                 <Circle cx="8" cy="8" r="6.5" stroke="white" strokeWidth="1.5" />
@@ -439,83 +393,29 @@ const s = StyleSheet.create({
   outer:   { flex: 1, backgroundColor: '#eef1f6' },
   loading: { flex: 1, backgroundColor: '#eef1f6', alignItems: 'center', justifyContent: 'center' },
   scroll:  { padding: 8, paddingBottom: 24 },
-
-  modalClose: {
-    backgroundColor: '#001F3F',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    alignItems: 'flex-end',
-  },
+  modalClose: { backgroundColor: '#001F3F', paddingHorizontal: 20, paddingVertical: 14, alignItems: 'flex-end' },
   modalCloseText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-
-  toast: {
-    position: 'absolute', top: 10, left: 16, right: 16, zIndex: 999,
-    backgroundColor: '#001F3F', borderRadius: 14,
-    paddingHorizontal: 16, paddingVertical: 12,
-    flexDirection: 'row', alignItems: 'center',
-    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 }, elevation: 8,
-  },
+  toast: { position: 'absolute', top: 10, left: 16, right: 16, zIndex: 999, backgroundColor: '#001F3F', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 8 },
   toastEmoji: { fontSize: 26, marginRight: 12 },
   toastText:  { fontSize: 15, fontWeight: '800', color: '#fff' },
   toastSub:   { fontSize: 11, color: '#a0b4cc', marginTop: 1 },
-
-  header: {
-    paddingTop: 12, paddingHorizontal: 18, paddingBottom: 14,
-    backgroundColor: '#0d1b3e',
-  },
-  hdrRow: {
-    flexDirection: 'row', alignItems: 'flex-start',
-    justifyContent: 'space-between', marginBottom: 11,
-  },
+  header: { paddingTop: 12, paddingHorizontal: 18, paddingBottom: 14, backgroundColor: '#0d1b3e' },
+  hdrRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 11 },
   hdrHello:  { color: '#fff', fontSize: 18, fontWeight: '700', marginBottom: 2, lineHeight: 22 },
   hdrSub:    { color: 'rgba(180,200,255,0.65)', fontSize: 11, fontWeight: '400', lineHeight: 16 },
   hdrAccent: { color: '#4ecfa8', fontWeight: '500' },
-  avatar: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#3b7ef8',
-    alignItems: 'center', justifyContent: 'center',
-  },
+  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#3b7ef8', alignItems: 'center', justifyContent: 'center' },
   avatarTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
-
-  tickerPill: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.13)',
-    borderRadius: 40, paddingVertical: 6, paddingHorizontal: 12,
-    overflow: 'hidden',
-  },
-  tickerIcon: {
-    width: 18, height: 18, borderRadius: 9,
-    backgroundColor: 'rgba(78,207,168,0.18)',
-    borderWidth: 1, borderColor: 'rgba(78,207,168,0.5)',
-    alignItems: 'center', justifyContent: 'center',
-    marginRight: 8,
-  },
-  tickerTag: {
-    fontSize: 9.5, fontWeight: '700', letterSpacing: 1,
-    textTransform: 'uppercase', color: '#4ecfa8',
-    marginRight: 8,
-  },
+  tickerPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.13)', borderRadius: 40, paddingVertical: 6, paddingHorizontal: 12, overflow: 'hidden' },
+  tickerIcon: { width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(78,207,168,0.18)', borderWidth: 1, borderColor: 'rgba(78,207,168,0.5)', alignItems: 'center', justifyContent: 'center', marginRight: 8 },
+  tickerTag: { fontSize: 9.5, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', color: '#4ecfa8', marginRight: 8 },
   tickerTrack:  { flex: 1, overflow: 'hidden', height: 24 },
   tickerInner:  { flexDirection: 'row', alignItems: 'center', position: 'absolute' },
   chipWrap:     { marginRight: 12 },
-  chip: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(78,207,168,0.13)',
-    borderWidth: 1, borderColor: 'rgba(78,207,168,0.28)',
-    borderRadius: 20, paddingVertical: 3, paddingHorizontal: 9,
-  },
+  chip: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(78,207,168,0.13)', borderWidth: 1, borderColor: 'rgba(78,207,168,0.28)', borderRadius: 20, paddingVertical: 3, paddingHorizontal: 9 },
   chipDot:  { width: 4, height: 4, borderRadius: 2, backgroundColor: '#4ecfa8', marginRight: 5 },
   chipText: { fontSize: 10, fontWeight: '700', color: '#4ecfa8' },
-
-  perfCard: {
-    backgroundColor: '#fff', borderRadius: 16,
-    padding: 10, alignItems: 'center',
-    shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 }, elevation: 3,
-    marginBottom: 7,
-  },
+  perfCard: { backgroundColor: '#fff', borderRadius: 16, padding: 10, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3, marginBottom: 7 },
   perfTitle:   { fontSize: 12, fontWeight: '600', color: '#1a1a3e', marginBottom: 7 },
   perfDivider: { width: '100%', height: 1, backgroundColor: '#f0f2f8', marginTop: 7, marginBottom: 7 },
   perfRow:     { flexDirection: 'row', width: '100%' },
@@ -523,14 +423,8 @@ const s = StyleSheet.create({
   perfLbl:     { fontSize: 9.5, color: '#999', marginBottom: 1 },
   perfVal:     { fontSize: 20, fontWeight: '700' },
   perfSep:     { width: 1, backgroundColor: '#f0f2f8' },
-
   segRow:  { flexDirection: 'row', marginBottom: 7 },
-  segCard: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 13,
-    padding: 7, alignItems: 'center', borderTopWidth: 3,
-    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 5,
-    shadowOffset: { width: 0, height: 1 }, elevation: 2,
-  },
+  segCard: { flex: 1, backgroundColor: '#fff', borderRadius: 13, padding: 7, alignItems: 'center', borderTopWidth: 3, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 5, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
   segName:    { fontSize: 10, fontWeight: '600', color: '#1a1a3e', marginBottom: 3 },
   segDivider: { width: '100%', height: 1, backgroundColor: '#f0f2f8', marginVertical: 4 },
   segWL:      { flexDirection: 'row', width: '100%' },
@@ -538,72 +432,23 @@ const s = StyleSheet.create({
   segVal:     { fontSize: 10.5, fontWeight: '700' },
   segLbl:     { fontSize: 8, color: '#bbb' },
   segSep:     { width: 1, backgroundColor: '#f0f2f8' },
-
-  roundRow: {
-    backgroundColor: '#fff', borderRadius: 16,
-    paddingVertical: 12, paddingHorizontal: 6,
-    flexDirection: 'row', justifyContent: 'space-around',
-    shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 }, elevation: 2,
-    marginBottom: 7,
-  },
+  roundRow: { backgroundColor: '#fff', borderRadius: 16, paddingVertical: 12, paddingHorizontal: 6, flexDirection: 'row', justifyContent: 'space-around', shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2, marginBottom: 7 },
   rc:      { alignItems: 'center' },
-  circle:  {
-    width: 64, height: 64, borderRadius: 32,
-    alignItems: 'center', justifyContent: 'center',
-    shadowOpacity: 0.4, shadowRadius: 8,
-    shadowOffset: { width: 0, height: 5 }, elevation: 5,
-    marginBottom: 6,
-  },
+  circle:  { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.4, shadowRadius: 8, shadowOffset: { width: 0, height: 5 }, elevation: 5, marginBottom: 6 },
   rcLabel: { fontSize: 11, fontWeight: '700', color: '#1a1a3e', textAlign: 'center', lineHeight: 15 },
-
-  kookyCard: {
-    backgroundColor: '#0a2a6e',
-    borderRadius: 20, padding: 12,
-    flexDirection: 'row', alignItems: 'center',
-    overflow: 'hidden', position: 'relative',
-    borderWidth: 1.5, borderColor: 'rgba(80,140,255,0.25)',
-    shadowColor: '#0a2a6e', shadowOpacity: 0.4,
-    shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 6,
-    marginBottom: 7,
-  },
-  kOrb1: {
-    position: 'absolute', top: -30, right: -30,
-    width: 130, height: 130, borderRadius: 65,
-    backgroundColor: 'rgba(80,140,255,0.12)',
-  },
-  kOrb2: {
-    position: 'absolute', bottom: -25, left: -20,
-    width: 100, height: 100, borderRadius: 50,
-    backgroundColor: 'rgba(30,80,200,0.15)',
-  },
+  kookyCard: { backgroundColor: '#0a2a6e', borderRadius: 20, padding: 12, flexDirection: 'row', alignItems: 'center', overflow: 'hidden', position: 'relative', borderWidth: 1.5, borderColor: 'rgba(80,140,255,0.25)', shadowColor: '#0a2a6e', shadowOpacity: 0.4, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 6, marginBottom: 7 },
+  kOrb1: { position: 'absolute', top: -30, right: -30, width: 130, height: 130, borderRadius: 65, backgroundColor: 'rgba(80,140,255,0.12)' },
+  kOrb2: { position: 'absolute', bottom: -25, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(30,80,200,0.15)' },
   kRobot: { width: 92, alignItems: 'center', justifyContent: 'center', zIndex: 2, marginRight: 12 },
   kText:  { flex: 1, zIndex: 2 },
-
-  kLivePill: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(100,160,255,0.15)',
-    borderWidth: 1, borderColor: 'rgba(100,160,255,0.3)',
-    borderRadius: 20, paddingVertical: 3, paddingHorizontal: 9,
-    alignSelf: 'flex-start', marginBottom: 7,
-  },
+  kLivePill: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(100,160,255,0.15)', borderWidth: 1, borderColor: 'rgba(100,160,255,0.3)', borderRadius: 20, paddingVertical: 3, paddingHorizontal: 9, alignSelf: 'flex-start', marginBottom: 7 },
   kLiveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#60aaff', marginRight: 5 },
   kLiveTxt: { fontSize: 9, fontWeight: '700', color: '#90c8ff', letterSpacing: 0.5, textTransform: 'uppercase' },
-
   kName: { fontSize: 24, fontWeight: '900', lineHeight: 24, letterSpacing: -0.5 },
-
   kBracket:     { flexDirection: 'row', alignItems: 'center', marginTop: 5, marginBottom: 8 },
   kBracketLine: { flex: 1, height: 2, maxWidth: 80, backgroundColor: 'rgba(100,180,255,0.55)', borderRadius: 2, marginHorizontal: 4 },
   kBracketTick: { width: 2, height: 7, backgroundColor: 'rgba(100,180,255,0.6)', borderRadius: 2 },
-
   kSub: { fontSize: 11, color: '#8ab4e8', lineHeight: 17, marginBottom: 12 },
-
-  kBtn: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#3d7fff',
-    borderRadius: 22, paddingVertical: 8, paddingHorizontal: 18,
-    alignSelf: 'flex-start',
-    elevation: 4,
-  },
+  kBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#3d7fff', borderRadius: 22, paddingVertical: 8, paddingHorizontal: 18, alignSelf: 'flex-start', elevation: 4 },
   kBtnText: { color: '#fff', fontSize: 12, fontWeight: '700', marginLeft: 7 },
 });
