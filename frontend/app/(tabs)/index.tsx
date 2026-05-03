@@ -11,7 +11,7 @@ import Svg, {
 import { useAuth } from '@/contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { PremiumUpgradeScreen } from './active-trades';
+router.push('/(home)/portfolio-stocks');
 
 interface ClosedTrade {
   id: string;
