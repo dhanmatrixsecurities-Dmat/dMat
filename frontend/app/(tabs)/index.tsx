@@ -191,7 +191,7 @@ const handlePortfolioStocksPress = () => {
     if (userData?.status === 'FREE') {
       setShowUpgrade(true);
     } else {
-      router.push('/(tabs)/portfolio-stocks');
+      router.push('/portfolio-stocks');
     }
   };
 
