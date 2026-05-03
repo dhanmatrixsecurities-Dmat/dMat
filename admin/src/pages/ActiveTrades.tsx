@@ -422,12 +422,6 @@ export default function AdminActiveTrades() {
                 <MenuItem value="Equity">Equity</MenuItem>
                 <MenuItem value="Futures">Futures</MenuItem>
                 <MenuItem value="Options">Options</MenuItem>
-                <MenuItem value="Portfolio">
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Box sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#1a6030' }} />
-                    Portfolio / Long Term
-                  </Box>
-                </MenuItem>
               </Select>
             </FormControl>
 
