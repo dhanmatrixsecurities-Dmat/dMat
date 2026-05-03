@@ -187,9 +187,11 @@ export default function HomeScreen() {
     { label: 'Options', stats: options, color: '#8b5cf6', trackColor: '#f0eaff', borderColor: '#8b5cf6' },
   ];
 
-  const handlePortfolioStocksPress = () => {
+const handlePortfolioStocksPress = () => {
     if (userData?.status === 'FREE') {
       setShowUpgrade(true);
+    } else {
+      router.push('/(tabs)/portfolio-stocks');
     }
   };
 
