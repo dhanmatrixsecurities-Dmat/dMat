@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { StatusBar } from 'expo-status-bar';
+
 export default function TabLayout() {
   return (
     <>
@@ -26,10 +27,9 @@ export default function TabLayout() {
         }}
       >
         <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} /> }} />
-        <Tabs.Screen name="active-trades" options={{ title: 'Active Trad...', tabBarIcon: ({ color, size }) => <Ionicons name="pulse" size={size} color={color} /> }} />
-        <Tabs.Screen name="closed-trades" options={{ title: 'Closed Tra...', tabBarIcon: ({ color, size }) => <Ionicons name="checkmark-done" size={size} color={color} /> }} />
+        <Tabs.Screen name="active-trades" options={{ title: 'Active Trades', tabBarIcon: ({ color, size }) => <Ionicons name="pulse" size={size} color={color} /> }} />
+        <Tabs.Screen name="closed-trades" options={{ title: 'Closed Trades', tabBarIcon: ({ color, size }) => <Ionicons name="checkmark-done" size={size} color={color} /> }} />
         <Tabs.Screen name="ajeeb" options={{ title: '🤖 ai', headerTitle: 'Kooky ai', tabBarIcon: ({ color, size }) => <Ionicons name="sparkles" size={size} color={color} />, tabBarLabelStyle: { fontSize: 11, fontWeight: '600' } }} />
-        <Tabs.Screen name="portfolio-stocks" options={{ tabBarButton: () => null, title: 'Portfolio Stocks' }} />
         <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} /> }} />
       </Tabs>
     </>
