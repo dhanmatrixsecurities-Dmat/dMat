@@ -50,8 +50,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const notificationListener = useRef<Notifications.Subscription>();
-  const responseListener = useRef<Notifications.Subscription>();
+  const notificationListener = useRef<any>();
+  const responseListener = useRef<any>();
   const userDataUnsubscribeRef = useRef<(() => void) | null>(null);
 
   const registerForPushNotifications = async () => {
@@ -126,9 +126,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => {
-  notificationListener.current?.remove();
-  responseListener.current?.remove();
-};
+      try { notificationListener.current?.remove(); } catch (e) {}
+      try { responseListener.current?.remove(); } catch (e) {}
+    };
   }, []);
 
   useEffect(() => {
@@ -141,8 +141,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (userDoc.exists()) {
           const data = userDoc.data() as UserData;
-
-          // ✅ FIX: Set userData immediately so tabs render correctly on login
           setUserData(data);
 
           const updates: Partial<UserData> = {};
