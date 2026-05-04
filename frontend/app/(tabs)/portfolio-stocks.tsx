@@ -7,7 +7,13 @@ import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
-import { PremiumUpgradeScreen } from './active-trades';
+if (userData?.status === 'FREE') return (
+  <View style={s.center}>
+    <Ionicons name="lock-closed" size={64} color="#f97316" />
+    <Text style={[s.emptyTitle, { color: '#f97316' }]}>Premium Only</Text>
+    <Text style={s.emptySub}>Contact admin to upgrade your subscription</Text>
+  </View>
+);
 
 interface PortfolioStock {
   id: string;
