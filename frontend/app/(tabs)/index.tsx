@@ -107,6 +107,138 @@ const TickerChip = () => (
   </View>
 );
 
+// ── PORTFOLIO STOCKS CARD — rocket launch once on mount ───────────────────────
+const PortfolioCard = ({ onPress, isFree }: { onPress: () => void; isFree: boolean }) => {
+  // Rocket circle launches up then settles — runs ONCE on mount
+  const rocketY     = useRef(new Animated.Value(0)).current;
+  const rocketScale = useRef(new Animated.Value(1)).current;
+  const arrowY      = useRef(new Animated.Value(0)).current;  // arrow bounces up
+
+  useEffect(() => {
+    // 1. Rocket launches up, shrinks slightly, then returns — one shot
+    Animated.sequence([
+      Animated.delay(600),
+      Animated.parallel([
+        Animated.timing(rocketY,     { toValue: -18, duration: 380, useNativeDriver: true }),
+        Animated.timing(rocketScale, { toValue: 0.88, duration: 380, useNativeDriver: true }),
+      ]),
+      Animated.parallel([
+        Animated.spring(rocketY,     { toValue: 0, friction: 5, tension: 80, useNativeDriver: true }),
+        Animated.spring(rocketScale, { toValue: 1, friction: 5, tension: 80, useNativeDriver: true }),
+      ]),
+    ]).start();
+
+    // 2. Arrow inside SVG bounces up continuously (subtle)
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(arrowY, { toValue: -3, duration: 500, useNativeDriver: true }),
+        Animated.timing(arrowY, { toValue: 0,  duration: 500, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+
+  return (
+    <TouchableOpacity style={s.rc} activeOpacity={0.82} onPress={onPress}>
+      <Animated.View style={{ transform: [{ translateY: rocketY }, { scale: rocketScale }] }}>
+        <View style={[s.circle, { backgroundColor: '#1a6030', shadowColor: '#1a6030' }]}>
+          {isFree ? (
+            <Text style={{ fontSize: 28 }}>🔒</Text>
+          ) : (
+            <Animated.View style={{ transform: [{ translateY: arrowY }] }}>
+              <Svg width={32} height={32} viewBox="0 0 34 34" fill="none">
+                <Polyline points="4,25 11,14 17,19 26,8" stroke="#c8f5d0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                <Polyline points="21,8 26,8 26,13" stroke="#c8f5d0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                <Circle cx="11" cy="14" r="2" fill="#c8f5d0" />
+                <Circle cx="17" cy="19" r="2" fill="#c8f5d0" />
+                <Circle cx="26" cy="8"  r="2" fill="#c8f5d0" />
+              </Svg>
+            </Animated.View>
+          )}
+        </View>
+      </Animated.View>
+      <Text style={s.rcLabel}>Portfolio{'\n'}Stocks</Text>
+    </TouchableOpacity>
+  );
+};
+
+// ── MUTUAL FUND CARD — pie spin animation ─────────────────────────────────────
+const MutualFundCard = () => {
+  const spinAnim  = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    // Circle pulses once on mount
+    Animated.sequence([
+      Animated.delay(900),
+      Animated.timing(pulseAnim, { toValue: 1.18, duration: 280, useNativeDriver: true }),
+      Animated.spring(pulseAnim, { toValue: 1, friction: 5, tension: 80, useNativeDriver: true }),
+    ]).start();
+
+    // Pie sector rotates continuously — slow gentle spin
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(spinAnim, { toValue: 1,  duration: 2200, useNativeDriver: true }),
+        Animated.timing(spinAnim, { toValue: 0,  duration: 2200, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+
+  const rotatePie = spinAnim.interpolate({
+    inputRange:  [0, 1],
+    outputRange: ['0deg', '30deg'],
+  });
+
+  return (
+    <TouchableOpacity style={s.rc} activeOpacity={0.82}>
+      <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+        <View style={[s.circle, { backgroundColor: '#8c5000', shadowColor: '#8c5000' }]}>
+          <Animated.View style={{ transform: [{ rotate: rotatePie }] }}>
+            <Svg width={32} height={32} viewBox="0 0 34 34" fill="none">
+              <Circle cx="17" cy="18" r="10" fill="none" stroke="#ffd080" strokeWidth="2.2" />
+              <Path d="M17 18 L17 8 A10 10 0 0 1 25.66 23 Z" fill="#ffd080" opacity="0.85" />
+              <Path d="M17 18 L25.66 23 A10 10 0 0 1 8.34 23 Z" fill="#ffd080" opacity="0.45" />
+              <Line x1="17" y1="5" x2="17" y2="8" stroke="#ffd080" strokeWidth="2" strokeLinecap="round" />
+            </Svg>
+          </Animated.View>
+        </View>
+      </Animated.View>
+      <Text style={s.rcLabel}>Mutual{'\n'}Funds</Text>
+    </TouchableOpacity>
+  );
+};
+
+// ── IPO CARD — simple float up animation ─────────────────────────────────────
+const IpoCard = ({ onPress }: { onPress: () => void }) => {
+  const floatAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, { toValue: -4, duration: 900, useNativeDriver: true }),
+        Animated.timing(floatAnim, { toValue: 0,  duration: 900, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+
+  return (
+    <TouchableOpacity style={s.rc} onPress={onPress} activeOpacity={0.82}>
+      <Animated.View style={{ transform: [{ translateY: floatAnim }] }}>
+        <View style={[s.circle, { backgroundColor: '#1030a0', shadowColor: '#1030a0' }]}>
+          <Svg width={32} height={32} viewBox="0 0 34 34" fill="none">
+            <Path d="M17 6C17 6 22 10 22 17L17 20L12 17C12 10 17 6 17 6Z" fill="#a0c4ff" />
+            <Path d="M12 17L10 22L14 20Z" fill="#80aaff" />
+            <Path d="M22 17L24 22L20 20Z" fill="#80aaff" />
+            <Circle cx="17" cy="15" r="2.5" fill="#0b1e5c" />
+            <Line x1="14" y1="22" x2="20" y2="22" stroke="#a0c4ff" strokeWidth="1.8" strokeLinecap="round" />
+            <Line x1="15.5" y1="25" x2="18.5" y2="25" stroke="#a0c4ff" strokeWidth="1.5" strokeLinecap="round" />
+          </Svg>
+        </View>
+      </Animated.View>
+      <Text style={s.rcLabel}>IPO</Text>
+    </TouchableOpacity>
+  );
+};
+
 export default function HomeScreen() {
   const { userData } = useAuth();
   const router = useRouter();
@@ -277,49 +409,19 @@ export default function HomeScreen() {
           ))}
         </View>
 
+        {/* ── Round cards with animations ── */}
         <View style={s.roundRow}>
-          <TouchableOpacity style={s.rc} activeOpacity={0.82} onPress={handlePortfolioStocksPress}>
-            <View style={[s.circle, { backgroundColor: '#1a6030', shadowColor: '#1a6030' }]}>
-              {userData?.status === 'FREE' ? (
-                <Text style={{ fontSize: 28 }}>🔒</Text>
-              ) : (
-                <Svg width={32} height={32} viewBox="0 0 34 34" fill="none">
-                  <Polyline points="4,25 11,14 17,19 26,8" stroke="#c8f5d0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                  <Polyline points="21,8 26,8 26,13" stroke="#c8f5d0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                  <Circle cx="11" cy="14" r="2" fill="#c8f5d0" />
-                  <Circle cx="17" cy="19" r="2" fill="#c8f5d0" />
-                  <Circle cx="26" cy="8"  r="2" fill="#c8f5d0" />
-                </Svg>
-              )}
-            </View>
-            <Text style={s.rcLabel}>Portfolio{'\n'}Stocks</Text>
-          </TouchableOpacity>
+          {/* Portfolio — rocket launch once + arrow bouncing up */}
+          <PortfolioCard
+            onPress={handlePortfolioStocksPress}
+            isFree={userData?.status === 'FREE'}
+          />
 
-          <TouchableOpacity style={s.rc} activeOpacity={0.82}>
-            <View style={[s.circle, { backgroundColor: '#8c5000', shadowColor: '#8c5000' }]}>
-              <Svg width={32} height={32} viewBox="0 0 34 34" fill="none">
-                <Circle cx="17" cy="18" r="10" fill="none" stroke="#ffd080" strokeWidth="2.2" />
-                <Path d="M17 18 L17 8 A10 10 0 0 1 25.66 23 Z" fill="#ffd080" opacity="0.85" />
-                <Path d="M17 18 L25.66 23 A10 10 0 0 1 8.34 23 Z" fill="#ffd080" opacity="0.45" />
-                <Line x1="17" y1="5" x2="17" y2="8" stroke="#ffd080" strokeWidth="2" strokeLinecap="round" />
-              </Svg>
-            </View>
-            <Text style={s.rcLabel}>Mutual{'\n'}Funds</Text>
-          </TouchableOpacity>
+          {/* Mutual Fund — pie spin + pulse on mount */}
+          <MutualFundCard />
 
-          <TouchableOpacity style={s.rc} onPress={() => Linking.openURL('https://www.nseindia.com/market-data/all-upcoming-issues-ipo')} activeOpacity={0.82}>
-            <View style={[s.circle, { backgroundColor: '#1030a0', shadowColor: '#1030a0' }]}>
-              <Svg width={32} height={32} viewBox="0 0 34 34" fill="none">
-                <Path d="M17 6C17 6 22 10 22 17L17 20L12 17C12 10 17 6 17 6Z" fill="#a0c4ff" />
-                <Path d="M12 17L10 22L14 20Z" fill="#80aaff" />
-                <Path d="M22 17L24 22L20 20Z" fill="#80aaff" />
-                <Circle cx="17" cy="15" r="2.5" fill="#0b1e5c" />
-                <Line x1="14" y1="22" x2="20" y2="22" stroke="#a0c4ff" strokeWidth="1.8" strokeLinecap="round" />
-                <Line x1="15.5" y1="25" x2="18.5" y2="25" stroke="#a0c4ff" strokeWidth="1.5" strokeLinecap="round" />
-              </Svg>
-            </View>
-            <Text style={s.rcLabel}>IPO</Text>
-          </TouchableOpacity>
+          {/* IPO — gentle float */}
+          <IpoCard onPress={() => Linking.openURL('https://www.nseindia.com/market-data/all-upcoming-issues-ipo')} />
         </View>
 
         <TouchableOpacity style={s.kookyCard} onPress={() => router.push('/(tabs)/ajeeb')} activeOpacity={0.88}>
