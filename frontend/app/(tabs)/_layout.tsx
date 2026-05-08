@@ -21,18 +21,24 @@ export default function TabLayout() {
             fontSize: 10,
             fontWeight: '600',
           },
+          // ── THIS removes the v7 circle/pill indicator behind active tab ──
+          tabBarActiveIndicatorStyle: {
+            backgroundColor: 'transparent',
+          },
           headerStyle: { backgroundColor: Colors.primary },
           headerTintColor: Colors.secondary,
           headerTitleStyle: { fontWeight: 'bold', fontSize: 20 },
         }}
       >
-        {/* HOME — headerShown: false so our custom navy header shows */}
+        {/* HOME — headerShown: false removes the "Home" title */}
         <Tabs.Screen
           name="index"
           options={{
             title: 'Home',
             headerShown: false,
-            tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="home" size={size} color={color} />
+            ),
           }}
         />
 
@@ -40,7 +46,9 @@ export default function TabLayout() {
           name="active-trades"
           options={{
             title: 'Active Trades',
-            tabBarIcon: ({ color, size }) => <Ionicons name="pulse" size={size} color={color} />,
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="pulse" size={size} color={color} />
+            ),
           }}
         />
 
@@ -48,19 +56,21 @@ export default function TabLayout() {
           name="closed-trades"
           options={{
             title: 'Closed Trades',
-            tabBarIcon: ({ color, size }) => <Ionicons name="checkmark-done" size={size} color={color} />,
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="checkmark-done" size={size} color={color} />
+            ),
           }}
         />
 
-        {/* AJEEB — headerShown: false so KookyLogo topHeader shows,
-            title has NO emoji (removes extra height gap),
-            fontSize matches all other tabs (10 not 11) */}
+        {/* AJEEB — headerShown: false so KookyLogo topHeader shows */}
         <Tabs.Screen
           name="ajeeb"
           options={{
-            title: 'ai',
+            title: '🤖 ai',
             headerShown: false,
-            tabBarIcon: ({ color, size }) => <Ionicons name="sparkles" size={size} color={color} />,
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="sparkles" size={size} color={color} />
+            ),
             tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
           }}
         />
@@ -78,7 +88,9 @@ export default function TabLayout() {
           name="profile"
           options={{
             title: 'Profile',
-            tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />,
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="person" size={size} color={color} />
+            ),
           }}
         />
       </Tabs>
