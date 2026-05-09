@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator, Animated,
-  TouchableOpacity, Linking, ScrollView, Modal,
+  TouchableOpacity, Linking, ScrollView, Modal, Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import Svg, {
@@ -107,19 +108,16 @@ const TickerChip = () => (
   </View>
 );
 
-// ── PORTFOLIO STOCKS CARD — rocket launch once on mount ───────────────────────
+// ── Portfolio Stocks — rocket launches once, arrow bounces ──
 const PortfolioCard = ({ onPress, isFree }: { onPress: () => void; isFree: boolean }) => {
-  // Rocket circle launches up then settles — runs ONCE on mount
   const rocketY     = useRef(new Animated.Value(0)).current;
   const rocketScale = useRef(new Animated.Value(1)).current;
-  const arrowY      = useRef(new Animated.Value(0)).current;  // arrow bounces up
-
+  const arrowY      = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    // 1. Rocket launches up, shrinks slightly, then returns — one shot
     Animated.sequence([
       Animated.delay(600),
       Animated.parallel([
-        Animated.timing(rocketY,     { toValue: -18, duration: 380, useNativeDriver: true }),
+        Animated.timing(rocketY,     { toValue: -18,  duration: 380, useNativeDriver: true }),
         Animated.timing(rocketScale, { toValue: 0.88, duration: 380, useNativeDriver: true }),
       ]),
       Animated.parallel([
@@ -127,16 +125,11 @@ const PortfolioCard = ({ onPress, isFree }: { onPress: () => void; isFree: boole
         Animated.spring(rocketScale, { toValue: 1, friction: 5, tension: 80, useNativeDriver: true }),
       ]),
     ]).start();
-
-    // 2. Arrow inside SVG bounces up continuously (subtle)
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(arrowY, { toValue: -3, duration: 500, useNativeDriver: true }),
-        Animated.timing(arrowY, { toValue: 0,  duration: 500, useNativeDriver: true }),
-      ])
-    ).start();
+    Animated.loop(Animated.sequence([
+      Animated.timing(arrowY, { toValue: -3, duration: 500, useNativeDriver: true }),
+      Animated.timing(arrowY, { toValue: 0,  duration: 500, useNativeDriver: true }),
+    ])).start();
   }, []);
-
   return (
     <TouchableOpacity style={s.rc} activeOpacity={0.82} onPress={onPress}>
       <Animated.View style={{ transform: [{ translateY: rocketY }, { scale: rocketScale }] }}>
@@ -161,33 +154,22 @@ const PortfolioCard = ({ onPress, isFree }: { onPress: () => void; isFree: boole
   );
 };
 
-// ── MUTUAL FUND CARD — pie spin animation ─────────────────────────────────────
+// ── Mutual Fund — pie spins, pulses once ──
 const MutualFundCard = () => {
   const spinAnim  = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
-
   useEffect(() => {
-    // Circle pulses once on mount
     Animated.sequence([
       Animated.delay(900),
       Animated.timing(pulseAnim, { toValue: 1.18, duration: 280, useNativeDriver: true }),
       Animated.spring(pulseAnim, { toValue: 1, friction: 5, tension: 80, useNativeDriver: true }),
     ]).start();
-
-    // Pie sector rotates continuously — slow gentle spin
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(spinAnim, { toValue: 1,  duration: 2200, useNativeDriver: true }),
-        Animated.timing(spinAnim, { toValue: 0,  duration: 2200, useNativeDriver: true }),
-      ])
-    ).start();
+    Animated.loop(Animated.sequence([
+      Animated.timing(spinAnim, { toValue: 1, duration: 2200, useNativeDriver: true }),
+      Animated.timing(spinAnim, { toValue: 0, duration: 2200, useNativeDriver: true }),
+    ])).start();
   }, []);
-
-  const rotatePie = spinAnim.interpolate({
-    inputRange:  [0, 1],
-    outputRange: ['0deg', '30deg'],
-  });
-
+  const rotatePie = spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '30deg'] });
   return (
     <TouchableOpacity style={s.rc} activeOpacity={0.82}>
       <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
@@ -203,38 +185,6 @@ const MutualFundCard = () => {
         </View>
       </Animated.View>
       <Text style={s.rcLabel}>Mutual{'\n'}Funds</Text>
-    </TouchableOpacity>
-  );
-};
-
-// ── IPO CARD — simple float up animation ─────────────────────────────────────
-const IpoCard = ({ onPress }: { onPress: () => void }) => {
-  const floatAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(floatAnim, { toValue: -4, duration: 900, useNativeDriver: true }),
-        Animated.timing(floatAnim, { toValue: 0,  duration: 900, useNativeDriver: true }),
-      ])
-    ).start();
-  }, []);
-
-  return (
-    <TouchableOpacity style={s.rc} onPress={onPress} activeOpacity={0.82}>
-      <Animated.View style={{ transform: [{ translateY: floatAnim }] }}>
-        <View style={[s.circle, { backgroundColor: '#1030a0', shadowColor: '#1030a0' }]}>
-          <Svg width={32} height={32} viewBox="0 0 34 34" fill="none">
-            <Path d="M17 6C17 6 22 10 22 17L17 20L12 17C12 10 17 6 17 6Z" fill="#a0c4ff" />
-            <Path d="M12 17L10 22L14 20Z" fill="#80aaff" />
-            <Path d="M22 17L24 22L20 20Z" fill="#80aaff" />
-            <Circle cx="17" cy="15" r="2.5" fill="#0b1e5c" />
-            <Line x1="14" y1="22" x2="20" y2="22" stroke="#a0c4ff" strokeWidth="1.8" strokeLinecap="round" />
-            <Line x1="15.5" y1="25" x2="18.5" y2="25" stroke="#a0c4ff" strokeWidth="1.5" strokeLinecap="round" />
-          </Svg>
-        </View>
-      </Animated.View>
-      <Text style={s.rcLabel}>IPO</Text>
     </TouchableOpacity>
   );
 };
@@ -328,7 +278,8 @@ export default function HomeScreen() {
   ];
 
   return (
-    <View style={s.outer}>
+    // SafeAreaView handles status bar overlap on Android & iOS
+    <SafeAreaView style={s.outer} edges={['top']}>
       {showGreeting && <GreetingToast name={userData?.name || ''} />}
 
       <Modal visible={showUpgrade} animationType="slide" onRequestClose={() => setShowUpgrade(false)}>
@@ -340,6 +291,7 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
+      {/* HEADER */}
       <View style={s.header}>
         <View style={s.hdrRow}>
           <View>
@@ -409,19 +361,27 @@ export default function HomeScreen() {
           ))}
         </View>
 
-        {/* ── Round cards with animations ── */}
         <View style={s.roundRow}>
-          {/* Portfolio — rocket launch once + arrow bouncing up */}
-          <PortfolioCard
-            onPress={handlePortfolioStocksPress}
-            isFree={userData?.status === 'FREE'}
-          />
-
-          {/* Mutual Fund — pie spin + pulse on mount */}
+          <PortfolioCard onPress={handlePortfolioStocksPress} isFree={userData?.status === 'FREE'} />
           <MutualFundCard />
-
-          {/* IPO — gentle float */}
-          <IpoCard onPress={() => Linking.openURL('https://www.nseindia.com/market-data/all-upcoming-issues-ipo')} />
+          {/* IPO — completely plain, zero animation */}
+          <TouchableOpacity
+            style={s.rc}
+            onPress={() => Linking.openURL('https://www.nseindia.com/market-data/all-upcoming-issues-ipo')}
+            activeOpacity={0.82}
+          >
+            <View style={[s.circle, { backgroundColor: '#1030a0', shadowColor: '#1030a0' }]}>
+              <Svg width={32} height={32} viewBox="0 0 34 34" fill="none">
+                <Path d="M17 6C17 6 22 10 22 17L17 20L12 17C12 10 17 6 17 6Z" fill="#a0c4ff" />
+                <Path d="M12 17L10 22L14 20Z" fill="#80aaff" />
+                <Path d="M22 17L24 22L20 20Z" fill="#80aaff" />
+                <Circle cx="17" cy="15" r="2.5" fill="#0b1e5c" />
+                <Line x1="14" y1="22" x2="20" y2="22" stroke="#a0c4ff" strokeWidth="1.8" strokeLinecap="round" />
+                <Line x1="15.5" y1="25" x2="18.5" y2="25" stroke="#a0c4ff" strokeWidth="1.5" strokeLinecap="round" />
+              </Svg>
+            </View>
+            <Text style={s.rcLabel}>IPO</Text>
+          </TouchableOpacity>
         </View>
 
         <TouchableOpacity style={s.kookyCard} onPress={() => router.push('/(tabs)/ajeeb')} activeOpacity={0.88}>
@@ -487,7 +447,7 @@ export default function HomeScreen() {
 
         <View style={{ height: 20 }} />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -495,29 +455,29 @@ const s = StyleSheet.create({
   outer:   { flex: 1, backgroundColor: '#eef1f6' },
   loading: { flex: 1, backgroundColor: '#eef1f6', alignItems: 'center', justifyContent: 'center' },
   scroll:  { padding: 8, paddingBottom: 24 },
-  modalClose: { backgroundColor: '#001F3F', paddingHorizontal: 20, paddingVertical: 14, alignItems: 'flex-end' },
+  modalClose:     { backgroundColor: '#001F3F', paddingHorizontal: 20, paddingVertical: 14, alignItems: 'flex-end' },
   modalCloseText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   toast: { position: 'absolute', top: 10, left: 16, right: 16, zIndex: 999, backgroundColor: '#001F3F', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 8 },
   toastEmoji: { fontSize: 26, marginRight: 12 },
   toastText:  { fontSize: 15, fontWeight: '800', color: '#fff' },
   toastSub:   { fontSize: 11, color: '#a0b4cc', marginTop: 1 },
-  header: { paddingTop: 12, paddingHorizontal: 18, paddingBottom: 14, backgroundColor: '#0d1b3e' },
-  hdrRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 11 },
+  header:    { paddingHorizontal: 18, paddingTop: 12, paddingBottom: 14, backgroundColor: '#0d1b3e' },
+  hdrRow:    { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 11 },
   hdrHello:  { color: '#fff', fontSize: 18, fontWeight: '700', marginBottom: 2, lineHeight: 22 },
   hdrSub:    { color: 'rgba(180,200,255,0.65)', fontSize: 11, fontWeight: '400', lineHeight: 16 },
   hdrAccent: { color: '#4ecfa8', fontWeight: '500' },
-  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#3b7ef8', alignItems: 'center', justifyContent: 'center' },
+  avatar:    { width: 36, height: 36, borderRadius: 18, backgroundColor: '#3b7ef8', alignItems: 'center', justifyContent: 'center' },
   avatarTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  tickerPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.13)', borderRadius: 40, paddingVertical: 6, paddingHorizontal: 12, overflow: 'hidden' },
-  tickerIcon: { width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(78,207,168,0.18)', borderWidth: 1, borderColor: 'rgba(78,207,168,0.5)', alignItems: 'center', justifyContent: 'center', marginRight: 8 },
-  tickerTag: { fontSize: 9.5, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', color: '#4ecfa8', marginRight: 8 },
-  tickerTrack:  { flex: 1, overflow: 'hidden', height: 24 },
-  tickerInner:  { flexDirection: 'row', alignItems: 'center', position: 'absolute' },
-  chipWrap:     { marginRight: 12 },
-  chip: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(78,207,168,0.13)', borderWidth: 1, borderColor: 'rgba(78,207,168,0.28)', borderRadius: 20, paddingVertical: 3, paddingHorizontal: 9 },
-  chipDot:  { width: 4, height: 4, borderRadius: 2, backgroundColor: '#4ecfa8', marginRight: 5 },
-  chipText: { fontSize: 10, fontWeight: '700', color: '#4ecfa8' },
-  perfCard: { backgroundColor: '#fff', borderRadius: 16, padding: 10, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3, marginBottom: 7 },
+  tickerPill:  { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.13)', borderRadius: 40, paddingVertical: 6, paddingHorizontal: 12, overflow: 'hidden' },
+  tickerIcon:  { width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(78,207,168,0.18)', borderWidth: 1, borderColor: 'rgba(78,207,168,0.5)', alignItems: 'center', justifyContent: 'center', marginRight: 8 },
+  tickerTag:   { fontSize: 9.5, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', color: '#4ecfa8', marginRight: 8 },
+  tickerTrack: { flex: 1, overflow: 'hidden', height: 24 },
+  tickerInner: { flexDirection: 'row', alignItems: 'center', position: 'absolute' },
+  chipWrap:    { marginRight: 12 },
+  chip:        { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(78,207,168,0.13)', borderWidth: 1, borderColor: 'rgba(78,207,168,0.28)', borderRadius: 20, paddingVertical: 3, paddingHorizontal: 9 },
+  chipDot:     { width: 4, height: 4, borderRadius: 2, backgroundColor: '#4ecfa8', marginRight: 5 },
+  chipText:    { fontSize: 10, fontWeight: '700', color: '#4ecfa8' },
+  perfCard:    { backgroundColor: '#fff', borderRadius: 16, padding: 10, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3, marginBottom: 7 },
   perfTitle:   { fontSize: 12, fontWeight: '600', color: '#1a1a3e', marginBottom: 7 },
   perfDivider: { width: '100%', height: 1, backgroundColor: '#f0f2f8', marginTop: 7, marginBottom: 7 },
   perfRow:     { flexDirection: 'row', width: '100%' },
@@ -525,32 +485,32 @@ const s = StyleSheet.create({
   perfLbl:     { fontSize: 9.5, color: '#999', marginBottom: 1 },
   perfVal:     { fontSize: 20, fontWeight: '700' },
   perfSep:     { width: 1, backgroundColor: '#f0f2f8' },
-  segRow:  { flexDirection: 'row', marginBottom: 7 },
-  segCard: { flex: 1, backgroundColor: '#fff', borderRadius: 13, padding: 7, alignItems: 'center', borderTopWidth: 3, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 5, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
-  segName:    { fontSize: 10, fontWeight: '600', color: '#1a1a3e', marginBottom: 3 },
-  segDivider: { width: '100%', height: 1, backgroundColor: '#f0f2f8', marginVertical: 4 },
-  segWL:      { flexDirection: 'row', width: '100%' },
-  segStat:    { flex: 1, alignItems: 'center' },
-  segVal:     { fontSize: 10.5, fontWeight: '700' },
-  segLbl:     { fontSize: 8, color: '#bbb' },
-  segSep:     { width: 1, backgroundColor: '#f0f2f8' },
-  roundRow: { backgroundColor: '#fff', borderRadius: 16, paddingVertical: 12, paddingHorizontal: 6, flexDirection: 'row', justifyContent: 'space-around', shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2, marginBottom: 7 },
-  rc:      { alignItems: 'center' },
-  circle:  { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.4, shadowRadius: 8, shadowOffset: { width: 0, height: 5 }, elevation: 5, marginBottom: 6 },
-  rcLabel: { fontSize: 11, fontWeight: '700', color: '#1a1a3e', textAlign: 'center', lineHeight: 15 },
-  kookyCard: { backgroundColor: '#0a2a6e', borderRadius: 20, padding: 12, flexDirection: 'row', alignItems: 'center', overflow: 'hidden', position: 'relative', borderWidth: 1.5, borderColor: 'rgba(80,140,255,0.25)', shadowColor: '#0a2a6e', shadowOpacity: 0.4, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 6, marginBottom: 7 },
-  kOrb1: { position: 'absolute', top: -30, right: -30, width: 130, height: 130, borderRadius: 65, backgroundColor: 'rgba(80,140,255,0.12)' },
-  kOrb2: { position: 'absolute', bottom: -25, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(30,80,200,0.15)' },
-  kRobot: { width: 92, alignItems: 'center', justifyContent: 'center', zIndex: 2, marginRight: 12 },
-  kText:  { flex: 1, zIndex: 2 },
-  kLivePill: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(100,160,255,0.15)', borderWidth: 1, borderColor: 'rgba(100,160,255,0.3)', borderRadius: 20, paddingVertical: 3, paddingHorizontal: 9, alignSelf: 'flex-start', marginBottom: 7 },
-  kLiveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#60aaff', marginRight: 5 },
-  kLiveTxt: { fontSize: 9, fontWeight: '700', color: '#90c8ff', letterSpacing: 0.5, textTransform: 'uppercase' },
-  kName: { fontSize: 24, fontWeight: '900', lineHeight: 24, letterSpacing: -0.5 },
-  kBracket:     { flexDirection: 'row', alignItems: 'center', marginTop: 5, marginBottom: 8 },
-  kBracketLine: { flex: 1, height: 2, maxWidth: 80, backgroundColor: 'rgba(100,180,255,0.55)', borderRadius: 2, marginHorizontal: 4 },
-  kBracketTick: { width: 2, height: 7, backgroundColor: 'rgba(100,180,255,0.6)', borderRadius: 2 },
-  kSub: { fontSize: 11, color: '#8ab4e8', lineHeight: 17, marginBottom: 12 },
-  kBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#3d7fff', borderRadius: 22, paddingVertical: 8, paddingHorizontal: 18, alignSelf: 'flex-start', elevation: 4 },
-  kBtnText: { color: '#fff', fontSize: 12, fontWeight: '700', marginLeft: 7 },
+  segRow:      { flexDirection: 'row', marginBottom: 7 },
+  segCard:     { flex: 1, backgroundColor: '#fff', borderRadius: 13, padding: 7, alignItems: 'center', borderTopWidth: 3, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 5, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
+  segName:     { fontSize: 10, fontWeight: '600', color: '#1a1a3e', marginBottom: 3 },
+  segDivider:  { width: '100%', height: 1, backgroundColor: '#f0f2f8', marginVertical: 4 },
+  segWL:       { flexDirection: 'row', width: '100%' },
+  segStat:     { flex: 1, alignItems: 'center' },
+  segVal:      { fontSize: 10.5, fontWeight: '700' },
+  segLbl:      { fontSize: 8, color: '#bbb' },
+  segSep:      { width: 1, backgroundColor: '#f0f2f8' },
+  roundRow:    { backgroundColor: '#fff', borderRadius: 16, paddingVertical: 12, paddingHorizontal: 6, flexDirection: 'row', justifyContent: 'space-around', shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2, marginBottom: 7 },
+  rc:          { alignItems: 'center' },
+  circle:      { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.4, shadowRadius: 8, shadowOffset: { width: 0, height: 5 }, elevation: 5, marginBottom: 6 },
+  rcLabel:     { fontSize: 11, fontWeight: '700', color: '#1a1a3e', textAlign: 'center', lineHeight: 15 },
+  kookyCard:   { backgroundColor: '#0a2a6e', borderRadius: 20, padding: 12, flexDirection: 'row', alignItems: 'center', overflow: 'hidden', position: 'relative', borderWidth: 1.5, borderColor: 'rgba(80,140,255,0.25)', shadowColor: '#0a2a6e', shadowOpacity: 0.4, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 6, marginBottom: 7 },
+  kOrb1:       { position: 'absolute', top: -30, right: -30, width: 130, height: 130, borderRadius: 65, backgroundColor: 'rgba(80,140,255,0.12)' },
+  kOrb2:       { position: 'absolute', bottom: -25, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(30,80,200,0.15)' },
+  kRobot:      { width: 92, alignItems: 'center', justifyContent: 'center', zIndex: 2, marginRight: 12 },
+  kText:       { flex: 1, zIndex: 2 },
+  kLivePill:   { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(100,160,255,0.15)', borderWidth: 1, borderColor: 'rgba(100,160,255,0.3)', borderRadius: 20, paddingVertical: 3, paddingHorizontal: 9, alignSelf: 'flex-start', marginBottom: 7 },
+  kLiveDot:    { width: 6, height: 6, borderRadius: 3, backgroundColor: '#60aaff', marginRight: 5 },
+  kLiveTxt:    { fontSize: 9, fontWeight: '700', color: '#90c8ff', letterSpacing: 0.5, textTransform: 'uppercase' },
+  kName:       { fontSize: 24, fontWeight: '900', lineHeight: 24, letterSpacing: -0.5 },
+  kBracket:    { flexDirection: 'row', alignItems: 'center', marginTop: 5, marginBottom: 8 },
+  kBracketLine:{ flex: 1, height: 2, maxWidth: 80, backgroundColor: 'rgba(100,180,255,0.55)', borderRadius: 2, marginHorizontal: 4 },
+  kBracketTick:{ width: 2, height: 7, backgroundColor: 'rgba(100,180,255,0.6)', borderRadius: 2 },
+  kSub:        { fontSize: 11, color: '#8ab4e8', lineHeight: 17, marginBottom: 12 },
+  kBtn:        { flexDirection: 'row', alignItems: 'center', backgroundColor: '#3d7fff', borderRadius: 22, paddingVertical: 8, paddingHorizontal: 18, alignSelf: 'flex-start', elevation: 4 },
+  kBtnText:    { color: '#fff', fontSize: 12, fontWeight: '700', marginLeft: 7 },
 });
