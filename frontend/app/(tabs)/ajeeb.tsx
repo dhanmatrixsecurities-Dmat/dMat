@@ -5,8 +5,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { PremiumUpgradeScreen } from './active-trades';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://your-vercel-app.vercel.app';
@@ -82,6 +82,8 @@ const logo = StyleSheet.create({
 
 export default function KookyScreen() {
   const { userData } = useAuth();
+  const theme = useTheme();
+
   const [messages, setMessages] = useState<Message[]>([{
     id: '0', role: 'assistant',
     text: 'Kooky online. Ask me anything about stocks, trading, or mutual funds.\n\nTip: Try "Analyze Reliance" or tap Portfolio to analyze your holdings.',
@@ -127,24 +129,26 @@ export default function KookyScreen() {
   if (portfolioMode) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: HEADER_BG }} edges={['top']}>
-        <KeyboardAvoidingView style={{ flex: 1, backgroundColor: Colors.background }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <View style={st.portfolioOverlay}>
+        <KeyboardAvoidingView style={{ flex: 1, backgroundColor: theme.background }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={[st.portfolioOverlay, { backgroundColor: theme.background }]}>
             <View style={st.portfolioHeader}>
-              <TouchableOpacity onPress={() => setPortfolioMode(false)} style={st.backBtn}>
-                <Ionicons name="arrow-back" size={20} color={Colors.text} />
+              <TouchableOpacity onPress={() => setPortfolioMode(false)} style={[st.backBtn, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+                <Ionicons name="arrow-back" size={20} color={theme.text} />
               </TouchableOpacity>
-              <Text style={st.portfolioTitle}>💼 Portfolio Analysis</Text>
+              <Text style={[st.portfolioTitle, { color: theme.text }]}>💼 Portfolio Analysis</Text>
               <View style={{ width: 36 }} />
             </View>
-            <View style={st.portfolioHintCard}>
-              <Text style={st.portfolioHintTitle}>HOW TO ENTER HOLDINGS</Text>
-              <Text style={st.portfolioHint}>
+            <View style={[st.portfolioHintCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+              <Text style={[st.portfolioHintTitle, { color: theme.textSecondary }]}>HOW TO ENTER HOLDINGS</Text>
+              <Text style={[st.portfolioHint, { color: theme.text }]}>
                 Reliance Industries - ₹50,000{'\n'}TCS - ₹30,000{'\n'}HDFC Bank - ₹20,000{'\n'}Infosys - ₹15,000
               </Text>
             </View>
-            <TextInput style={st.portfolioTextArea} value={portfolioInput} onChangeText={setPortfolioInput}
-              placeholder="Enter your stocks and amounts here..." placeholderTextColor={Colors.textSecondary}
-              multiline autoFocus />
+            <TextInput
+              style={[st.portfolioTextArea, { backgroundColor: theme.cardBackground, borderColor: theme.border, color: theme.text }]}
+              value={portfolioInput} onChangeText={setPortfolioInput}
+              placeholder="Enter your stocks and amounts here..."
+              placeholderTextColor={theme.textSecondary} multiline autoFocus />
             <TouchableOpacity style={st.portfolioSubmitBtn} onPress={sendPortfolioAnalysis}>
               <Ionicons name="analytics-outline" size={18} color="#fff" />
               <Text style={st.portfolioSubmitText}>Analyze My Portfolio</Text>
@@ -156,17 +160,13 @@ export default function KookyScreen() {
   }
 
   return (
-    // SafeAreaView dark only for top status bar inset
-    // Everything inside is Colors.background — no dark bleed on keyboard open
     <SafeAreaView style={{ flex: 1, backgroundColor: HEADER_BG }} edges={['top']}>
-      {/* This View covers everything below status bar with light bg */}
-      <View style={{ flex: 1, backgroundColor: Colors.background }}>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
         >
-          {/* Dark header */}
           <View style={st.topHeader}>
             <KookyLogo size="small" />
             <TouchableOpacity style={st.portfolioTopBtn} onPress={() => setPortfolioMode(true)}>
@@ -175,39 +175,44 @@ export default function KookyScreen() {
             </TouchableOpacity>
           </View>
 
-          <View style={st.agentBadge}>
+          <View style={[st.agentBadge, { backgroundColor: theme.cardBackground, borderBottomColor: theme.border }]}>
             <View style={st.statusDot} />
-            <Text style={st.agentBadgeText}>
+            <Text style={[st.agentBadgeText, { color: theme.textSecondary }]}>
               Kooky — Decoding the <Text style={st.moneyMatrix}>Money Matrix</Text>
             </Text>
           </View>
 
-          <ScrollView ref={scrollRef} style={st.messages}
+          <ScrollView ref={scrollRef} style={[st.messages, { backgroundColor: theme.background }]}
             contentContainerStyle={{ paddingVertical: 12, paddingBottom: 8 }}
             keyboardShouldPersistTaps="handled"
             onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
           >
             {messages.map(msg => (
-              <View key={msg.id} style={[st.bubble, msg.role === 'user' ? st.userBubble : st.botBubble]}>
-                {msg.role === 'assistant' && <Text style={st.senderLabel}>Kooky //</Text>}
-                <Text style={msg.role === 'user' ? st.userText : st.botText}>{msg.text}</Text>
+              <View key={msg.id} style={[
+                st.bubble,
+                msg.role === 'user'
+                  ? [st.userBubble, { backgroundColor: HEADER_BG }]
+                  : [st.botBubble, { backgroundColor: theme.cardBackground, borderColor: theme.border }],
+              ]}>
+                {msg.role === 'assistant' && <Text style={[st.senderLabel, { color: theme.textSecondary }]}>Kooky //</Text>}
+                <Text style={[msg.role === 'user' ? st.userText : st.botText, msg.role !== 'user' && { color: theme.text }]}>{msg.text}</Text>
               </View>
             ))}
             {loading && (
-              <View style={[st.bubble, st.botBubble]}>
-                <Text style={st.senderLabel}>Kooky //</Text>
+              <View style={[st.bubble, st.botBubble, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+                <Text style={[st.senderLabel, { color: theme.textSecondary }]}>Kooky //</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <ActivityIndicator size="small" color="#2979FF" />
-                  <Text style={st.loadingText}>Analyzing markets...</Text>
+                  <Text style={[st.loadingText, { color: theme.textSecondary }]}>Analyzing markets...</Text>
                 </View>
               </View>
             )}
             {showQuick && (
               <View style={st.quickWrap}>
-                <Text style={st.quickLabel}>QUICK ACTIONS</Text>
+                <Text style={[st.quickLabel, { color: theme.textSecondary }]}>QUICK ACTIONS</Text>
                 {QUICK_QUESTIONS.map(q => (
-                  <TouchableOpacity key={q} style={st.quickBtn} onPress={() => sendMessage(q)}>
-                    <Text style={st.quickBtnText}>{q}</Text>
+                  <TouchableOpacity key={q} style={[st.quickBtn, { backgroundColor: theme.cardBackground, borderColor: theme.border }]} onPress={() => sendMessage(q)}>
+                    <Text style={[st.quickBtnText, { color: theme.text }]}>{q}</Text>
                     <Ionicons name="arrow-forward" size={11} color="#2979FF" />
                   </TouchableOpacity>
                 ))}
@@ -215,15 +220,16 @@ export default function KookyScreen() {
             )}
           </ScrollView>
 
-          <View style={st.inputRow}>
+          <View style={[st.inputRow, { backgroundColor: theme.cardBackground, borderTopColor: theme.border }]}>
             <TouchableOpacity style={st.portfolioIconBtn} onPress={() => setPortfolioMode(true)}>
               <Ionicons name="pie-chart" size={18} color="#fff" />
             </TouchableOpacity>
-            <TextInput style={st.textInput} value={input} onChangeText={setInput}
-              placeholder="Ask Kooky about markets..." placeholderTextColor={Colors.textSecondary}
+            <TextInput
+              style={[st.textInput, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
+              value={input} onChangeText={setInput}
+              placeholder="Ask Kooky about markets..." placeholderTextColor={theme.textSecondary}
               onSubmitEditing={() => sendMessage()} returnKeyType="send" multiline={false} />
-            <TouchableOpacity style={[st.sendBtn, loading && st.sendBtnDisabled]}
-              onPress={() => sendMessage()} disabled={loading}>
+            <TouchableOpacity style={[st.sendBtn, loading && st.sendBtnDisabled]} onPress={() => sendMessage()} disabled={loading}>
               <Ionicons name="send" size={18} color="#fff" />
             </TouchableOpacity>
           </View>
@@ -235,37 +241,37 @@ export default function KookyScreen() {
 
 const st = StyleSheet.create({
   topHeader:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: HEADER_BG, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#173772' },
-  agentBadge:         { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.cardBackground, paddingHorizontal: 16, paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: Colors.border, gap: 8 },
+  agentBadge:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 9, borderBottomWidth: 1, gap: 8 },
   statusDot:          { width: 8, height: 8, borderRadius: 4, backgroundColor: '#00C853' },
-  agentBadgeText:     { fontSize: 12, color: Colors.textSecondary, fontWeight: '600', flex: 1 },
+  agentBadgeText:     { fontSize: 12, fontWeight: '600', flex: 1 },
   moneyMatrix:        { color: '#00C853', fontWeight: '700' },
   portfolioTopBtn:    { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1.5, borderColor: '#2979FF' },
   portfolioTopBtnText:{ fontSize: 11, color: '#4A9EFF', fontWeight: '700' },
   messages:           { flex: 1, paddingHorizontal: 12 },
   bubble:             { maxWidth: '82%', marginVertical: 4, padding: 12, borderRadius: 12 },
-  botBubble:          { alignSelf: 'flex-start', backgroundColor: Colors.cardBackground, borderWidth: 1, borderColor: Colors.border, borderTopLeftRadius: 4 },
-  userBubble:         { alignSelf: 'flex-end', backgroundColor: '#0B1A2E', borderTopRightRadius: 4 },
-  senderLabel:        { fontSize: 10, color: Colors.textSecondary, letterSpacing: 1, marginBottom: 4, fontWeight: '600' },
-  botText:            { fontSize: 13, color: Colors.text, lineHeight: 20 },
+  botBubble:          { alignSelf: 'flex-start', borderWidth: 1, borderTopLeftRadius: 4 },
+  userBubble:         { alignSelf: 'flex-end', borderTopRightRadius: 4 },
+  senderLabel:        { fontSize: 10, letterSpacing: 1, marginBottom: 4, fontWeight: '600' },
+  botText:            { fontSize: 13, lineHeight: 20 },
   userText:           { fontSize: 13, color: '#fff', lineHeight: 20 },
-  loadingText:        { fontSize: 12, color: Colors.textSecondary, fontStyle: 'italic' },
+  loadingText:        { fontSize: 12, fontStyle: 'italic' },
   quickWrap:          { marginTop: 12, paddingHorizontal: 4, gap: 6 },
-  quickLabel:         { fontSize: 9, color: Colors.textSecondary, letterSpacing: 2, fontWeight: '700', marginBottom: 2 },
-  quickBtn:           { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.cardBackground },
-  quickBtnText:       { fontSize: 12, color: Colors.text, fontWeight: '500' },
-  inputRow:           { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10, paddingVertical: 8, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cardBackground },
+  quickLabel:         { fontSize: 9, letterSpacing: 2, fontWeight: '700', marginBottom: 2 },
+  quickBtn:           { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, borderWidth: 1 },
+  quickBtnText:       { fontSize: 12, fontWeight: '500' },
+  inputRow:           { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10, paddingVertical: 8, borderTopWidth: 1 },
   portfolioIconBtn:   { width: 40, height: 40, borderRadius: 10, backgroundColor: '#2979FF', alignItems: 'center', justifyContent: 'center' },
-  textInput:          { flex: 1, height: 40, backgroundColor: Colors.background, borderRadius: 20, paddingHorizontal: 16, fontSize: 13, color: Colors.text, borderWidth: 1, borderColor: Colors.border },
+  textInput:          { flex: 1, height: 40, borderRadius: 20, paddingHorizontal: 16, fontSize: 13, borderWidth: 1 },
   sendBtn:            { width: 40, height: 40, borderRadius: 20, backgroundColor: '#0B1A2E', alignItems: 'center', justifyContent: 'center' },
   sendBtnDisabled:    { opacity: 0.5 },
-  portfolioOverlay:   { flex: 1, backgroundColor: Colors.background, padding: 16 },
+  portfolioOverlay:   { flex: 1, padding: 16 },
   portfolioHeader:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, marginTop: 8 },
-  backBtn:            { width: 36, height: 36, borderRadius: 10, backgroundColor: Colors.cardBackground, borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
-  portfolioTitle:     { fontSize: 17, fontWeight: '800', color: Colors.text },
-  portfolioHintCard:  { backgroundColor: Colors.cardBackground, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: Colors.border, marginBottom: 12 },
-  portfolioHintTitle: { fontSize: 10, fontWeight: '700', color: Colors.textSecondary, marginBottom: 6, letterSpacing: 1 },
-  portfolioHint:      { fontSize: 13, color: Colors.text, lineHeight: 22, fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace' },
-  portfolioTextArea:  { flex: 1, backgroundColor: Colors.cardBackground, borderRadius: 12, padding: 16, fontSize: 14, color: Colors.text, borderWidth: 1, borderColor: Colors.border, textAlignVertical: 'top', marginBottom: 12 },
+  backBtn:            { width: 36, height: 36, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  portfolioTitle:     { fontSize: 17, fontWeight: '800' },
+  portfolioHintCard:  { borderRadius: 12, padding: 14, borderWidth: 1, marginBottom: 12 },
+  portfolioHintTitle: { fontSize: 10, fontWeight: '700', marginBottom: 6, letterSpacing: 1 },
+  portfolioHint:      { fontSize: 13, lineHeight: 22, fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace' },
+  portfolioTextArea:  { flex: 1, borderRadius: 12, padding: 16, fontSize: 14, borderWidth: 1, textAlignVertical: 'top', marginBottom: 12 },
   portfolioSubmitBtn: { backgroundColor: '#2979FF', borderRadius: 12, paddingVertical: 15, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 8 },
   portfolioSubmitText:{ fontSize: 15, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
 });
