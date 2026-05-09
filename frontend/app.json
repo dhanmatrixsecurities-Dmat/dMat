@@ -30,7 +30,7 @@
       "permissions": ["NOTIFICATIONS", "RECEIVE_BOOT_COMPLETED", "VIBRATE"],
       "jsEngine": "hermes",
       "enableProguardInRelease": true,
-      "softwareKeyboardLayoutMode": "pan"
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "bundler": "metro",
