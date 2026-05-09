@@ -97,7 +97,6 @@ const GreetingToast = ({ name }: { name: string }) => {
   );
 };
 
-// ── Waving Hand ───────────────────────────────────────────────────────────────
 const WavingHand = () => {
   const rotate  = useRef(new Animated.Value(0)).current;
   const opacity = useRef(new Animated.Value(1)).current;
@@ -132,7 +131,7 @@ const TickerChip = () => (
   </View>
 );
 
-// ── Portfolio Stocks — wealth jar icon + rocket launch ────────────────────────
+// ── Portfolio — wealth jar icon ───────────────────────────────────────────────
 const PortfolioCard = ({ onPress, isFree }: { onPress: () => void; isFree: boolean }) => {
   const theme       = useTheme();
   const rocketY     = useRef(new Animated.Value(0)).current;
@@ -164,18 +163,12 @@ const PortfolioCard = ({ onPress, isFree }: { onPress: () => void; isFree: boole
           ) : (
             <Animated.View style={{ transform: [{ translateY: bounceY }] }}>
               <Svg width={32} height={32} viewBox="0 0 34 34" fill="none">
-                {/* Jar body */}
                 <Rect x="9" y="18" width="16" height="12" rx="3" fill="#a7f3d0" opacity="0.9" />
-                {/* Jar neck */}
                 <Rect x="11" y="15" width="12" height="4" rx="1.5" fill="#6ee7b7" />
-                {/* Jar lid */}
                 <Rect x="10" y="13" width="14" height="3" rx="1.5" fill="#34d399" />
-                {/* Coins inside */}
                 <Ellipse cx="17" cy="26" rx="5" ry="1.5" fill="#fbbf24" opacity="0.8" />
                 <Ellipse cx="17" cy="24" rx="4" ry="1.2" fill="#f59e0b" opacity="0.7" />
-                {/* Tree trunk */}
                 <Rect x="16" y="8" width="2" height="6" rx="1" fill="#4ade80" />
-                {/* Tree top */}
                 <Circle cx="17"   cy="7" r="4.5" fill="#22c55e" />
                 <Circle cx="13.5" cy="9" r="2.5" fill="#16a34a" />
                 <Circle cx="20.5" cy="9" r="2.5" fill="#16a34a" />
@@ -189,7 +182,6 @@ const PortfolioCard = ({ onPress, isFree }: { onPress: () => void; isFree: boole
   );
 };
 
-// ── Mutual Fund — pie spins ───────────────────────────────────────────────────
 const MutualFundCard = () => {
   const theme     = useTheme();
   const spinAnim  = useRef(new Animated.Value(0)).current;
@@ -225,7 +217,6 @@ const MutualFundCard = () => {
   );
 };
 
-// ── Moving Quotes ─────────────────────────────────────────────────────────────
 const QUOTES = [
   '❝ Be fearful when others are greedy, and be greedy when others are fearful ❞  — Warren Buffett     ',
   '❝ No loss is also a profit in trading ❞  — DhanMatrix     ',
@@ -370,10 +361,9 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* FIXED CONTENT — no ScrollView */}
+      {/* FIXED CONTENT */}
       <View style={[s.content, { backgroundColor: theme.background }]}>
 
-        {/* Overall Performance */}
         <View style={[s.perfCard, { backgroundColor: theme.cardBackground }]}>
           <Text style={[s.perfTitle, { color: theme.text }]}>Overall Performance</Text>
           <DonutGauge accuracy={overall.accuracy} size={72} strokeWidth={8} fillColor="#2563eb"
@@ -392,7 +382,6 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Segments */}
         <View style={s.segRow}>
           {segments.map((seg, idx) => (
             <View key={seg.label} style={[s.segCard, { borderTopColor: seg.borderColor, backgroundColor: theme.cardBackground }, idx < 2 && { marginRight: 5 }]}>
@@ -415,7 +404,6 @@ export default function HomeScreen() {
           ))}
         </View>
 
-        {/* Round cards */}
         <View style={[s.roundRow, { backgroundColor: theme.cardBackground }]}>
           <PortfolioCard onPress={handlePortfolioStocksPress} isFree={userData?.status === 'FREE'} />
           <MutualFundCard />
@@ -434,8 +422,8 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* KOOKY Card */}
-        <TouchableOpacity style={s.kookyCard} onPress={() => router.push('/(tabs)/ajeeb')} activeOpacity={0.88}>
+        {/* ── KOOKY — View only, NOT TouchableOpacity ─────────────── */}
+        <View style={s.kookyCard}>
           <View style={s.kOrb1} pointerEvents="none" />
           <View style={s.kOrb2} pointerEvents="none" />
           <Animated.View style={[s.kRobot, { transform: [{ translateY: robotFloat }] }]}>
@@ -482,17 +470,17 @@ export default function HomeScreen() {
               <View style={s.kBracketTick} /><View style={s.kBracketLine} /><View style={s.kBracketTick} />
             </View>
             <Text style={s.kSub}>Ask me anything about your portfolio and financial market.</Text>
-            <View style={s.kBtn}>
+            {/* ── Only this button navigates to AI page ── */}
+            <TouchableOpacity style={s.kBtn} onPress={() => router.push('/(tabs)/ajeeb')} activeOpacity={0.82}>
               <Svg width={13} height={13} viewBox="0 0 16 16" fill="none">
                 <Circle cx="8" cy="8" r="6.5" stroke="white" strokeWidth="1.5" />
                 <Path d="M5.5 8.5l2 2 3-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </Svg>
               <Text style={s.kBtnText}>Ask Me</Text>
-            </View>
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
+        </View>
 
-        {/* Moving Quotes */}
         <MovingQuotes bg={theme.quotesBg} textColor={theme.quotesText} />
       </View>
     </SafeAreaView>
@@ -500,10 +488,9 @@ export default function HomeScreen() {
 }
 
 const s = StyleSheet.create({
-  outer:    { flex: 1 },
-  loading:  { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  // Fixed content — flex: 1, no ScrollView
-  content:  { flex: 1, padding: 6, paddingBottom: 4 },
+  outer:   { flex: 1 },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  content: { flex: 1, padding: 6, paddingBottom: 4 },
   modalClose:     { backgroundColor: '#001F3F', paddingHorizontal: 20, paddingVertical: 14, alignItems: 'flex-end' },
   modalCloseText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   toast: { position: 'absolute', top: 10, left: 16, right: 16, zIndex: 999, backgroundColor: '#001F3F', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 8 },
@@ -513,7 +500,7 @@ const s = StyleSheet.create({
   header:    { paddingHorizontal: 18, paddingTop: 10, paddingBottom: 12 },
   hdrRow:    { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 9 },
   hdrHello:  { color: '#fff', fontSize: 18, fontWeight: '700', lineHeight: 22 },
-  hdrSub:    { color: 'rgba(180,200,255,0.65)', fontSize: 11, fontWeight: '400', lineHeight: 16, marginTop: 2 },
+  hdrSub:    { color: 'rgba(180,200,255,0.65)', fontSize: 11, lineHeight: 16, marginTop: 2 },
   hdrAccent: { color: '#4ecfa8', fontWeight: '500' },
   avatar:    { width: 36, height: 36, borderRadius: 18, backgroundColor: '#3b7ef8', alignItems: 'center', justifyContent: 'center' },
   avatarTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
@@ -547,6 +534,7 @@ const s = StyleSheet.create({
   rc:          { alignItems: 'center' },
   circle:      { width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.4, shadowRadius: 7, shadowOffset: { width: 0, height: 4 }, elevation: 4, marginBottom: 4 },
   rcLabel:     { fontSize: 10, fontWeight: '700', textAlign: 'center', lineHeight: 13 },
+  // ── KOOKY card is plain View, not touchable ──
   kookyCard:   { flex: 1, backgroundColor: '#0a2a6e', borderRadius: 16, padding: 10, flexDirection: 'row', alignItems: 'center', overflow: 'hidden', position: 'relative', borderWidth: 1.5, borderColor: 'rgba(80,140,255,0.25)', marginBottom: 5 },
   kOrb1:       { position: 'absolute', top: -25, right: -25, width: 110, height: 110, borderRadius: 55, backgroundColor: 'rgba(80,140,255,0.12)' },
   kOrb2:       { position: 'absolute', bottom: -20, left: -15, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(30,80,200,0.15)' },
