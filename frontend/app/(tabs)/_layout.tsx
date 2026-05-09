@@ -1,35 +1,38 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@/constants/Colors';
 import { StatusBar } from 'expo-status-bar';
+import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 
-export default function TabLayout() {
+// Inner layout — uses theme from ThemeProvider above it
+function TabLayoutInner() {
+  const theme = useTheme();
+
   return (
     <>
-      <StatusBar style="light" backgroundColor={Colors.primary} />
+      <StatusBar style="light" backgroundColor={theme.headerBg} />
       <Tabs
         initialRouteName="index"
         screenOptions={{
-          tabBarActiveTintColor: Colors.primary,
-          tabBarInactiveTintColor: Colors.textSecondary,
+          // Option D — active tab gets navy/blue block, white icons + label
+          tabBarActiveTintColor:       theme.tabActiveTint,
+          tabBarInactiveTintColor:     theme.tabInactiveTint,
+          tabBarActiveBackgroundColor: theme.tabActiveBg,
           tabBarStyle: {
-            backgroundColor: Colors.cardBackground,
+            backgroundColor: theme.tabBarBg,
             borderTopWidth: 1,
-            borderTopColor: Colors.border,
+            borderTopColor: theme.border,
           },
-          tabBarLabelStyle: {
-            fontSize: 10,
-            fontWeight: '600',
-          },
+          tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
+          // Block shape per tab item
           tabBarItemStyle: {
             flex: 1,
+            borderRadius: 10,
+            margin: 3,
           },
-          tabBarActiveIndicatorStyle: {
-            backgroundColor: 'transparent',
-            height: 0,
-          },
-          headerStyle: { backgroundColor: Colors.primary },
-          headerTintColor: Colors.secondary,
+          // Kill the v7 pill indicator
+          tabBarActiveIndicatorStyle: { backgroundColor: 'transparent', height: 0 },
+          headerStyle:      { backgroundColor: theme.headerBg },
+          headerTintColor:  '#ffffff',
           headerTitleStyle: { fontWeight: 'bold', fontSize: 20 },
         }}
       >
@@ -64,13 +67,9 @@ export default function TabLayout() {
             tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
           }}
         />
-        {/* href: null — completely excluded from tab bar, no space left */}
         <Tabs.Screen
           name="portfolio-stocks"
-          options={{
-            href: null,
-            title: 'Portfolio Stocks',
-          }}
+          options={{ href: null, title: 'Portfolio Stocks' }}
         />
         <Tabs.Screen
           name="profile"
@@ -81,5 +80,14 @@ export default function TabLayout() {
         />
       </Tabs>
     </>
+  );
+}
+
+// Wrap with ThemeProvider — all tab screens get the theme context
+export default function TabLayout() {
+  return (
+    <ThemeProvider>
+      <TabLayoutInner />
+    </ThemeProvider>
   );
 }
