@@ -23,7 +23,7 @@ const QUICK_QUESTIONS = [
   'SIP vs lump sum — which is better?',
 ];
 
-const AI_BG = '#0B1A2E'; // matches topHeader — kills white blur at top
+const HEADER_BG = '#0B1A2E';
 
 function KookyLogo({ size = 'large' }: { size?: 'small' | 'large' }) {
   const blink    = useRef(new Animated.Value(1)).current;
@@ -108,7 +108,7 @@ export default function KookyScreen() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: updatedMessages.map(m => ({ role: m.role, content: m.text })), user_id: null }),
       });
-      const data    = await response.json();
+      const data = await response.json();
       setMessages(prev => [...prev, { id: Date.now().toString() + 'b', role: 'assistant', text: data?.reply || 'Signal lost. Try again.' }]);
     } catch {
       setMessages(prev => [...prev, { id: Date.now().toString() + 'e', role: 'assistant', text: '📡 Signal lost. Check your connection and try again.' }]);
@@ -120,34 +120,34 @@ export default function KookyScreen() {
 
   const sendPortfolioAnalysis = () => {
     if (!portfolioInput.trim()) return;
-    const prompt = `Analyze my stock portfolio:\n${portfolioInput}`;
     setPortfolioMode(false); setPortfolioInput('');
-    sendMessage(prompt);
+    sendMessage(`Analyze my stock portfolio:\n${portfolioInput}`);
   };
 
   if (portfolioMode) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: AI_BG }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: HEADER_BG }} edges={['top']}>
         <KeyboardAvoidingView style={{ flex: 1, backgroundColor: Colors.background }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <View style={styles.portfolioOverlay}>
-            <View style={styles.portfolioHeader}>
-              <TouchableOpacity onPress={() => setPortfolioMode(false)} style={styles.backBtn}>
+          <View style={st.portfolioOverlay}>
+            <View style={st.portfolioHeader}>
+              <TouchableOpacity onPress={() => setPortfolioMode(false)} style={st.backBtn}>
                 <Ionicons name="arrow-back" size={20} color={Colors.text} />
               </TouchableOpacity>
-              <Text style={styles.portfolioTitle}>💼 Portfolio Analysis</Text>
+              <Text style={st.portfolioTitle}>💼 Portfolio Analysis</Text>
               <View style={{ width: 36 }} />
             </View>
-            <View style={styles.portfolioHintCard}>
-              <Text style={styles.portfolioHintTitle}>HOW TO ENTER HOLDINGS</Text>
-              <Text style={styles.portfolioHint}>
+            <View style={st.portfolioHintCard}>
+              <Text style={st.portfolioHintTitle}>HOW TO ENTER HOLDINGS</Text>
+              <Text style={st.portfolioHint}>
                 Reliance Industries - ₹50,000{'\n'}TCS - ₹30,000{'\n'}HDFC Bank - ₹20,000{'\n'}Infosys - ₹15,000
               </Text>
             </View>
-            <TextInput style={styles.portfolioTextArea} value={portfolioInput} onChangeText={setPortfolioInput}
-              placeholder="Enter your stocks and amounts here..." placeholderTextColor={Colors.textSecondary} multiline autoFocus />
-            <TouchableOpacity style={styles.portfolioSubmitBtn} onPress={sendPortfolioAnalysis}>
+            <TextInput style={st.portfolioTextArea} value={portfolioInput} onChangeText={setPortfolioInput}
+              placeholder="Enter your stocks and amounts here..." placeholderTextColor={Colors.textSecondary}
+              multiline autoFocus />
+            <TouchableOpacity style={st.portfolioSubmitBtn} onPress={sendPortfolioAnalysis}>
               <Ionicons name="analytics-outline" size={18} color="#fff" />
-              <Text style={styles.portfolioSubmitText}>Analyze My Portfolio</Text>
+              <Text style={st.portfolioSubmitText}>Analyze My Portfolio</Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -156,55 +156,57 @@ export default function KookyScreen() {
   }
 
   return (
-    // SafeAreaView bg = AI_BG (#0B1A2E) — no white gap at top
-    <SafeAreaView style={{ flex: 1, backgroundColor: AI_BG }} edges={['top']}>
+    // SafeAreaView bg = HEADER_BG only fills the status bar inset area
+    // All content below uses Colors.background (light)
+    <SafeAreaView style={{ flex: 1, backgroundColor: HEADER_BG }} edges={['top']}>
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={{ flex: 1, backgroundColor: Colors.background }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-        {/* KookyLogo header — seamless with status bar, no white */}
-        <View style={styles.topHeader}>
+        {/* Dark header with KookyLogo */}
+        <View style={st.topHeader}>
           <KookyLogo size="small" />
-          <TouchableOpacity style={styles.portfolioTopBtn} onPress={() => setPortfolioMode(true)}>
+          <TouchableOpacity style={st.portfolioTopBtn} onPress={() => setPortfolioMode(true)}>
             <Ionicons name="pie-chart" size={12} color="#fff" />
-            <Text style={styles.portfolioTopBtnText}>Portfolio</Text>
+            <Text style={st.portfolioTopBtnText}>Portfolio</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.agentBadge}>
-          <View style={styles.statusDot} />
-          <Text style={styles.agentBadgeText}>
-            Kooky — Decoding the <Text style={styles.moneyMatrix}>Money Matrix</Text>
+        {/* Light content below */}
+        <View style={st.agentBadge}>
+          <View style={st.statusDot} />
+          <Text style={st.agentBadgeText}>
+            Kooky — Decoding the <Text style={st.moneyMatrix}>Money Matrix</Text>
           </Text>
         </View>
 
-        <ScrollView ref={scrollRef} style={styles.messages}
+        <ScrollView ref={scrollRef} style={st.messages}
           contentContainerStyle={{ paddingVertical: 12, paddingBottom: 8 }}
           keyboardShouldPersistTaps="handled"
           onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
         >
           {messages.map(msg => (
-            <View key={msg.id} style={[styles.bubble, msg.role === 'user' ? styles.userBubble : styles.botBubble]}>
-              {msg.role === 'assistant' && <Text style={styles.senderLabel}>Kooky //</Text>}
-              <Text style={msg.role === 'user' ? styles.userText : styles.botText}>{msg.text}</Text>
+            <View key={msg.id} style={[st.bubble, msg.role === 'user' ? st.userBubble : st.botBubble]}>
+              {msg.role === 'assistant' && <Text style={st.senderLabel}>Kooky //</Text>}
+              <Text style={msg.role === 'user' ? st.userText : st.botText}>{msg.text}</Text>
             </View>
           ))}
           {loading && (
-            <View style={[styles.bubble, styles.botBubble]}>
-              <Text style={styles.senderLabel}>Kooky //</Text>
+            <View style={[st.bubble, st.botBubble]}>
+              <Text style={st.senderLabel}>Kooky //</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <ActivityIndicator size="small" color="#2979FF" />
-                <Text style={styles.loadingText}>Analyzing markets...</Text>
+                <Text style={st.loadingText}>Analyzing markets...</Text>
               </View>
             </View>
           )}
           {showQuick && (
-            <View style={styles.quickWrap}>
-              <Text style={styles.quickLabel}>QUICK ACTIONS</Text>
+            <View style={st.quickWrap}>
+              <Text style={st.quickLabel}>QUICK ACTIONS</Text>
               {QUICK_QUESTIONS.map(q => (
-                <TouchableOpacity key={q} style={styles.quickBtn} onPress={() => sendMessage(q)}>
-                  <Text style={styles.quickBtnText}>{q}</Text>
+                <TouchableOpacity key={q} style={st.quickBtn} onPress={() => sendMessage(q)}>
+                  <Text style={st.quickBtnText}>{q}</Text>
                   <Ionicons name="arrow-forward" size={11} color="#2979FF" />
                 </TouchableOpacity>
               ))}
@@ -212,14 +214,14 @@ export default function KookyScreen() {
           )}
         </ScrollView>
 
-        <View style={styles.inputRow}>
-          <TouchableOpacity style={styles.portfolioIconBtn} onPress={() => setPortfolioMode(true)}>
+        <View style={st.inputRow}>
+          <TouchableOpacity style={st.portfolioIconBtn} onPress={() => setPortfolioMode(true)}>
             <Ionicons name="pie-chart" size={18} color="#fff" />
           </TouchableOpacity>
-          <TextInput style={styles.textInput} value={input} onChangeText={setInput}
+          <TextInput style={st.textInput} value={input} onChangeText={setInput}
             placeholder="Ask Kooky about markets..." placeholderTextColor={Colors.textSecondary}
             onSubmitEditing={() => sendMessage()} returnKeyType="send" multiline={false} />
-          <TouchableOpacity style={[styles.sendBtn, loading && styles.sendBtnDisabled]}
+          <TouchableOpacity style={[st.sendBtn, loading && st.sendBtnDisabled]}
             onPress={() => sendMessage()} disabled={loading}>
             <Ionicons name="send" size={18} color="#fff" />
           </TouchableOpacity>
@@ -229,8 +231,8 @@ export default function KookyScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  topHeader:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: AI_BG, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#173772' },
+const st = StyleSheet.create({
+  topHeader:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: HEADER_BG, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#173772' },
   agentBadge:         { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.cardBackground, paddingHorizontal: 16, paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: Colors.border, gap: 8 },
   statusDot:          { width: 8, height: 8, borderRadius: 4, backgroundColor: '#00C853' },
   agentBadgeText:     { fontSize: 12, color: Colors.textSecondary, fontWeight: '600', flex: 1 },
