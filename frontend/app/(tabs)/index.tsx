@@ -10,6 +10,7 @@ import Svg, {
   Circle, G, Ellipse, Polygon, Rect, Line, Polyline, Path,
 } from 'react-native-svg';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { PremiumUpgradeScreen } from './active-trades';
@@ -35,8 +36,9 @@ const getTodayKey = () => {
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-const DonutGauge = ({ accuracy, size, strokeWidth, fillColor, trackColor }: {
-  accuracy: number; size: number; strokeWidth: number; fillColor: string; trackColor: string;
+const DonutGauge = ({ accuracy, size, strokeWidth, fillColor, trackColor, textColor }: {
+  accuracy: number; size: number; strokeWidth: number;
+  fillColor: string; trackColor: string; textColor: string;
 }) => {
   const anim   = useRef(new Animated.Value(0)).current;
   const radius = (size - strokeWidth) / 2;
@@ -59,7 +61,7 @@ const DonutGauge = ({ accuracy, size, strokeWidth, fillColor, trackColor }: {
       </Svg>
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: '#1a1a3e', fontSize: size * 0.2, fontWeight: '700' }}>{accuracy}%</Text>
+          <Text style={{ color: textColor, fontSize: size * 0.2, fontWeight: '700' }}>{accuracy}%</Text>
         </View>
       </View>
     </View>
@@ -95,12 +97,11 @@ const GreetingToast = ({ name }: { name: string }) => {
   );
 };
 
-// ── Waving Hand — waves ~10s then completely disappears, returns null ─────────
+// ── Waving Hand ───────────────────────────────────────────────────────────────
 const WavingHand = () => {
   const rotate  = useRef(new Animated.Value(0)).current;
   const opacity = useRef(new Animated.Value(1)).current;
   const [visible, setVisible] = useState(true);
-
   useEffect(() => {
     Animated.sequence([
       Animated.delay(500),
@@ -110,20 +111,13 @@ const WavingHand = () => {
           Animated.timing(rotate, { toValue: -1, duration: 200, useNativeDriver: false }),
           Animated.timing(rotate, { toValue: 0,  duration: 100, useNativeDriver: false }),
         ]),
-        { iterations: 6 }   // 20 × 500ms ≈ 10 seconds
+        { iterations: 6 }
       ),
       Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: false }),
     ]).start(() => setVisible(false));
   }, []);
-
-  // After animation — nothing renders, hand is completely gone
   if (!visible) return null;
-
-  const rotateInterp = rotate.interpolate({
-    inputRange:  [-1, 1],
-    outputRange: ['-30deg', '30deg'],
-  });
-
+  const rotateInterp = rotate.interpolate({ inputRange: [-1, 1], outputRange: ['-30deg', '30deg'] });
   return (
     <Animated.View style={{ opacity, transform: [{ rotate: rotateInterp }] }}>
       <Text style={{ fontSize: 18 }}>👋</Text>
@@ -138,7 +132,7 @@ const TickerChip = () => (
   </View>
 );
 
-// ── Portfolio Stocks — rocket launches once, arrow bounces ──
+// ── Portfolio Stocks ──────────────────────────────────────────────────────────
 const PortfolioCard = ({ onPress, isFree }: { onPress: () => void; isFree: boolean }) => {
   const rocketY     = useRef(new Animated.Value(0)).current;
   const rocketScale = useRef(new Animated.Value(1)).current;
@@ -184,7 +178,7 @@ const PortfolioCard = ({ onPress, isFree }: { onPress: () => void; isFree: boole
   );
 };
 
-// ── Mutual Fund — pie spins, pulses once ──
+// ── Mutual Fund ───────────────────────────────────────────────────────────────
 const MutualFundCard = () => {
   const spinAnim  = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -221,13 +215,13 @@ const MutualFundCard = () => {
 
 // ── Moving Quotes ─────────────────────────────────────────────────────────────
 const QUOTES = [
-  '❝ Be fearful when others are greedy, and be greedy when others are fearful ❞ — Warren Buffett     ',
+  '❝ Be fearful when others are greedy, and be greedy when others are fearful ❞  — Warren Buffett     ',
   '❝ No loss is also a profit in trading ❞  — DhanMatrix     ',
   '❝ Patience is the key to success in the market ❞  — DhanMatrix     ',
   '❝ The stock market transfers money from the impatient to the patient ❞  — Warren Buffett     ',
 ];
 
-const MovingQuotes = () => {
+const MovingQuotes = ({ bg, textColor }: { bg: string; textColor: string }) => {
   const marquee = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.loop(
@@ -235,11 +229,11 @@ const MovingQuotes = () => {
     ).start();
   }, []);
   return (
-    <View style={s.quotesCard}>
+    <View style={[s.quotesCard, { backgroundColor: bg }]}>
       <View style={s.quotesTicker}>
         <Animated.View style={[s.quotesInner, { transform: [{ translateX: marquee }] }]}>
           {[...QUOTES, ...QUOTES].map((q, i) => (
-            <Text key={i} style={s.quoteText}>{q}</Text>
+            <Text key={i} style={[s.quoteText, { color: textColor }]}>{q}</Text>
           ))}
         </Animated.View>
       </View>
@@ -249,7 +243,8 @@ const MovingQuotes = () => {
 
 export default function HomeScreen() {
   const { userData } = useAuth();
-  const router = useRouter();
+  const router  = useRouter();
+  const theme   = useTheme();
 
   const [loading,      setLoading]      = useState(true);
   const [overall,      setOverall]      = useState<SegmentStats>({ total: 0, profitable: 0, losing: 0, accuracy: 0 });
@@ -306,7 +301,7 @@ export default function HomeScreen() {
         const key   = getTodayKey();
         const shown = await AsyncStorage.getItem(key);
         if (!shown) { setShowGreeting(true); await AsyncStorage.setItem(key, 'true'); }
-      } catch (e) { console.error(e); }
+      } catch {}
     })();
   }, []);
 
@@ -318,16 +313,16 @@ export default function HomeScreen() {
     else { router.push('/(tabs)/portfolio-stocks'); }
   };
 
-  if (loading) return <View style={s.loading}><ActivityIndicator size="large" color="#3b82f6" /></View>;
+  if (loading) return <View style={[s.loading, { backgroundColor: theme.background }]}><ActivityIndicator size="large" color="#3b82f6" /></View>;
 
   const segments = [
-    { label: 'Equity',  stats: equity,  color: '#22a85a', trackColor: '#e2f4ea', borderColor: '#22a85a' },
-    { label: 'Futures', stats: futures, color: '#f5a623', trackColor: '#fdf0de', borderColor: '#f5a623' },
-    { label: 'Options', stats: options, color: '#8b5cf6', trackColor: '#f0eaff', borderColor: '#8b5cf6' },
+    { label: 'Equity',  stats: equity,  color: '#22a85a', trackColor: theme.isDark ? '#0f3020' : '#e2f4ea', borderColor: '#22a85a' },
+    { label: 'Futures', stats: futures, color: '#f5a623', trackColor: theme.isDark ? '#3a2000' : '#fdf0de', borderColor: '#f5a623' },
+    { label: 'Options', stats: options, color: '#8b5cf6', trackColor: theme.isDark ? '#2a1050' : '#f0eaff', borderColor: '#8b5cf6' },
   ];
 
   return (
-    <SafeAreaView style={s.outer} edges={['top']}>
+    <SafeAreaView style={[s.outer, { backgroundColor: theme.headerBg }]} edges={['top']}>
       {showGreeting && <GreetingToast name={userData?.name || ''} />}
 
       <Modal visible={showUpgrade} animationType="slide" onRequestClose={() => setShowUpgrade(false)}>
@@ -339,7 +334,8 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
-      <View style={s.header}>
+      {/* HEADER */}
+      <View style={[s.header, { backgroundColor: theme.headerBg }]}>
         <View style={s.hdrRow}>
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -367,47 +363,55 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={s.scrollBg} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-
-        <View style={s.perfCard}>
-          <Text style={s.perfTitle}>Overall Performance</Text>
-          <DonutGauge accuracy={overall.accuracy} size={88} strokeWidth={9} fillColor="#2563eb" trackColor="#eaecf5" />
-          <View style={s.perfDivider} />
+      <ScrollView
+        style={{ flex: 1, backgroundColor: theme.background }}
+        contentContainerStyle={[s.scroll, { backgroundColor: theme.background }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Overall Performance */}
+        <View style={[s.perfCard, { backgroundColor: theme.cardBackground }]}>
+          <Text style={[s.perfTitle, { color: theme.text }]}>Overall Performance</Text>
+          <DonutGauge accuracy={overall.accuracy} size={88} strokeWidth={9} fillColor="#2563eb"
+            trackColor={theme.isDark ? '#1a3460' : '#eaecf5'} textColor={theme.text} />
+          <View style={[s.perfDivider, { backgroundColor: theme.divider }]} />
           <View style={s.perfRow}>
             <View style={s.perfCol}>
-              <Text style={s.perfLbl}>Winning Trades</Text>
+              <Text style={[s.perfLbl, { color: theme.textSecondary }]}>Winning Trades</Text>
               <Text style={[s.perfVal, { color: '#22a85a' }]}>{overall.profitable}</Text>
             </View>
-            <View style={s.perfSep} />
+            <View style={[s.perfSep, { backgroundColor: theme.divider }]} />
             <View style={s.perfCol}>
-              <Text style={s.perfLbl}>Losing Trades</Text>
+              <Text style={[s.perfLbl, { color: theme.textSecondary }]}>Losing Trades</Text>
               <Text style={[s.perfVal, { color: '#e03030' }]}>{overall.losing}</Text>
             </View>
           </View>
         </View>
 
+        {/* Segments */}
         <View style={s.segRow}>
           {segments.map((seg, idx) => (
-            <View key={seg.label} style={[s.segCard, { borderTopColor: seg.borderColor }, idx < segments.length - 1 && { marginRight: 6 }]}>
-              <Text style={s.segName}>{seg.label}</Text>
-              <DonutGauge accuracy={seg.stats.accuracy} size={62} strokeWidth={7} fillColor={seg.color} trackColor={seg.trackColor} />
-              <View style={s.segDivider} />
+            <View key={seg.label} style={[s.segCard, { borderTopColor: seg.borderColor, backgroundColor: theme.cardBackground }, idx < segments.length - 1 && { marginRight: 6 }]}>
+              <Text style={[s.segName, { color: theme.text }]}>{seg.label}</Text>
+              <DonutGauge accuracy={seg.stats.accuracy} size={62} strokeWidth={7}
+                fillColor={seg.color} trackColor={seg.trackColor} textColor={theme.text} />
+              <View style={[s.segDivider, { backgroundColor: theme.divider }]} />
               <View style={s.segWL}>
                 <View style={s.segStat}>
                   <Text style={[s.segVal, { color: '#22a85a' }]}>{seg.stats.profitable}</Text>
-                  <Text style={s.segLbl}>Win</Text>
+                  <Text style={[s.segLbl, { color: theme.textSecondary }]}>Win</Text>
                 </View>
-                <View style={s.segSep} />
+                <View style={[s.segSep, { backgroundColor: theme.divider }]} />
                 <View style={s.segStat}>
                   <Text style={[s.segVal, { color: '#e03030' }]}>{seg.stats.losing}</Text>
-                  <Text style={s.segLbl}>Loss</Text>
+                  <Text style={[s.segLbl, { color: theme.textSecondary }]}>Loss</Text>
                 </View>
               </View>
             </View>
           ))}
         </View>
 
-        <View style={s.roundRow}>
+        {/* Round cards */}
+        <View style={[s.roundRow, { backgroundColor: theme.cardBackground }]}>
           <PortfolioCard onPress={handlePortfolioStocksPress} isFree={userData?.status === 'FREE'} />
           <MutualFundCard />
           <TouchableOpacity style={s.rc} onPress={() => Linking.openURL('https://www.nseindia.com/market-data/all-upcoming-issues-ipo')} activeOpacity={0.82}>
@@ -421,10 +425,11 @@ export default function HomeScreen() {
                 <Line x1="15.5" y1="25" x2="18.5" y2="25" stroke="#a0c4ff" strokeWidth="1.5" strokeLinecap="round" />
               </Svg>
             </View>
-            <Text style={s.rcLabel}>IPO</Text>
+            <Text style={[s.rcLabel, { color: theme.text }]}>IPO</Text>
           </TouchableOpacity>
         </View>
 
+        {/* KOOKY Card — always dark navy, looks great in both modes */}
         <TouchableOpacity style={s.kookyCard} onPress={() => router.push('/(tabs)/ajeeb')} activeOpacity={0.88}>
           <View style={s.kOrb1} pointerEvents="none" />
           <View style={s.kOrb2} pointerEvents="none" />
@@ -484,27 +489,25 @@ export default function HomeScreen() {
           </View>
         </TouchableOpacity>
 
-        <MovingQuotes />
+        {/* Moving Quotes */}
+        <MovingQuotes bg={theme.quotesBg} textColor={theme.quotesText} />
         <View style={{ height: 16 }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const HEADER_COLOR = '#0d1b3e';
-
 const s = StyleSheet.create({
-  outer:    { flex: 1, backgroundColor: HEADER_COLOR },
-  scrollBg: { flex: 1, backgroundColor: '#eef1f6' },
-  loading:  { flex: 1, backgroundColor: '#eef1f6', alignItems: 'center', justifyContent: 'center' },
-  scroll:   { padding: 8, paddingBottom: 24, backgroundColor: '#eef1f6' },
+  outer:    { flex: 1 },
+  loading:  { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  scroll:   { padding: 8, paddingBottom: 24 },
   modalClose:     { backgroundColor: '#001F3F', paddingHorizontal: 20, paddingVertical: 14, alignItems: 'flex-end' },
   modalCloseText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   toast: { position: 'absolute', top: 10, left: 16, right: 16, zIndex: 999, backgroundColor: '#001F3F', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 8 },
   toastEmoji: { fontSize: 26, marginRight: 12 },
   toastText:  { fontSize: 15, fontWeight: '800', color: '#fff' },
   toastSub:   { fontSize: 11, color: '#a0b4cc', marginTop: 1 },
-  header:    { paddingHorizontal: 18, paddingTop: 12, paddingBottom: 14, backgroundColor: HEADER_COLOR },
+  header:    { paddingHorizontal: 18, paddingTop: 12, paddingBottom: 14 },
   hdrRow:    { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 11 },
   hdrHello:  { color: '#fff', fontSize: 18, fontWeight: '700', lineHeight: 22 },
   hdrSub:    { color: 'rgba(180,200,255,0.65)', fontSize: 11, fontWeight: '400', lineHeight: 16, marginTop: 2 },
@@ -520,27 +523,27 @@ const s = StyleSheet.create({
   chip:        { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(78,207,168,0.13)', borderWidth: 1, borderColor: 'rgba(78,207,168,0.28)', borderRadius: 20, paddingVertical: 3, paddingHorizontal: 9 },
   chipDot:     { width: 4, height: 4, borderRadius: 2, backgroundColor: '#4ecfa8', marginRight: 5 },
   chipText:    { fontSize: 10, fontWeight: '700', color: '#4ecfa8' },
-  perfCard:    { backgroundColor: '#fff', borderRadius: 16, padding: 10, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3, marginBottom: 7 },
-  perfTitle:   { fontSize: 12, fontWeight: '600', color: '#1a1a3e', marginBottom: 7 },
-  perfDivider: { width: '100%', height: 1, backgroundColor: '#f0f2f8', marginTop: 7, marginBottom: 7 },
+  perfCard:    { borderRadius: 16, padding: 10, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3, marginBottom: 7 },
+  perfTitle:   { fontSize: 12, fontWeight: '600', marginBottom: 7 },
+  perfDivider: { width: '100%', height: 1, marginTop: 7, marginBottom: 7 },
   perfRow:     { flexDirection: 'row', width: '100%' },
   perfCol:     { flex: 1, alignItems: 'center' },
-  perfLbl:     { fontSize: 9.5, color: '#999', marginBottom: 1 },
+  perfLbl:     { fontSize: 9.5, marginBottom: 1 },
   perfVal:     { fontSize: 20, fontWeight: '700' },
-  perfSep:     { width: 1, backgroundColor: '#f0f2f8' },
+  perfSep:     { width: 1 },
   segRow:      { flexDirection: 'row', marginBottom: 7 },
-  segCard:     { flex: 1, backgroundColor: '#fff', borderRadius: 13, padding: 7, alignItems: 'center', borderTopWidth: 3, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 5, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
-  segName:     { fontSize: 10, fontWeight: '600', color: '#1a1a3e', marginBottom: 3 },
-  segDivider:  { width: '100%', height: 1, backgroundColor: '#f0f2f8', marginVertical: 4 },
+  segCard:     { flex: 1, borderRadius: 13, padding: 7, alignItems: 'center', borderTopWidth: 3, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 5, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
+  segName:     { fontSize: 10, fontWeight: '600', marginBottom: 3 },
+  segDivider:  { width: '100%', height: 1, marginVertical: 4 },
   segWL:       { flexDirection: 'row', width: '100%' },
   segStat:     { flex: 1, alignItems: 'center' },
   segVal:      { fontSize: 10.5, fontWeight: '700' },
-  segLbl:      { fontSize: 8, color: '#bbb' },
-  segSep:      { width: 1, backgroundColor: '#f0f2f8' },
-  roundRow:    { backgroundColor: '#fff', borderRadius: 16, paddingVertical: 12, paddingHorizontal: 6, flexDirection: 'row', justifyContent: 'space-around', shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2, marginBottom: 7 },
+  segLbl:      { fontSize: 8 },
+  segSep:      { width: 1 },
+  roundRow:    { borderRadius: 16, paddingVertical: 12, paddingHorizontal: 6, flexDirection: 'row', justifyContent: 'space-around', shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2, marginBottom: 7 },
   rc:          { alignItems: 'center' },
   circle:      { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.4, shadowRadius: 8, shadowOffset: { width: 0, height: 5 }, elevation: 5, marginBottom: 6 },
-  rcLabel:     { fontSize: 11, fontWeight: '700', color: '#1a1a3e', textAlign: 'center', lineHeight: 15 },
+  rcLabel:     { fontSize: 11, fontWeight: '700', textAlign: 'center', lineHeight: 15 },
   kookyCard:   { backgroundColor: '#0a2a6e', borderRadius: 20, padding: 12, flexDirection: 'row', alignItems: 'center', overflow: 'hidden', position: 'relative', borderWidth: 1.5, borderColor: 'rgba(80,140,255,0.25)', shadowColor: '#0a2a6e', shadowOpacity: 0.4, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 6, marginBottom: 7 },
   kOrb1:       { position: 'absolute', top: -30, right: -30, width: 130, height: 130, borderRadius: 65, backgroundColor: 'rgba(80,140,255,0.12)' },
   kOrb2:       { position: 'absolute', bottom: -25, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(30,80,200,0.15)' },
@@ -556,8 +559,8 @@ const s = StyleSheet.create({
   kSub:        { fontSize: 11, color: '#8ab4e8', lineHeight: 17, marginBottom: 12 },
   kBtn:        { flexDirection: 'row', alignItems: 'center', backgroundColor: '#3d7fff', borderRadius: 22, paddingVertical: 8, paddingHorizontal: 18, alignSelf: 'flex-start', elevation: 4 },
   kBtnText:    { color: '#fff', fontSize: 12, fontWeight: '700', marginLeft: 7 },
-  quotesCard:   { backgroundColor: '#1e3a5f', borderRadius: 14, overflow: 'hidden', height: 52, justifyContent: 'center' },
+  quotesCard:   { borderRadius: 14, overflow: 'hidden', height: 52, justifyContent: 'center' },
   quotesTicker: { overflow: 'hidden', height: 52 },
   quotesInner:  { flexDirection: 'row', alignItems: 'center', position: 'absolute', height: 52 },
-  quoteText:    { fontSize: 14, color: '#c8deff', fontStyle: 'italic', lineHeight: 52, paddingHorizontal: 12 },
+  quoteText:    { fontSize: 14, fontStyle: 'italic', lineHeight: 52, paddingHorizontal: 12 },
 });
