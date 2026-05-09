@@ -132,8 +132,9 @@ const TickerChip = () => (
   </View>
 );
 
-// ── Portfolio Stocks ──────────────────────────────────────────────────────────
+// ── Portfolio Stocks — useTheme() inside so label picks up dark mode ──────────
 const PortfolioCard = ({ onPress, isFree }: { onPress: () => void; isFree: boolean }) => {
+  const theme       = useTheme(); // ← fix: theme inside component
   const rocketY     = useRef(new Animated.Value(0)).current;
   const rocketScale = useRef(new Animated.Value(1)).current;
   const arrowY      = useRef(new Animated.Value(0)).current;
@@ -173,13 +174,14 @@ const PortfolioCard = ({ onPress, isFree }: { onPress: () => void; isFree: boole
           )}
         </View>
       </Animated.View>
-      <Text style={s.rcLabel}>Portfolio{'\n'}Stocks</Text>
+      <Text style={[s.rcLabel, { color: theme.text }]}>Portfolio{'\n'}Stocks</Text>
     </TouchableOpacity>
   );
 };
 
-// ── Mutual Fund ───────────────────────────────────────────────────────────────
+// ── Mutual Fund — useTheme() inside so label picks up dark mode ───────────────
 const MutualFundCard = () => {
+  const theme     = useTheme(); // ← fix: theme inside component
   const spinAnim  = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   useEffect(() => {
@@ -208,7 +210,7 @@ const MutualFundCard = () => {
           </Animated.View>
         </View>
       </Animated.View>
-      <Text style={s.rcLabel}>Mutual{'\n'}Funds</Text>
+      <Text style={[s.rcLabel, { color: theme.text }]}>Mutual{'\n'}Funds</Text>
     </TouchableOpacity>
   );
 };
@@ -334,7 +336,6 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
-      {/* HEADER */}
       <View style={[s.header, { backgroundColor: theme.headerBg }]}>
         <View style={s.hdrRow}>
           <View style={{ flex: 1 }}>
@@ -368,7 +369,6 @@ export default function HomeScreen() {
         contentContainerStyle={[s.scroll, { backgroundColor: theme.background }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Overall Performance */}
         <View style={[s.perfCard, { backgroundColor: theme.cardBackground }]}>
           <Text style={[s.perfTitle, { color: theme.text }]}>Overall Performance</Text>
           <DonutGauge accuracy={overall.accuracy} size={88} strokeWidth={9} fillColor="#2563eb"
@@ -387,10 +387,13 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Segments */}
         <View style={s.segRow}>
           {segments.map((seg, idx) => (
-            <View key={seg.label} style={[s.segCard, { borderTopColor: seg.borderColor, backgroundColor: theme.cardBackground }, idx < segments.length - 1 && { marginRight: 6 }]}>
+            <View key={seg.label} style={[
+              s.segCard,
+              { borderTopColor: seg.borderColor, backgroundColor: theme.cardBackground },
+              idx < segments.length - 1 && { marginRight: 6 },
+            ]}>
               <Text style={[s.segName, { color: theme.text }]}>{seg.label}</Text>
               <DonutGauge accuracy={seg.stats.accuracy} size={62} strokeWidth={7}
                 fillColor={seg.color} trackColor={seg.trackColor} textColor={theme.text} />
@@ -410,7 +413,6 @@ export default function HomeScreen() {
           ))}
         </View>
 
-        {/* Round cards */}
         <View style={[s.roundRow, { backgroundColor: theme.cardBackground }]}>
           <PortfolioCard onPress={handlePortfolioStocksPress} isFree={userData?.status === 'FREE'} />
           <MutualFundCard />
@@ -429,7 +431,6 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* KOOKY Card — always dark navy, looks great in both modes */}
         <TouchableOpacity style={s.kookyCard} onPress={() => router.push('/(tabs)/ajeeb')} activeOpacity={0.88}>
           <View style={s.kOrb1} pointerEvents="none" />
           <View style={s.kOrb2} pointerEvents="none" />
@@ -489,7 +490,6 @@ export default function HomeScreen() {
           </View>
         </TouchableOpacity>
 
-        {/* Moving Quotes */}
         <MovingQuotes bg={theme.quotesBg} textColor={theme.quotesText} />
         <View style={{ height: 16 }} />
       </ScrollView>
