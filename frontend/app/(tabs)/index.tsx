@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator, Animated,
-  TouchableOpacity, Linking, ScrollView, Modal, Platform,
+  TouchableOpacity, Linking, ScrollView, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { collection, getDocs } from 'firebase/firestore';
@@ -15,9 +15,7 @@ import { useRouter } from 'expo-router';
 import { PremiumUpgradeScreen } from './active-trades';
 
 interface ClosedTrade {
-  id: string;
-  profitLossPercent: number;
-  segment?: 'equity' | 'futures' | 'options';
+  id: string; profitLossPercent: number; segment?: 'equity' | 'futures' | 'options';
 }
 interface SegmentStats {
   total: number; profitable: number; losing: number; accuracy: number;
@@ -30,7 +28,6 @@ const getGreeting = () => {
   if (h >= 17 && h < 21) return { text: 'Good evening',   emoji: '🌙' };
   return                         { text: 'Good night',     emoji: '🌙' };
 };
-
 const getTodayKey = () => {
   const d = new Date();
   return `greeting_shown_${d.getFullYear()}_${d.getMonth()}_${d.getDate()}`;
@@ -38,11 +35,8 @@ const getTodayKey = () => {
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-const DonutGauge = ({
-  accuracy, size, strokeWidth, fillColor, trackColor,
-}: {
-  accuracy: number; size: number; strokeWidth: number;
-  fillColor: string; trackColor: string;
+const DonutGauge = ({ accuracy, size, strokeWidth, fillColor, trackColor }: {
+  accuracy: number; size: number; strokeWidth: number; fillColor: string; trackColor: string;
 }) => {
   const anim   = useRef(new Animated.Value(0)).current;
   const radius = (size - strokeWidth) / 2;
@@ -161,8 +155,8 @@ const MutualFundCard = () => {
   useEffect(() => {
     Animated.sequence([
       Animated.delay(900),
-      Animated.timing(pulseAnim, { toValue: 1.18, duration: 280, useNativeDriver: true }),
-      Animated.spring(pulseAnim, { toValue: 1, friction: 5, tension: 80, useNativeDriver: true }),
+      Animated.timing(pulseAnim,  { toValue: 1.18, duration: 280, useNativeDriver: true }),
+      Animated.spring(pulseAnim,  { toValue: 1, friction: 5, tension: 80, useNativeDriver: true }),
     ]).start();
     Animated.loop(Animated.sequence([
       Animated.timing(spinAnim, { toValue: 1, duration: 2200, useNativeDriver: true }),
@@ -186,6 +180,34 @@ const MutualFundCard = () => {
       </Animated.View>
       <Text style={s.rcLabel}>Mutual{'\n'}Funds</Text>
     </TouchableOpacity>
+  );
+};
+
+// ── Moving Quotes — dark navy background ─────────────────────────────────────
+const QUOTES = [
+  '❝ Be fearful when others are greedy, and greedy when others are fearful ❞  — Warren Buffett',
+  '❝ No loss is also a profit in trading ❞  — DhanMatrix',
+  '❝ Patience is the key to success in the market ❞  — DhanMatrix',
+  '❝ The stock market transfers money from the impatient to the patient ❞  — Warren Buffett',
+];
+
+const MovingQuotes = () => {
+  const marquee = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(marquee, { toValue: -2200, duration: 30000, useNativeDriver: true })
+    ).start();
+  }, []);
+  return (
+    <View style={s.quotesCard}>
+      <View style={s.quotesTicker}>
+        <Animated.View style={[s.quotesInner, { transform: [{ translateX: marquee }] }]}>
+          {[...QUOTES, ...QUOTES].map((q, i) => (
+            <Text key={i} style={s.quoteText}>{q}{'          '}</Text>
+          ))}
+        </Animated.View>
+      </View>
+    </View>
   );
 };
 
@@ -213,12 +235,10 @@ export default function HomeScreen() {
   };
 
   useEffect(() => {
-    Animated.loop(
-      Animated.timing(tickerAnim, { toValue: -600, duration: 5000, useNativeDriver: true })
-    ).start();
+    Animated.loop(Animated.timing(tickerAnim, { toValue: -600, duration: 5000, useNativeDriver: true })).start();
     Animated.loop(Animated.sequence([
-      Animated.timing(robotFloat, { toValue: -6, duration: 1450, useNativeDriver: true }),
-      Animated.timing(robotFloat, { toValue: 0,  duration: 1450, useNativeDriver: true }),
+      Animated.timing(robotFloat,  { toValue: -6, duration: 1450, useNativeDriver: true }),
+      Animated.timing(robotFloat,  { toValue: 0,  duration: 1450, useNativeDriver: true }),
     ])).start();
     Animated.loop(Animated.sequence([
       Animated.timing(liveDotAnim, { toValue: 1,   duration: 650, useNativeDriver: true }),
@@ -258,18 +278,11 @@ export default function HomeScreen() {
   const avatarLetter = (userData?.name || 'U')[0].toUpperCase();
 
   const handlePortfolioStocksPress = () => {
-    if (userData?.status === 'FREE') {
-      setShowUpgrade(true);
-    } else {
-      router.push('/(home)/portfolio-stocks');
-    }
+    if (userData?.status === 'FREE') { setShowUpgrade(true); }
+    else { router.push('/(tabs)/portfolio-stocks'); }
   };
 
-  if (loading) return (
-    <View style={s.loading}>
-      <ActivityIndicator size="large" color="#3b82f6" />
-    </View>
-  );
+  if (loading) return <View style={s.loading}><ActivityIndicator size="large" color="#3b82f6" /></View>;
 
   const segments = [
     { label: 'Equity',  stats: equity,  color: '#22a85a', trackColor: '#e2f4ea', borderColor: '#22a85a' },
@@ -278,7 +291,6 @@ export default function HomeScreen() {
   ];
 
   return (
-    // SafeAreaView handles status bar overlap on Android & iOS
     <SafeAreaView style={s.outer} edges={['top']}>
       {showGreeting && <GreetingToast name={userData?.name || ''} />}
 
@@ -296,13 +308,9 @@ export default function HomeScreen() {
         <View style={s.hdrRow}>
           <View>
             <Text style={s.hdrHello}>Hi {firstName} 👋</Text>
-            <Text style={s.hdrSub}>
-              Kooky AI · <Text style={s.hdrAccent}>Your Stock Market</Text> Assistant
-            </Text>
+            <Text style={s.hdrSub}>Kooky AI · <Text style={s.hdrAccent}>Your Stock Market</Text> Assistant</Text>
           </View>
-          <View style={s.avatar}>
-            <Text style={s.avatarTxt}>{avatarLetter}</Text>
-          </View>
+          <View style={s.avatar}><Text style={s.avatarTxt}>{avatarLetter}</Text></View>
         </View>
         <TouchableOpacity style={s.tickerPill} onPress={() => router.push('/(tabs)/active-trades')} activeOpacity={0.82}>
           <Animated.View style={[s.tickerIcon, { transform: [{ scale: iconPopAnim }] }]}>
@@ -313,9 +321,7 @@ export default function HomeScreen() {
           <Text style={s.tickerTag}>View</Text>
           <View style={s.tickerTrack}>
             <Animated.View style={[s.tickerInner, { transform: [{ translateX: tickerAnim }] }]}>
-              {[0,1,2,3,4,5,6,7].map(i => (
-                <View key={i} style={s.chipWrap}><TickerChip /></View>
-              ))}
+              {[0,1,2,3,4,5,6,7].map(i => <View key={i} style={s.chipWrap}><TickerChip /></View>)}
             </Animated.View>
           </View>
         </TouchableOpacity>
@@ -323,6 +329,7 @@ export default function HomeScreen() {
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
+        {/* Overall Performance */}
         <View style={s.perfCard}>
           <Text style={s.perfTitle}>Overall Performance</Text>
           <DonutGauge accuracy={overall.accuracy} size={88} strokeWidth={9} fillColor="#2563eb" trackColor="#eaecf5" />
@@ -340,6 +347,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
+        {/* Segments */}
         <View style={s.segRow}>
           {segments.map((seg, idx) => (
             <View key={seg.label} style={[s.segCard, { borderTopColor: seg.borderColor }, idx < segments.length - 1 && { marginRight: 6 }]}>
@@ -361,15 +369,11 @@ export default function HomeScreen() {
           ))}
         </View>
 
+        {/* Round cards */}
         <View style={s.roundRow}>
           <PortfolioCard onPress={handlePortfolioStocksPress} isFree={userData?.status === 'FREE'} />
           <MutualFundCard />
-          {/* IPO — completely plain, zero animation */}
-          <TouchableOpacity
-            style={s.rc}
-            onPress={() => Linking.openURL('https://www.nseindia.com/market-data/all-upcoming-issues-ipo')}
-            activeOpacity={0.82}
-          >
+          <TouchableOpacity style={s.rc} onPress={() => Linking.openURL('https://www.nseindia.com/market-data/all-upcoming-issues-ipo')} activeOpacity={0.82}>
             <View style={[s.circle, { backgroundColor: '#1030a0', shadowColor: '#1030a0' }]}>
               <Svg width={32} height={32} viewBox="0 0 34 34" fill="none">
                 <Path d="M17 6C17 6 22 10 22 17L17 20L12 17C12 10 17 6 17 6Z" fill="#a0c4ff" />
@@ -384,6 +388,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* KOOKY Card */}
         <TouchableOpacity style={s.kookyCard} onPress={() => router.push('/(tabs)/ajeeb')} activeOpacity={0.88}>
           <View style={s.kOrb1} pointerEvents="none" />
           <View style={s.kOrb2} pointerEvents="none" />
@@ -430,9 +435,7 @@ export default function HomeScreen() {
               <Text style={{ color: '#60d4ff' }}>Y</Text>
             </Text>
             <View style={s.kBracket}>
-              <View style={s.kBracketTick} />
-              <View style={s.kBracketLine} />
-              <View style={s.kBracketTick} />
+              <View style={s.kBracketTick} /><View style={s.kBracketLine} /><View style={s.kBracketTick} />
             </View>
             <Text style={s.kSub}>Ask me anything about your portfolio and financial market.</Text>
             <View style={s.kBtn}>
@@ -445,7 +448,10 @@ export default function HomeScreen() {
           </View>
         </TouchableOpacity>
 
-        <View style={{ height: 20 }} />
+        {/* Moving Quotes — dark navy */}
+        <MovingQuotes />
+
+        <View style={{ height: 16 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -513,4 +519,10 @@ const s = StyleSheet.create({
   kSub:        { fontSize: 11, color: '#8ab4e8', lineHeight: 17, marginBottom: 12 },
   kBtn:        { flexDirection: 'row', alignItems: 'center', backgroundColor: '#3d7fff', borderRadius: 22, paddingVertical: 8, paddingHorizontal: 18, alignSelf: 'flex-start', elevation: 4 },
   kBtnText:    { color: '#fff', fontSize: 12, fontWeight: '700', marginLeft: 7 },
+
+  // Dark navy moving quotes
+  quotesCard:   { backgroundColor: '#0d1b3e', borderRadius: 14, overflow: 'hidden', height: 44, justifyContent: 'center' },
+  quotesTicker: { overflow: 'hidden', height: 44 },
+  quotesInner:  { flexDirection: 'row', alignItems: 'center', position: 'absolute', height: 44 },
+  quoteText:    { fontSize: 12, color: '#a0c4ff', fontStyle: 'italic', lineHeight: 44, paddingHorizontal: 8 },
 });
