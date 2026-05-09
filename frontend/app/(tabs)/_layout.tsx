@@ -21,7 +21,9 @@ export default function TabLayout() {
             fontSize: 10,
             fontWeight: '600',
           },
-          // Kills the v7 circle/pill gap
+          tabBarItemStyle: {
+            flex: 1,
+          },
           tabBarActiveIndicatorStyle: {
             backgroundColor: 'transparent',
             height: 0,
@@ -39,7 +41,6 @@ export default function TabLayout() {
             tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
           }}
         />
-
         <Tabs.Screen
           name="active-trades"
           options={{
@@ -47,7 +48,6 @@ export default function TabLayout() {
             tabBarIcon: ({ color, size }) => <Ionicons name="pulse" size={size} color={color} />,
           }}
         />
-
         <Tabs.Screen
           name="closed-trades"
           options={{
@@ -55,7 +55,6 @@ export default function TabLayout() {
             tabBarIcon: ({ color, size }) => <Ionicons name="checkmark-done" size={size} color={color} />,
           }}
         />
-
         <Tabs.Screen
           name="ajeeb"
           options={{
@@ -65,8 +64,7 @@ export default function TabLayout() {
             tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
           }}
         />
-
-        {/* href: null completely removes from tab bar — no invisible space left */}
+        {/* href: null — completely excluded from tab bar, no space left */}
         <Tabs.Screen
           name="portfolio-stocks"
           options={{
@@ -74,7 +72,6 @@ export default function TabLayout() {
             title: 'Portfolio Stocks',
           }}
         />
-
         <Tabs.Screen
           name="profile"
           options={{
