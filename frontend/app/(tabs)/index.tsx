@@ -66,6 +66,7 @@ const DonutGauge = ({ accuracy, size, strokeWidth, fillColor, trackColor }: {
   );
 };
 
+// ── Greeting Toast ────────────────────────────────────────────────────────────
 const GreetingToast = ({ name }: { name: string }) => {
   const slide   = useRef(new Animated.Value(-120)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -92,6 +93,41 @@ const GreetingToast = ({ name }: { name: string }) => {
         <Text style={s.toastSub}>Welcome to DhanMatrix</Text>
       </View>
     </Animated.View>
+  );
+};
+
+// ── Waving Hand — plays ONCE per app open, then permanently hidden ────────────
+const WavingHand = () => {
+  const rotate  = useRef(new Animated.Value(0)).current;
+  const opacity = useRef(new Animated.Value(1)).current;
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    // 4 quick waves then fade out — never repeats until app is killed & reopened
+    Animated.sequence([
+      Animated.delay(400),
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(rotate, { toValue: 1,  duration: 180, useNativeDriver: true }),
+          Animated.timing(rotate, { toValue: -1, duration: 180, useNativeDriver: true }),
+          Animated.timing(rotate, { toValue: 0,  duration: 180, useNativeDriver: true }),
+        ]),
+        { iterations: 4 }
+      ),
+      Animated.timing(opacity, { toValue: 0, duration: 500, useNativeDriver: true }),
+    ]).start(() => setVisible(false));
+  }, []);
+
+  if (!visible) return <Text style={s.hdrHandStatic}>👋</Text>;
+
+  const rotateInterp = rotate.interpolate({ inputRange: [-1, 1], outputRange: ['-25deg', '25deg'] });
+
+  return (
+    <Animated.Text
+      style={[s.hdrHand, { transform: [{ rotate: rotateInterp }], opacity }]}
+    >
+      👋
+    </Animated.Text>
   );
 };
 
@@ -183,7 +219,7 @@ const MutualFundCard = () => {
   );
 };
 
-// ── Moving Quotes — dark navy, slow, bigger font ──────────────────────────────
+// ── Moving Quotes — lighter navy, slow, big font ──────────────────────────────
 const QUOTES = [
   '❝ Be fearful when others are greedy, and greedy when others are fearful ❞  — Warren Buffett     ',
   '❝ No loss is also a profit in trading ❞  — DhanMatrix     ',
@@ -194,7 +230,6 @@ const QUOTES = [
 const MovingQuotes = () => {
   const marquee = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    // 60000ms = very slow scroll
     Animated.loop(
       Animated.timing(marquee, { toValue: -3000, duration: 60000, useNativeDriver: true })
     ).start();
@@ -292,6 +327,7 @@ export default function HomeScreen() {
   ];
 
   return (
+    // backgroundColor #0d1b3e matches header — fixes white blur at top
     <SafeAreaView style={s.outer} edges={['top']}>
       {showGreeting && <GreetingToast name={userData?.name || ''} />}
 
@@ -307,9 +343,15 @@ export default function HomeScreen() {
       {/* HEADER */}
       <View style={s.header}>
         <View style={s.hdrRow}>
-          <View>
-            <Text style={s.hdrHello}>Hi {firstName} 👋</Text>
-            <Text style={s.hdrSub}>Kooky AI · <Text style={s.hdrAccent}>Your Stock Market</Text> Assistant</Text>
+          <View style={{ flex: 1 }}>
+            {/* Waving hand inline with name */}
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={s.hdrHello}>Hi {firstName} </Text>
+              <WavingHand />
+            </View>
+            <Text style={s.hdrSub}>
+              Kooky AI · <Text style={s.hdrAccent}>Your Stock Market</Text> Assistant
+            </Text>
           </View>
           <View style={s.avatar}><Text style={s.avatarTxt}>{avatarLetter}</Text></View>
         </View>
@@ -328,7 +370,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView style={s.scrollBg} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         <View style={s.perfCard}>
           <Text style={s.perfTitle}>Overall Performance</Text>
@@ -446,7 +488,7 @@ export default function HomeScreen() {
           </View>
         </TouchableOpacity>
 
-        {/* Moving Quotes — dark navy, slow, bigger */}
+        {/* Moving Quotes — lighter navy */}
         <MovingQuotes />
 
         <View style={{ height: 16 }} />
@@ -455,23 +497,33 @@ export default function HomeScreen() {
   );
 }
 
+const HEADER_COLOR = '#0d1b3e';
+
 const s = StyleSheet.create({
-  outer:   { flex: 1, backgroundColor: '#eef1f6' },
-  loading: { flex: 1, backgroundColor: '#eef1f6', alignItems: 'center', justifyContent: 'center' },
-  scroll:  { padding: 8, paddingBottom: 24 },
+  // SafeAreaView bg = header color → fixes white blur at status bar
+  outer:    { flex: 1, backgroundColor: HEADER_COLOR },
+  scrollBg: { flex: 1, backgroundColor: '#eef1f6' },
+  loading:  { flex: 1, backgroundColor: '#eef1f6', alignItems: 'center', justifyContent: 'center' },
+  scroll:   { padding: 8, paddingBottom: 24, backgroundColor: '#eef1f6' },
   modalClose:     { backgroundColor: '#001F3F', paddingHorizontal: 20, paddingVertical: 14, alignItems: 'flex-end' },
   modalCloseText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   toast: { position: 'absolute', top: 10, left: 16, right: 16, zIndex: 999, backgroundColor: '#001F3F', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 8 },
   toastEmoji: { fontSize: 26, marginRight: 12 },
   toastText:  { fontSize: 15, fontWeight: '800', color: '#fff' },
   toastSub:   { fontSize: 11, color: '#a0b4cc', marginTop: 1 },
-  header:    { paddingHorizontal: 18, paddingTop: 12, paddingBottom: 14, backgroundColor: '#0d1b3e' },
+
+  header:    { paddingHorizontal: 18, paddingTop: 12, paddingBottom: 14, backgroundColor: HEADER_COLOR },
   hdrRow:    { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 11 },
-  hdrHello:  { color: '#fff', fontSize: 18, fontWeight: '700', marginBottom: 2, lineHeight: 22 },
-  hdrSub:    { color: 'rgba(180,200,255,0.65)', fontSize: 11, fontWeight: '400', lineHeight: 16 },
+  hdrHello:  { color: '#fff', fontSize: 18, fontWeight: '700', lineHeight: 22 },
+  // Waving hand — shown during animation
+  hdrHand:       { fontSize: 18, lineHeight: 22 },
+  // Static hand — shown after animation ends
+  hdrHandStatic: { fontSize: 18, lineHeight: 22 },
+  hdrSub:    { color: 'rgba(180,200,255,0.65)', fontSize: 11, fontWeight: '400', lineHeight: 16, marginTop: 2 },
   hdrAccent: { color: '#4ecfa8', fontWeight: '500' },
   avatar:    { width: 36, height: 36, borderRadius: 18, backgroundColor: '#3b7ef8', alignItems: 'center', justifyContent: 'center' },
   avatarTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
+
   tickerPill:  { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.13)', borderRadius: 40, paddingVertical: 6, paddingHorizontal: 12, overflow: 'hidden' },
   tickerIcon:  { width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(78,207,168,0.18)', borderWidth: 1, borderColor: 'rgba(78,207,168,0.5)', alignItems: 'center', justifyContent: 'center', marginRight: 8 },
   tickerTag:   { fontSize: 9.5, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', color: '#4ecfa8', marginRight: 8 },
@@ -481,6 +533,7 @@ const s = StyleSheet.create({
   chip:        { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(78,207,168,0.13)', borderWidth: 1, borderColor: 'rgba(78,207,168,0.28)', borderRadius: 20, paddingVertical: 3, paddingHorizontal: 9 },
   chipDot:     { width: 4, height: 4, borderRadius: 2, backgroundColor: '#4ecfa8', marginRight: 5 },
   chipText:    { fontSize: 10, fontWeight: '700', color: '#4ecfa8' },
+
   perfCard:    { backgroundColor: '#fff', borderRadius: 16, padding: 10, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3, marginBottom: 7 },
   perfTitle:   { fontSize: 12, fontWeight: '600', color: '#1a1a3e', marginBottom: 7 },
   perfDivider: { width: '100%', height: 1, backgroundColor: '#f0f2f8', marginTop: 7, marginBottom: 7 },
@@ -489,6 +542,7 @@ const s = StyleSheet.create({
   perfLbl:     { fontSize: 9.5, color: '#999', marginBottom: 1 },
   perfVal:     { fontSize: 20, fontWeight: '700' },
   perfSep:     { width: 1, backgroundColor: '#f0f2f8' },
+
   segRow:      { flexDirection: 'row', marginBottom: 7 },
   segCard:     { flex: 1, backgroundColor: '#fff', borderRadius: 13, padding: 7, alignItems: 'center', borderTopWidth: 3, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 5, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
   segName:     { fontSize: 10, fontWeight: '600', color: '#1a1a3e', marginBottom: 3 },
@@ -498,10 +552,12 @@ const s = StyleSheet.create({
   segVal:      { fontSize: 10.5, fontWeight: '700' },
   segLbl:      { fontSize: 8, color: '#bbb' },
   segSep:      { width: 1, backgroundColor: '#f0f2f8' },
+
   roundRow:    { backgroundColor: '#fff', borderRadius: 16, paddingVertical: 12, paddingHorizontal: 6, flexDirection: 'row', justifyContent: 'space-around', shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2, marginBottom: 7 },
   rc:          { alignItems: 'center' },
   circle:      { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.4, shadowRadius: 8, shadowOffset: { width: 0, height: 5 }, elevation: 5, marginBottom: 6 },
   rcLabel:     { fontSize: 11, fontWeight: '700', color: '#1a1a3e', textAlign: 'center', lineHeight: 15 },
+
   kookyCard:   { backgroundColor: '#0a2a6e', borderRadius: 20, padding: 12, flexDirection: 'row', alignItems: 'center', overflow: 'hidden', position: 'relative', borderWidth: 1.5, borderColor: 'rgba(80,140,255,0.25)', shadowColor: '#0a2a6e', shadowOpacity: 0.4, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 6, marginBottom: 7 },
   kOrb1:       { position: 'absolute', top: -30, right: -30, width: 130, height: 130, borderRadius: 65, backgroundColor: 'rgba(80,140,255,0.12)' },
   kOrb2:       { position: 'absolute', bottom: -25, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(30,80,200,0.15)' },
@@ -518,9 +574,9 @@ const s = StyleSheet.create({
   kBtn:        { flexDirection: 'row', alignItems: 'center', backgroundColor: '#3d7fff', borderRadius: 22, paddingVertical: 8, paddingHorizontal: 18, alignSelf: 'flex-start', elevation: 4 },
   kBtnText:    { color: '#fff', fontSize: 12, fontWeight: '700', marginLeft: 7 },
 
-  // Moving Quotes — dark navy, slow, bigger font
-  quotesCard:   { backgroundColor: '#0d1b3e', borderRadius: 14, overflow: 'hidden', height: 52, justifyContent: 'center' },
+  // Quotes — lighter navy (#1e3a5f), bigger font, slower
+  quotesCard:   { backgroundColor: '#1e3a5f', borderRadius: 14, overflow: 'hidden', height: 52, justifyContent: 'center' },
   quotesTicker: { overflow: 'hidden', height: 52 },
   quotesInner:  { flexDirection: 'row', alignItems: 'center', position: 'absolute', height: 52 },
-  quoteText:    { fontSize: 14, color: '#a0c4ff', fontStyle: 'italic', lineHeight: 52, paddingHorizontal: 12 },
+  quoteText:    { fontSize: 14, color: '#c8deff', fontStyle: 'italic', lineHeight: 52, paddingHorizontal: 12 },
 });
