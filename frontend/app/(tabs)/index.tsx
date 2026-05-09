@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import Svg, {
-  Circle, G, Ellipse, Polygon, Rect, Line, Polyline, Path,
+  Circle, G, Ellipse, Polygon, Rect, Line, Polyline, Path, Text as SvgText,
 } from 'react-native-svg';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -164,11 +164,21 @@ const PortfolioCard = ({ onPress, isFree }: { onPress: () => void; isFree: boole
           ) : (
             <Animated.View style={{ transform: [{ translateY: arrowY }] }}>
               <Svg width={32} height={32} viewBox="0 0 34 34" fill="none">
-                <Polyline points="4,25 11,14 17,19 26,8" stroke="#c8f5d0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                <Polyline points="21,8 26,8 26,13" stroke="#c8f5d0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                <Circle cx="11" cy="14" r="2" fill="#c8f5d0" />
-                <Circle cx="17" cy="19" r="2" fill="#c8f5d0" />
-                <Circle cx="26" cy="8"  r="2" fill="#c8f5d0" />
+                {/* Jar body */}
+                <Rect x="9" y="18" width="16" height="12" rx="3" fill="#a7f3d0" opacity="0.9" />
+                {/* Jar neck */}
+                <Rect x="11" y="15" width="12" height="4" rx="1.5" fill="#6ee7b7" />
+                {/* Jar lid */}
+                <Rect x="10" y="13" width="14" height="3" rx="1.5" fill="#34d399" />
+                {/* Coins inside */}
+                <Ellipse cx="17" cy="26" rx="5" ry="1.5" fill="#fbbf24" opacity="0.8" />
+                <Ellipse cx="17" cy="24" rx="4" ry="1.2" fill="#f59e0b" opacity="0.7" />
+                {/* Tree trunk */}
+                <Rect x="16" y="8" width="2" height="6" rx="1" fill="#4ade80" />
+                {/* Tree top */}
+                <Circle cx="17" cy="7"    r="4.5" fill="#22c55e" />
+                <Circle cx="13.5" cy="9"  r="2.5" fill="#16a34a" />
+                <Circle cx="20.5" cy="9"  r="2.5" fill="#16a34a" />
               </Svg>
             </Animated.View>
           )}
