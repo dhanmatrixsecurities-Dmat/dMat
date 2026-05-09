@@ -161,7 +161,8 @@ export default function KookyScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: HEADER_BG }} edges={['top']}>
-      {/* ── HEADER — OUTSIDE KeyboardAvoidingView so it never moves ── */}
+
+      {/* ── HEADER — fixed, never moves with keyboard ── */}
       <View style={st.topHeader}>
         <KookyLogo size="small" />
         <TouchableOpacity style={st.portfolioTopBtn} onPress={() => setPortfolioMode(true)}>
@@ -177,7 +178,7 @@ export default function KookyScreen() {
         </Text>
       </View>
 
-      {/* ── CHAT — inside KeyboardAvoidingView, adjusts with keyboard ── */}
+      {/* ── CHAT + INPUT — only this resizes with keyboard ── */}
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: theme.background }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -225,6 +226,7 @@ export default function KookyScreen() {
           )}
         </ScrollView>
 
+        {/* Input bar — paddingBottom: 12 fixes cropping at bottom */}
         <View style={[st.inputRow, { backgroundColor: theme.cardBackground, borderTopColor: theme.border }]}>
           <TouchableOpacity style={st.portfolioIconBtn} onPress={() => setPortfolioMode(true)}>
             <Ionicons name="pie-chart" size={18} color="#fff" />
@@ -263,7 +265,8 @@ const st = StyleSheet.create({
   quickLabel:         { fontSize: 9, letterSpacing: 2, fontWeight: '700', marginBottom: 2 },
   quickBtn:           { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, borderWidth: 1 },
   quickBtnText:       { fontSize: 12, fontWeight: '500' },
-  inputRow:           { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10, paddingVertical: 8, borderTopWidth: 1 },
+  // ── Input bar: paddingBottom: 12 prevents cropping ──
+  inputRow:           { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10, paddingTop: 8, paddingBottom: 12, borderTopWidth: 1 },
   portfolioIconBtn:   { width: 40, height: 40, borderRadius: 10, backgroundColor: '#2979FF', alignItems: 'center', justifyContent: 'center' },
   textInput:          { flex: 1, height: 40, borderRadius: 20, paddingHorizontal: 16, fontSize: 13, borderWidth: 1 },
   sendBtn:            { width: 40, height: 40, borderRadius: 20, backgroundColor: '#0B1A2E', alignItems: 'center', justifyContent: 'center' },
