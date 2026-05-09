@@ -183,19 +183,20 @@ const MutualFundCard = () => {
   );
 };
 
-// ── Moving Quotes — dark navy background ─────────────────────────────────────
+// ── Moving Quotes — dark navy, slow, bigger font ──────────────────────────────
 const QUOTES = [
-  '❝ Be fearful when others are greedy, and greedy when others are fearful ❞  — Warren Buffett',
-  '❝ No loss is also a profit in trading ❞  — DhanMatrix',
-  '❝ Patience is the key to success in the market ❞  — DhanMatrix',
-  '❝ The stock market transfers money from the impatient to the patient ❞  — Warren Buffett',
+  '❝ Be fearful when others are greedy, and greedy when others are fearful ❞  — Warren Buffett     ',
+  '❝ No loss is also a profit in trading ❞  — DhanMatrix     ',
+  '❝ Patience is the key to success in the market ❞  — DhanMatrix     ',
+  '❝ The stock market transfers money from the impatient to the patient ❞  — Warren Buffett     ',
 ];
 
 const MovingQuotes = () => {
   const marquee = useRef(new Animated.Value(0)).current;
   useEffect(() => {
+    // 60000ms = very slow scroll
     Animated.loop(
-      Animated.timing(marquee, { toValue: -2200, duration: 30000, useNativeDriver: true })
+      Animated.timing(marquee, { toValue: -3000, duration: 60000, useNativeDriver: true })
     ).start();
   }, []);
   return (
@@ -203,7 +204,7 @@ const MovingQuotes = () => {
       <View style={s.quotesTicker}>
         <Animated.View style={[s.quotesInner, { transform: [{ translateX: marquee }] }]}>
           {[...QUOTES, ...QUOTES].map((q, i) => (
-            <Text key={i} style={s.quoteText}>{q}{'          '}</Text>
+            <Text key={i} style={s.quoteText}>{q}</Text>
           ))}
         </Animated.View>
       </View>
@@ -329,7 +330,6 @@ export default function HomeScreen() {
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
-        {/* Overall Performance */}
         <View style={s.perfCard}>
           <Text style={s.perfTitle}>Overall Performance</Text>
           <DonutGauge accuracy={overall.accuracy} size={88} strokeWidth={9} fillColor="#2563eb" trackColor="#eaecf5" />
@@ -347,7 +347,6 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Segments */}
         <View style={s.segRow}>
           {segments.map((seg, idx) => (
             <View key={seg.label} style={[s.segCard, { borderTopColor: seg.borderColor }, idx < segments.length - 1 && { marginRight: 6 }]}>
@@ -369,7 +368,6 @@ export default function HomeScreen() {
           ))}
         </View>
 
-        {/* Round cards */}
         <View style={s.roundRow}>
           <PortfolioCard onPress={handlePortfolioStocksPress} isFree={userData?.status === 'FREE'} />
           <MutualFundCard />
@@ -448,7 +446,7 @@ export default function HomeScreen() {
           </View>
         </TouchableOpacity>
 
-        {/* Moving Quotes — dark navy */}
+        {/* Moving Quotes — dark navy, slow, bigger */}
         <MovingQuotes />
 
         <View style={{ height: 16 }} />
@@ -520,9 +518,9 @@ const s = StyleSheet.create({
   kBtn:        { flexDirection: 'row', alignItems: 'center', backgroundColor: '#3d7fff', borderRadius: 22, paddingVertical: 8, paddingHorizontal: 18, alignSelf: 'flex-start', elevation: 4 },
   kBtnText:    { color: '#fff', fontSize: 12, fontWeight: '700', marginLeft: 7 },
 
-  // Dark navy moving quotes
-  quotesCard:   { backgroundColor: '#0d1b3e', borderRadius: 14, overflow: 'hidden', height: 44, justifyContent: 'center' },
-  quotesTicker: { overflow: 'hidden', height: 44 },
-  quotesInner:  { flexDirection: 'row', alignItems: 'center', position: 'absolute', height: 44 },
-  quoteText:    { fontSize: 12, color: '#a0c4ff', fontStyle: 'italic', lineHeight: 44, paddingHorizontal: 8 },
+  // Moving Quotes — dark navy, slow, bigger font
+  quotesCard:   { backgroundColor: '#0d1b3e', borderRadius: 14, overflow: 'hidden', height: 52, justifyContent: 'center' },
+  quotesTicker: { overflow: 'hidden', height: 52 },
+  quotesInner:  { flexDirection: 'row', alignItems: 'center', position: 'absolute', height: 52 },
+  quoteText:    { fontSize: 14, color: '#a0c4ff', fontStyle: 'italic', lineHeight: 52, paddingHorizontal: 12 },
 });
