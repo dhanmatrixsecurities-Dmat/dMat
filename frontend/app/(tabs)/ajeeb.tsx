@@ -161,80 +161,84 @@ export default function KookyScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: HEADER_BG }} edges={['top']}>
-      <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-        >
-          <View style={st.topHeader}>
-            <KookyLogo size="small" />
-            <TouchableOpacity style={st.portfolioTopBtn} onPress={() => setPortfolioMode(true)}>
-              <Ionicons name="pie-chart" size={12} color="#fff" />
-              <Text style={st.portfolioTopBtnText}>Portfolio</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={[st.agentBadge, { backgroundColor: theme.cardBackground, borderBottomColor: theme.border }]}>
-            <View style={st.statusDot} />
-            <Text style={[st.agentBadgeText, { color: theme.textSecondary }]}>
-              Kooky — Decoding the <Text style={st.moneyMatrix}>Money Matrix</Text>
-            </Text>
-          </View>
-
-          <ScrollView ref={scrollRef} style={[st.messages, { backgroundColor: theme.background }]}
-            contentContainerStyle={{ paddingVertical: 12, paddingBottom: 8 }}
-            keyboardShouldPersistTaps="handled"
-            onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
-          >
-            {messages.map(msg => (
-              <View key={msg.id} style={[
-                st.bubble,
-                msg.role === 'user'
-                  ? [st.userBubble, { backgroundColor: HEADER_BG }]
-                  : [st.botBubble, { backgroundColor: theme.cardBackground, borderColor: theme.border }],
-              ]}>
-                {msg.role === 'assistant' && <Text style={[st.senderLabel, { color: theme.textSecondary }]}>Kooky //</Text>}
-                <Text style={[msg.role === 'user' ? st.userText : st.botText, msg.role !== 'user' && { color: theme.text }]}>{msg.text}</Text>
-              </View>
-            ))}
-            {loading && (
-              <View style={[st.bubble, st.botBubble, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
-                <Text style={[st.senderLabel, { color: theme.textSecondary }]}>Kooky //</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <ActivityIndicator size="small" color="#2979FF" />
-                  <Text style={[st.loadingText, { color: theme.textSecondary }]}>Analyzing markets...</Text>
-                </View>
-              </View>
-            )}
-            {showQuick && (
-              <View style={st.quickWrap}>
-                <Text style={[st.quickLabel, { color: theme.textSecondary }]}>QUICK ACTIONS</Text>
-                {QUICK_QUESTIONS.map(q => (
-                  <TouchableOpacity key={q} style={[st.quickBtn, { backgroundColor: theme.cardBackground, borderColor: theme.border }]} onPress={() => sendMessage(q)}>
-                    <Text style={[st.quickBtnText, { color: theme.text }]}>{q}</Text>
-                    <Ionicons name="arrow-forward" size={11} color="#2979FF" />
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </ScrollView>
-
-          <View style={[st.inputRow, { backgroundColor: theme.cardBackground, borderTopColor: theme.border }]}>
-            <TouchableOpacity style={st.portfolioIconBtn} onPress={() => setPortfolioMode(true)}>
-              <Ionicons name="pie-chart" size={18} color="#fff" />
-            </TouchableOpacity>
-            <TextInput
-              style={[st.textInput, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
-              value={input} onChangeText={setInput}
-              placeholder="Ask Kooky about markets..." placeholderTextColor={theme.textSecondary}
-              onSubmitEditing={() => sendMessage()} returnKeyType="send" multiline={false} />
-            <TouchableOpacity style={[st.sendBtn, loading && st.sendBtnDisabled]} onPress={() => sendMessage()} disabled={loading}>
-              <Ionicons name="send" size={18} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        </KeyboardAvoidingView>
+      {/* ── HEADER — OUTSIDE KeyboardAvoidingView so it never moves ── */}
+      <View style={st.topHeader}>
+        <KookyLogo size="small" />
+        <TouchableOpacity style={st.portfolioTopBtn} onPress={() => setPortfolioMode(true)}>
+          <Ionicons name="pie-chart" size={12} color="#fff" />
+          <Text style={st.portfolioTopBtnText}>Portfolio</Text>
+        </TouchableOpacity>
       </View>
+
+      <View style={[st.agentBadge, { backgroundColor: theme.cardBackground, borderBottomColor: theme.border }]}>
+        <View style={st.statusDot} />
+        <Text style={[st.agentBadgeText, { color: theme.textSecondary }]}>
+          Kooky — Decoding the <Text style={st.moneyMatrix}>Money Matrix</Text>
+        </Text>
+      </View>
+
+      {/* ── CHAT — inside KeyboardAvoidingView, adjusts with keyboard ── */}
+      <KeyboardAvoidingView
+        style={{ flex: 1, backgroundColor: theme.background }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
+        <ScrollView
+          ref={scrollRef}
+          style={[st.messages, { backgroundColor: theme.background }]}
+          contentContainerStyle={{ paddingVertical: 12, paddingBottom: 8 }}
+          keyboardShouldPersistTaps="handled"
+          onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
+        >
+          {messages.map(msg => (
+            <View key={msg.id} style={[
+              st.bubble,
+              msg.role === 'user'
+                ? [st.userBubble, { backgroundColor: HEADER_BG }]
+                : [st.botBubble, { backgroundColor: theme.cardBackground, borderColor: theme.border }],
+            ]}>
+              {msg.role === 'assistant' && <Text style={[st.senderLabel, { color: theme.textSecondary }]}>Kooky //</Text>}
+              <Text style={[msg.role === 'user' ? st.userText : st.botText, msg.role !== 'user' && { color: theme.text }]}>
+                {msg.text}
+              </Text>
+            </View>
+          ))}
+          {loading && (
+            <View style={[st.bubble, st.botBubble, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+              <Text style={[st.senderLabel, { color: theme.textSecondary }]}>Kooky //</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <ActivityIndicator size="small" color="#2979FF" />
+                <Text style={[st.loadingText, { color: theme.textSecondary }]}>Analyzing markets...</Text>
+              </View>
+            </View>
+          )}
+          {showQuick && (
+            <View style={st.quickWrap}>
+              <Text style={[st.quickLabel, { color: theme.textSecondary }]}>QUICK ACTIONS</Text>
+              {QUICK_QUESTIONS.map(q => (
+                <TouchableOpacity key={q} style={[st.quickBtn, { backgroundColor: theme.cardBackground, borderColor: theme.border }]} onPress={() => sendMessage(q)}>
+                  <Text style={[st.quickBtnText, { color: theme.text }]}>{q}</Text>
+                  <Ionicons name="arrow-forward" size={11} color="#2979FF" />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </ScrollView>
+
+        <View style={[st.inputRow, { backgroundColor: theme.cardBackground, borderTopColor: theme.border }]}>
+          <TouchableOpacity style={st.portfolioIconBtn} onPress={() => setPortfolioMode(true)}>
+            <Ionicons name="pie-chart" size={18} color="#fff" />
+          </TouchableOpacity>
+          <TextInput
+            style={[st.textInput, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
+            value={input} onChangeText={setInput}
+            placeholder="Ask Kooky about markets..." placeholderTextColor={theme.textSecondary}
+            onSubmitEditing={() => sendMessage()} returnKeyType="send" multiline={false} />
+          <TouchableOpacity style={[st.sendBtn, loading && st.sendBtnDisabled]} onPress={() => sendMessage()} disabled={loading}>
+            <Ionicons name="send" size={18} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
