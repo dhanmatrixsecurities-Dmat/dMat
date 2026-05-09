@@ -1,38 +1,31 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, SafeAreaView, Linking, RefreshControl, Animated,
+  Alert, SafeAreaView, Linking, RefreshControl, Animated, Switch,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
 import FeedbackModal from '../FeedbackModal';
 
 export default function Profile() {
   const { user, userData, signOut, refreshUserData } = useAuth();
-  const router = useRouter();
-  const [refreshing, setRefreshing] = useState(false);
-  const [feedbackVisible, setFeedbackVisible] = useState(false);
-  const [feedbackType, setFeedbackType] = useState<'complaint' | 'suggestion'>('complaint');
+  const router  = useRouter();
+  const theme   = useTheme();
 
-  // Avatar animation — runs once on mount, then stops completely
-  const scaleAnim = useRef(new Animated.Value(0.7)).current;
+  const [refreshing,       setRefreshing]       = useState(false);
+  const [feedbackVisible,  setFeedbackVisible]  = useState(false);
+  const [feedbackType,     setFeedbackType]     = useState<'complaint' | 'suggestion'>('complaint');
+
+  const scaleAnim   = useRef(new Animated.Value(0.7)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.parallel([
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 4,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
+      Animated.spring(scaleAnim,  { toValue: 1, friction: 4, tension: 40, useNativeDriver: true }),
+      Animated.timing(opacityAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
     ]).start();
   }, []);
 
@@ -67,29 +60,29 @@ export default function Profile() {
     if (userData?.status !== 'ACTIVE') return null;
     if (!userData?.subscriptionEndDate) return null;
     const endDate = new Date(userData.subscriptionEndDate);
-    const today = new Date();
+    const today   = new Date();
     today.setHours(0, 0, 0, 0);
     endDate.setHours(0, 0, 0, 0);
-    const diffDays = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    const diffDays      = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
     const formattedDate = endDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
     return { daysLeft: diffDays, endDateFormatted: formattedDate };
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'ACTIVE': return Colors.success;
-      case 'FREE': return Colors.warning;
-      case 'BLOCKED': return Colors.error;
-      default: return Colors.textSecondary;
+      case 'ACTIVE':  return theme.success;
+      case 'FREE':    return theme.warning;
+      case 'BLOCKED': return theme.error;
+      default:        return theme.textSecondary;
     }
   };
 
   const getStatusIcon = (status: string): any => {
     switch (status) {
-      case 'ACTIVE': return 'checkmark-circle';
-      case 'FREE': return 'star';
+      case 'ACTIVE':  return 'checkmark-circle';
+      case 'FREE':    return 'star';
       case 'BLOCKED': return 'lock-closed';
-      default: return 'help-circle';
+      default:        return 'help-circle';
     }
   };
 
@@ -102,15 +95,29 @@ export default function Profile() {
     ]);
   };
 
-  const mobileDisplay = userData?.mobile || user?.phoneNumber || '';
-  const emailDisplay = userData?.email || user?.email || '';
-  const subscriptionInfo = getSubscriptionInfo();
+  const mobileDisplay      = userData?.mobile || user?.phoneNumber || '';
+  const emailDisplay       = userData?.email  || user?.email       || '';
+  const subscriptionInfo   = getSubscriptionInfo();
+
+  // Dynamic colors based on theme
+  const bg        = theme.background;
+  const card      = theme.cardBackground;
+  const txt       = theme.text;
+  const txtSec    = theme.textSecondary;
+  const brd       = theme.border;
+  const divider   = theme.divider;
+  const primary   = theme.primary;
+
+  // Semantic card bg in dark mode
+  const warnBg    = theme.isDark ? 'rgba(245,158,11,0.15)'  : '#FFF3E0';
+  const successBg = theme.isDark ? 'rgba(34,168,90,0.15)'   : '#E8F5E9';
+  const errorBg   = theme.isDark ? 'rgba(224,48,48,0.15)'   : '#FFEBEE';
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: bg }]}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} tintColor={Colors.primary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[primary]} tintColor={primary} />}
       >
         {/* HEADER */}
         <View style={styles.header}>
@@ -120,16 +127,15 @@ export default function Profile() {
             </View>
           </Animated.View>
 
-          {userData?.name ? <Text style={styles.userName}>{userData.name}</Text> : null}
+          {userData?.name ? <Text style={[styles.userName, { color: txt }]}>{userData.name}</Text> : null}
 
           <View style={styles.contactRow}>
-            <Ionicons name="call-outline" size={14} color={Colors.textSecondary} />
-            <Text style={styles.contactText}>{mobileDisplay || 'Mobile not available'}</Text>
+            <Ionicons name="call-outline" size={14} color={txtSec} />
+            <Text style={[styles.contactText, { color: txtSec }]}>{mobileDisplay || 'Mobile not available'}</Text>
           </View>
-
           <View style={styles.contactRow}>
-            <Ionicons name="mail-outline" size={14} color={Colors.textSecondary} />
-            <Text style={styles.contactText}>{emailDisplay || 'Email not available'}</Text>
+            <Ionicons name="mail-outline" size={14} color={txtSec} />
+            <Text style={[styles.contactText, { color: txtSec }]}>{emailDisplay || 'Email not available'}</Text>
           </View>
 
           <View style={[styles.statusBadge, { backgroundColor: getStatusColor(userData?.status || 'FREE') }]}>
@@ -140,31 +146,31 @@ export default function Profile() {
 
         {/* MEMBERSHIP */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Membership</Text>
+          <Text style={[styles.sectionTitle, { color: txt }]}>Membership</Text>
           {userData?.status === 'FREE' && (
-            <View style={[styles.infoCard, { backgroundColor: '#FFF3E0' }]}>
-              <Ionicons name="information-circle" size={24} color={Colors.warning} />
+            <View style={[styles.infoCard, { backgroundColor: warnBg }]}>
+              <Ionicons name="information-circle" size={24} color={theme.warning} />
               <View style={styles.infoContent}>
-                <Text style={styles.infoTitle}>Free Membership</Text>
-                <Text style={styles.infoText}>You can view closed trades only. Contact support to upgrade and access live trade recommendations.</Text>
+                <Text style={[styles.infoTitle, { color: txt }]}>Free Membership</Text>
+                <Text style={[styles.infoText, { color: txtSec }]}>You can view closed trades only. Contact support to upgrade and access live trade recommendations.</Text>
               </View>
             </View>
           )}
           {userData?.status === 'ACTIVE' && (
-            <View style={[styles.infoCard, { backgroundColor: '#E8F5E9' }]}>
-              <Ionicons name="checkmark-circle" size={24} color={Colors.success} />
+            <View style={[styles.infoCard, { backgroundColor: successBg }]}>
+              <Ionicons name="checkmark-circle" size={24} color={theme.success} />
               <View style={styles.infoContent}>
-                <Text style={styles.infoTitle}>Active Membership</Text>
-                <Text style={styles.infoText}>You have full access to live trade recommendations and notifications.</Text>
+                <Text style={[styles.infoTitle, { color: txt }]}>Active Membership</Text>
+                <Text style={[styles.infoText, { color: txtSec }]}>You have full access to live trade recommendations and notifications.</Text>
                 {subscriptionInfo && (
                   <View style={styles.subscriptionDetails}>
                     <View style={styles.subscriptionRow}>
-                      <Ionicons name="calendar-outline" size={16} color={Colors.success} />
-                      <Text style={styles.subscriptionText}>Expires: {subscriptionInfo.endDateFormatted}</Text>
+                      <Ionicons name="calendar-outline" size={16} color={theme.success} />
+                      <Text style={[styles.subscriptionText, { color: txtSec }]}>Expires: {subscriptionInfo.endDateFormatted}</Text>
                     </View>
                     <View style={styles.subscriptionRow}>
-                      <Ionicons name="time-outline" size={16} color={subscriptionInfo.daysLeft <= 7 ? Colors.error : subscriptionInfo.daysLeft <= 15 ? Colors.warning : Colors.success} />
-                      <Text style={[styles.subscriptionText, { color: subscriptionInfo.daysLeft <= 7 ? Colors.error : subscriptionInfo.daysLeft <= 15 ? Colors.warning : Colors.success, fontWeight: 'bold' }]}>
+                      <Ionicons name="time-outline" size={16} color={subscriptionInfo.daysLeft <= 7 ? theme.error : subscriptionInfo.daysLeft <= 15 ? theme.warning : theme.success} />
+                      <Text style={[styles.subscriptionText, { color: subscriptionInfo.daysLeft <= 7 ? theme.error : subscriptionInfo.daysLeft <= 15 ? theme.warning : theme.success, fontWeight: 'bold' }]}>
                         {subscriptionInfo.daysLeft > 0 ? `${subscriptionInfo.daysLeft} days remaining` : 'Subscription expired'}
                       </Text>
                     </View>
@@ -174,11 +180,11 @@ export default function Profile() {
             </View>
           )}
           {userData?.status === 'BLOCKED' && (
-            <View style={[styles.infoCard, { backgroundColor: '#FFEBEE' }]}>
-              <Ionicons name="lock-closed" size={24} color={Colors.error} />
+            <View style={[styles.infoCard, { backgroundColor: errorBg }]}>
+              <Ionicons name="lock-closed" size={24} color={theme.error} />
               <View style={styles.infoContent}>
-                <Text style={styles.infoTitle}>Account Blocked</Text>
-                <Text style={styles.infoText}>Your account has been blocked. Please contact support for assistance.</Text>
+                <Text style={[styles.infoTitle, { color: txt }]}>Account Blocked</Text>
+                <Text style={[styles.infoText, { color: txtSec }]}>Your account has been blocked. Please contact support for assistance.</Text>
               </View>
             </View>
           )}
@@ -186,90 +192,103 @@ export default function Profile() {
 
         {/* FEATURES */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Features</Text>
-          <View style={styles.featuresList}>
-            <View style={styles.featureItem}>
-              <Ionicons name="checkmark-done" size={20} color={Colors.success} />
-              <Text style={styles.featureText}>Closed Trades History</Text>
+          <Text style={[styles.sectionTitle, { color: txt }]}>Features</Text>
+          <View style={[styles.featuresList, { backgroundColor: card, borderColor: brd }]}>
+            <View style={[styles.featureItem, { borderBottomColor: divider }]}>
+              <Ionicons name="checkmark-done" size={20} color={theme.success} />
+              <Text style={[styles.featureText, { color: txt }]}>Closed Trades History</Text>
             </View>
-            <View style={styles.featureItem}>
-              <Ionicons name="pulse" size={20} color={userData?.status === 'ACTIVE' ? Colors.success : Colors.textSecondary} />
-              <Text style={[styles.featureText, userData?.status !== 'ACTIVE' && styles.disabledText]}>Live Active Trades</Text>
+            <View style={[styles.featureItem, { borderBottomColor: divider }]}>
+              <Ionicons name="pulse" size={20} color={userData?.status === 'ACTIVE' ? theme.success : txtSec} />
+              <Text style={[styles.featureText, { color: userData?.status !== 'ACTIVE' ? txtSec : txt }]}>Live Active Trades</Text>
               {userData?.status !== 'ACTIVE' && <Text style={styles.premiumLabel}>PREMIUM</Text>}
             </View>
             <View style={[styles.featureItem, { borderBottomWidth: 0 }]}>
-              <Ionicons name="notifications" size={20} color={userData?.status === 'ACTIVE' ? Colors.success : Colors.textSecondary} />
-              <Text style={[styles.featureText, userData?.status !== 'ACTIVE' && styles.disabledText]}>Push Notifications</Text>
+              <Ionicons name="notifications" size={20} color={userData?.status === 'ACTIVE' ? theme.success : txtSec} />
+              <Text style={[styles.featureText, { color: userData?.status !== 'ACTIVE' ? txtSec : txt }]}>Push Notifications</Text>
               {userData?.status !== 'ACTIVE' && <Text style={styles.premiumLabel}>PREMIUM</Text>}
             </View>
           </View>
         </View>
 
-        {/* ── FEEDBACK — NEW SECTION ───────────────────────────── */}
+        {/* PREFERENCES — Dark Mode Toggle */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Feedback</Text>
-          <View style={styles.feedbackRow}>
+          <Text style={[styles.sectionTitle, { color: txt }]}>Preferences</Text>
+          <View style={[styles.menuItem, { backgroundColor: card }]}>
+            <Ionicons name={theme.isDark ? 'moon' : 'moon-outline'} size={24} color={primary} />
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={[styles.menuText, { color: txt, marginLeft: 0 }]}>Dark Blue Mode</Text>
+              <Text style={{ fontSize: 12, color: txtSec, marginTop: 1 }}>
+                {theme.isDark ? 'Dark theme active' : 'Light theme active'}
+              </Text>
+            </View>
+            <Switch
+              value={theme.isDark}
+              onValueChange={theme.toggleTheme}
+              trackColor={{ false: brd, true: primary }}
+              thumbColor="#fff"
+              ios_backgroundColor={brd}
+            />
+          </View>
+        </View>
 
-            {/* Complaint card */}
+        {/* FEEDBACK */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: txt }]}>Feedback</Text>
+          <View style={styles.feedbackRow}>
             <TouchableOpacity
-              style={styles.feedbackCard}
+              style={[styles.feedbackCard, { backgroundColor: card, borderColor: brd }]}
               activeOpacity={0.75}
               onPress={() => { setFeedbackType('complaint'); setFeedbackVisible(true); }}
             >
-              <View style={[styles.feedbackIconCircle, { backgroundColor: '#FFEBEE' }]}>
-                <Ionicons name="alert-circle" size={22} color={Colors.error} />
+              <View style={[styles.feedbackIconCircle, { backgroundColor: errorBg }]}>
+                <Ionicons name="alert-circle" size={22} color={theme.error} />
               </View>
-              <Text style={styles.feedbackCardTitle}>Raise a{'\n'}Complaint</Text>
-              <Text style={styles.feedbackCardSub}>Report an issue</Text>
+              <Text style={[styles.feedbackCardTitle, { color: txt }]}>Raise a{'\n'}Complaint</Text>
+              <Text style={[styles.feedbackCardSub, { color: txtSec }]}>Report an issue</Text>
             </TouchableOpacity>
-
-            {/* Suggestion card */}
             <TouchableOpacity
-              style={styles.feedbackCard}
+              style={[styles.feedbackCard, { backgroundColor: card, borderColor: brd }]}
               activeOpacity={0.75}
               onPress={() => { setFeedbackType('suggestion'); setFeedbackVisible(true); }}
             >
-              <View style={[styles.feedbackIconCircle, { backgroundColor: '#E8F5E9' }]}>
-                <Ionicons name="bulb" size={22} color={Colors.accent} />
+              <View style={[styles.feedbackIconCircle, { backgroundColor: successBg }]}>
+                <Ionicons name="bulb" size={22} color={theme.accent} />
               </View>
-              <Text style={styles.feedbackCardTitle}>Give a{'\n'}Suggestion</Text>
-              <Text style={styles.feedbackCardSub}>Share feedback</Text>
+              <Text style={[styles.feedbackCardTitle, { color: txt }]}>Give a{'\n'}Suggestion</Text>
+              <Text style={[styles.feedbackCardSub, { color: txtSec }]}>Share feedback</Text>
             </TouchableOpacity>
-
           </View>
         </View>
-        {/* ─────────────────────────────────────────────────────── */}
 
         {/* SUPPORT */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Support</Text>
-          <TouchableOpacity style={styles.menuItem} onPress={handleContactSupport}>
+          <Text style={[styles.sectionTitle, { color: txt }]}>Support</Text>
+          <TouchableOpacity style={[styles.menuItem, { backgroundColor: card }]} onPress={handleContactSupport}>
             <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
-            <Text style={styles.menuText}>Contact Support</Text>
-            <Ionicons name="chevron-forward" size={24} color={Colors.textSecondary} />
+            <Text style={[styles.menuText, { color: txt }]}>Contact Support</Text>
+            <Ionicons name="chevron-forward" size={24} color={txtSec} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem} onPress={() => Linking.openURL('https://dhanmatrix.com/privacy-policy')}>
-            <Ionicons name="shield-checkmark-outline" size={24} color={Colors.primary} />
-            <Text style={styles.menuText}>Privacy Policy</Text>
-            <Ionicons name="chevron-forward" size={24} color={Colors.textSecondary} />
+          <TouchableOpacity style={[styles.menuItem, { backgroundColor: card }]} onPress={() => Linking.openURL('https://dhanmatrix.com/privacy-policy')}>
+            <Ionicons name="shield-checkmark-outline" size={24} color={primary} />
+            <Text style={[styles.menuText, { color: txt }]}>Privacy Policy</Text>
+            <Ionicons name="chevron-forward" size={24} color={txtSec} />
           </TouchableOpacity>
         </View>
 
         {/* SIGN OUT */}
-        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut} activeOpacity={0.8}>
-          <Ionicons name="log-out-outline" size={24} color={Colors.error} />
-          <Text style={styles.signOutText}>Sign Out</Text>
+        <TouchableOpacity style={[styles.signOutButton, { backgroundColor: card, borderColor: theme.error }]} onPress={handleSignOut} activeOpacity={0.8}>
+          <Ionicons name="log-out-outline" size={24} color={theme.error} />
+          <Text style={[styles.signOutText, { color: theme.error }]}>Sign Out</Text>
         </TouchableOpacity>
 
         {/* FOOTER */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>DhanMatrix v1.0</Text>
-          <Text style={styles.footerSubtext}>Made for educational purposes only</Text>
+        <View style={[styles.footer, { borderTopColor: brd }]}>
+          <Text style={[styles.footerText,    { color: txtSec }]}>DhanMatrix v1.0</Text>
+          <Text style={[styles.footerSubtext, { color: txtSec }]}>Made for educational purposes only</Text>
         </View>
-
       </ScrollView>
 
-      {/* FEEDBACK MODAL */}
       <FeedbackModal
         visible={feedbackVisible}
         onClose={() => setFeedbackVisible(false)}
@@ -278,78 +297,44 @@ export default function Profile() {
         userMobile={mobileDisplay}
         userEmail={emailDisplay}
       />
-
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  scrollContent: { padding: 24 },
-  header: { alignItems: 'center', marginBottom: 32 },
-  avatarContainer: { width: 90, height: 90, borderRadius: 45, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  avatarText: { fontSize: 32, fontWeight: 'bold', color: '#fff' },
-  userName: { fontSize: 22, fontWeight: 'bold', color: Colors.text, marginBottom: 6 },
-  contactRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 4 },
-  contactText: { fontSize: 14, color: Colors.textSecondary },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginTop: 10 },
-  statusText: { fontSize: 13, fontWeight: 'bold', color: '#fff', marginLeft: 6 },
-  section: { marginBottom: 24 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: Colors.text, marginBottom: 12 },
-  infoCard: { flexDirection: 'row', padding: 16, borderRadius: 12 },
-  infoContent: { flex: 1, marginLeft: 12 },
-  infoTitle: { fontSize: 16, fontWeight: 'bold', color: Colors.text, marginBottom: 4 },
-  infoText: { fontSize: 14, color: Colors.textSecondary, lineHeight: 20 },
+  container:           { flex: 1 },
+  scrollContent:       { padding: 24 },
+  header:              { alignItems: 'center', marginBottom: 32 },
+  avatarContainer:     { width: 90, height: 90, borderRadius: 45, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  avatarText:          { fontSize: 32, fontWeight: 'bold', color: '#fff' },
+  userName:            { fontSize: 22, fontWeight: 'bold', marginBottom: 6 },
+  contactRow:          { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 4 },
+  contactText:         { fontSize: 14 },
+  statusBadge:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginTop: 10 },
+  statusText:          { fontSize: 13, fontWeight: 'bold', color: '#fff', marginLeft: 6 },
+  section:             { marginBottom: 24 },
+  sectionTitle:        { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+  infoCard:            { flexDirection: 'row', padding: 16, borderRadius: 12 },
+  infoContent:         { flex: 1, marginLeft: 12 },
+  infoTitle:           { fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
+  infoText:            { fontSize: 14, lineHeight: 20 },
   subscriptionDetails: { marginTop: 10, gap: 6 },
-  subscriptionRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  subscriptionText: { fontSize: 14, color: Colors.textSecondary },
-  featuresList: { backgroundColor: Colors.cardBackground, borderRadius: 12, padding: 16 },
-  featureItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.border },
-  featureText: { flex: 1, fontSize: 16, color: Colors.text, marginLeft: 12 },
-  disabledText: { color: Colors.textSecondary },
-  premiumLabel: { fontSize: 10, fontWeight: 'bold', color: Colors.warning, backgroundColor: '#FFF3E0', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
-
-  // ── Feedback section ──────────────────────────────────────────
-  feedbackRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  feedbackCard: {
-    flex: 1,
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    gap: 8,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  feedbackIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  feedbackCardTitle: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: Colors.text,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-  feedbackCardSub: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-  },
-  // ─────────────────────────────────────────────────────────────
-
-  menuItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.cardBackground, padding: 16, borderRadius: 12, marginBottom: 8 },
-  menuText: { flex: 1, fontSize: 16, color: Colors.text, marginLeft: 12 },
-  signOutButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.cardBackground, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: Colors.error, marginTop: 16 },
-  signOutText: { fontSize: 18, fontWeight: 'bold', color: Colors.error, marginLeft: 8 },
-  footer: { alignItems: 'center', marginTop: 32, paddingTop: 24, borderTopWidth: 1, borderTopColor: Colors.border },
-  footerText: { fontSize: 14, color: Colors.textSecondary },
-  footerSubtext: { fontSize: 12, color: Colors.textSecondary, marginTop: 4 },
+  subscriptionRow:     { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  subscriptionText:    { fontSize: 14 },
+  featuresList:        { borderRadius: 12, padding: 16, borderWidth: 1 },
+  featureItem:         { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1 },
+  featureText:         { flex: 1, fontSize: 16, marginLeft: 12 },
+  premiumLabel:        { fontSize: 10, fontWeight: 'bold', color: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.12)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
+  feedbackRow:         { flexDirection: 'row', gap: 12 },
+  feedbackCard:        { flex: 1, borderRadius: 12, padding: 16, alignItems: 'center', gap: 8, borderWidth: 1 },
+  feedbackIconCircle:  { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  feedbackCardTitle:   { fontSize: 13, fontWeight: 'bold', textAlign: 'center', lineHeight: 18 },
+  feedbackCardSub:     { fontSize: 11, textAlign: 'center' },
+  menuItem:            { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 12, marginBottom: 8 },
+  menuText:            { flex: 1, fontSize: 16, marginLeft: 12 },
+  signOutButton:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 12, borderWidth: 1, marginTop: 16 },
+  signOutText:         { fontSize: 18, fontWeight: 'bold', marginLeft: 8 },
+  footer:              { alignItems: 'center', marginTop: 32, paddingTop: 24, borderTopWidth: 1 },
+  footerText:          { fontSize: 14 },
+  footerSubtext:       { fontSize: 12, marginTop: 4 },
 });
