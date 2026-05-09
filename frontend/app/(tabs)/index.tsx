@@ -68,8 +68,9 @@ const DonutGauge = ({ accuracy, size, strokeWidth, fillColor, trackColor, textCo
   );
 };
 
+// ── Greeting Toast — positioned lower so it shows inside screen ───────────────
 const GreetingToast = ({ name }: { name: string }) => {
-  const slide   = useRef(new Animated.Value(-120)).current;
+  const slide   = useRef(new Animated.Value(-100)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const { text, emoji } = getGreeting();
   const first = name?.trim().split(' ')[0] || 'there';
@@ -80,7 +81,7 @@ const GreetingToast = ({ name }: { name: string }) => {
     ]).start();
     const t = setTimeout(() => {
       Animated.parallel([
-        Animated.timing(slide,   { toValue: -120, duration: 350, useNativeDriver: true }),
+        Animated.timing(slide,   { toValue: -100, duration: 350, useNativeDriver: true }),
         Animated.timing(opacity, { toValue: 0,    duration: 350, useNativeDriver: true }),
       ]).start();
     }, 5000);
@@ -131,22 +132,21 @@ const TickerChip = () => (
   </View>
 );
 
-// ── Portfolio — wealth jar icon ───────────────────────────────────────────────
+// ── Portfolio — LEAF icon ─────────────────────────────────────────────────────
 const PortfolioCard = ({ onPress, isFree }: { onPress: () => void; isFree: boolean }) => {
-  const theme       = useTheme();
-  const rocketY     = useRef(new Animated.Value(0)).current;
-  const rocketScale = useRef(new Animated.Value(1)).current;
-  const bounceY     = useRef(new Animated.Value(0)).current;
+  const theme   = useTheme();
+  const bounceY = useRef(new Animated.Value(0)).current;
+  const scaleA  = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     Animated.sequence([
-      Animated.delay(600),
+      Animated.delay(500),
       Animated.parallel([
-        Animated.timing(rocketY,     { toValue: -18,  duration: 380, useNativeDriver: true }),
-        Animated.timing(rocketScale, { toValue: 0.88, duration: 380, useNativeDriver: true }),
+        Animated.timing(scaleA, { toValue: 1.12, duration: 300, useNativeDriver: true }),
+        Animated.timing(bounceY, { toValue: -8, duration: 300, useNativeDriver: true }),
       ]),
       Animated.parallel([
-        Animated.spring(rocketY,     { toValue: 0, friction: 5, tension: 80, useNativeDriver: true }),
-        Animated.spring(rocketScale, { toValue: 1, friction: 5, tension: 80, useNativeDriver: true }),
+        Animated.spring(scaleA,  { toValue: 1, friction: 5, tension: 80, useNativeDriver: true }),
+        Animated.spring(bounceY, { toValue: 0, friction: 5, tension: 80, useNativeDriver: true }),
       ]),
     ]).start();
     Animated.loop(Animated.sequence([
@@ -156,24 +156,36 @@ const PortfolioCard = ({ onPress, isFree }: { onPress: () => void; isFree: boole
   }, []);
   return (
     <TouchableOpacity style={s.rc} activeOpacity={0.82} onPress={onPress}>
-      <Animated.View style={{ transform: [{ translateY: rocketY }, { scale: rocketScale }] }}>
+      <Animated.View style={{ transform: [{ translateY: bounceY }, { scale: scaleA }] }}>
         <View style={[s.circle, { backgroundColor: '#1a6030', shadowColor: '#1a6030' }]}>
           {isFree ? (
-            <Text style={{ fontSize: 28 }}>🔒</Text>
+            <Text style={{ fontSize: 26 }}>🔒</Text>
           ) : (
-            <Animated.View style={{ transform: [{ translateY: bounceY }] }}>
-              <Svg width={32} height={32} viewBox="0 0 34 34" fill="none">
-                <Rect x="9" y="18" width="16" height="12" rx="3" fill="#a7f3d0" opacity="0.9" />
-                <Rect x="11" y="15" width="12" height="4" rx="1.5" fill="#6ee7b7" />
-                <Rect x="10" y="13" width="14" height="3" rx="1.5" fill="#34d399" />
-                <Ellipse cx="17" cy="26" rx="5" ry="1.5" fill="#fbbf24" opacity="0.8" />
-                <Ellipse cx="17" cy="24" rx="4" ry="1.2" fill="#f59e0b" opacity="0.7" />
-                <Rect x="16" y="8" width="2" height="6" rx="1" fill="#4ade80" />
-                <Circle cx="17"   cy="7" r="4.5" fill="#22c55e" />
-                <Circle cx="13.5" cy="9" r="2.5" fill="#16a34a" />
-                <Circle cx="20.5" cy="9" r="2.5" fill="#16a34a" />
-              </Svg>
-            </Animated.View>
+            // ── Leaf icon ──
+            <Svg width={32} height={32} viewBox="0 0 34 34" fill="none">
+              {/* Main leaf shape */}
+              <Path
+                d="M17 4 C10 4 6 10 6 17 C6 22 9 26 14 28 L14 30 L17 30 L20 30 L20 28 C25 26 28 22 28 17 C28 10 24 4 17 4 Z"
+                fill="#4ade80" opacity="0.9"
+              />
+              {/* Leaf inner highlight */}
+              <Path
+                d="M17 6 C12 6 8.5 11 8.5 17 C8.5 21 11 24.5 15 26.5"
+                stroke="#86efac" strokeWidth="1.5" strokeLinecap="round" fill="none"
+              />
+              {/* Centre vein */}
+              <Line x1="17" y1="8" x2="17" y2="28" stroke="#16a34a" strokeWidth="1.8" strokeLinecap="round" />
+              {/* Side veins left */}
+              <Line x1="17" y1="13" x2="11" y2="17" stroke="#16a34a" strokeWidth="1.1" strokeLinecap="round" />
+              <Line x1="17" y1="18" x2="10" y2="21" stroke="#16a34a" strokeWidth="1.1" strokeLinecap="round" />
+              <Line x1="17" y1="23" x2="12" y2="26" stroke="#16a34a" strokeWidth="1" strokeLinecap="round" />
+              {/* Side veins right */}
+              <Line x1="17" y1="13" x2="23" y2="17" stroke="#16a34a" strokeWidth="1.1" strokeLinecap="round" />
+              <Line x1="17" y1="18" x2="24" y2="21" stroke="#16a34a" strokeWidth="1.1" strokeLinecap="round" />
+              <Line x1="17" y1="23" x2="22" y2="26" stroke="#16a34a" strokeWidth="1" strokeLinecap="round" />
+              {/* Stem */}
+              <Line x1="17" y1="29" x2="17" y2="32" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" />
+            </Svg>
           )}
         </View>
       </Animated.View>
@@ -323,7 +335,13 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={[s.outer, { backgroundColor: theme.headerBg }]} edges={['top']}>
-      {showGreeting && <GreetingToast name={userData?.name || ''} />}
+
+      {/* Greeting toast — top:70 keeps it below the header ── */}
+      {showGreeting && (
+        <View style={s.toastWrapper} pointerEvents="none">
+          <GreetingToast name={userData?.name || ''} />
+        </View>
+      )}
 
       <Modal visible={showUpgrade} animationType="slide" onRequestClose={() => setShowUpgrade(false)}>
         <View style={{ flex: 1 }}>
@@ -422,12 +440,14 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ── KOOKY — View only, NOT TouchableOpacity ─────────────── */}
+        {/* ── KOOKY card — View only, Ask Me button navigates ── */}
         <View style={s.kookyCard}>
           <View style={s.kOrb1} pointerEvents="none" />
           <View style={s.kOrb2} pointerEvents="none" />
+
+          {/* Robot — 95px wide */}
           <Animated.View style={[s.kRobot, { transform: [{ translateY: robotFloat }] }]}>
-            <Svg width={80} height={106} viewBox="0 0 84 112" fill="none">
+            <Svg width={95} height={126} viewBox="0 0 84 112" fill="none">
               <Line x1="42" y1="4" x2="42" y2="16" stroke="#60aaff" strokeWidth="2.4" strokeLinecap="round" />
               <Polygon points="42,1 43.6,5.5 48.5,5.5 44.6,8.3 46,13 42,10.2 38,13 39.4,8.3 35.5,5.5 40.4,5.5" fill="#90ccff" />
               <Rect x="9" y="16" width="66" height="48" rx="23" fill="#0e3580" stroke="#4080ff" strokeWidth="1.8" />
@@ -457,20 +477,24 @@ export default function HomeScreen() {
               <Rect x="52" y="110" width="14" height="2" rx="1" fill="#3060c0" />
             </Svg>
           </Animated.View>
+
+          {/* Text side */}
           <View style={s.kText}>
             <View style={s.kLivePill}>
               <Animated.View style={[s.kLiveDot, { opacity: liveDotAnim }]} />
               <Text style={s.kLiveTxt}>AI Assistant</Text>
             </View>
+            {/* KOOKY 26px */}
             <Text style={s.kName}>
-              <Text style={{ color: '#7eb8ff' }}>K</Text><Text style={{ color: '#ffffff' }}>OO</Text>
-              <Text style={{ color: '#7eb8ff' }}>K</Text><Text style={{ color: '#60d4ff' }}>Y</Text>
+              <Text style={{ color: '#7eb8ff' }}>K</Text>
+              <Text style={{ color: '#ffffff' }}>OO</Text>
+              <Text style={{ color: '#7eb8ff' }}>K</Text>
+              <Text style={{ color: '#60d4ff' }}>Y</Text>
             </Text>
             <View style={s.kBracket}>
               <View style={s.kBracketTick} /><View style={s.kBracketLine} /><View style={s.kBracketTick} />
             </View>
             <Text style={s.kSub}>Ask me anything about your portfolio and financial market.</Text>
-            {/* ── Only this button navigates to AI page ── */}
             <TouchableOpacity style={s.kBtn} onPress={() => router.push('/(tabs)/ajeeb')} activeOpacity={0.82}>
               <Svg width={13} height={13} viewBox="0 0 16 16" fill="none">
                 <Circle cx="8" cy="8" r="6.5" stroke="white" strokeWidth="1.5" />
@@ -493,7 +517,9 @@ const s = StyleSheet.create({
   content: { flex: 1, padding: 6, paddingBottom: 4 },
   modalClose:     { backgroundColor: '#001F3F', paddingHorizontal: 20, paddingVertical: 14, alignItems: 'flex-end' },
   modalCloseText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  toast: { position: 'absolute', top: 10, left: 16, right: 16, zIndex: 999, backgroundColor: '#001F3F', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 8 },
+  // Toast wrapper — positioned below header, not at very top
+  toastWrapper: { position: 'absolute', top: 80, left: 16, right: 16, zIndex: 999 },
+  toast: { backgroundColor: '#001F3F', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 8 },
   toastEmoji: { fontSize: 26, marginRight: 12 },
   toastText:  { fontSize: 15, fontWeight: '800', color: '#fff' },
   toastSub:   { fontSize: 11, color: '#a0b4cc', marginTop: 1 },
@@ -534,22 +560,21 @@ const s = StyleSheet.create({
   rc:          { alignItems: 'center' },
   circle:      { width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.4, shadowRadius: 7, shadowOffset: { width: 0, height: 4 }, elevation: 4, marginBottom: 4 },
   rcLabel:     { fontSize: 10, fontWeight: '700', textAlign: 'center', lineHeight: 13 },
-  // ── KOOKY card is plain View, not touchable ──
   kookyCard:   { flex: 1, backgroundColor: '#0a2a6e', borderRadius: 16, padding: 10, flexDirection: 'row', alignItems: 'center', overflow: 'hidden', position: 'relative', borderWidth: 1.5, borderColor: 'rgba(80,140,255,0.25)', marginBottom: 5 },
   kOrb1:       { position: 'absolute', top: -25, right: -25, width: 110, height: 110, borderRadius: 55, backgroundColor: 'rgba(80,140,255,0.12)' },
   kOrb2:       { position: 'absolute', bottom: -20, left: -15, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(30,80,200,0.15)' },
-  kRobot:      { width: 84, alignItems: 'center', justifyContent: 'center', zIndex: 2, marginRight: 8 },
+  kRobot:      { width: 100, alignItems: 'center', justifyContent: 'center', zIndex: 2, marginRight: 8 },
   kText:       { flex: 1, zIndex: 2 },
   kLivePill:   { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(100,160,255,0.15)', borderWidth: 1, borderColor: 'rgba(100,160,255,0.3)', borderRadius: 20, paddingVertical: 2, paddingHorizontal: 7, alignSelf: 'flex-start', marginBottom: 5 },
   kLiveDot:    { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#60aaff', marginRight: 4 },
   kLiveTxt:    { fontSize: 8, fontWeight: '700', color: '#90c8ff', letterSpacing: 0.5, textTransform: 'uppercase' },
-  kName:       { fontSize: 22, fontWeight: '900', lineHeight: 22, letterSpacing: -0.5 },
-  kBracket:    { flexDirection: 'row', alignItems: 'center', marginTop: 3, marginBottom: 5 },
+  kName:       { fontSize: 26, fontWeight: '900', lineHeight: 26, letterSpacing: -0.5, marginBottom: 4 },
+  kBracket:    { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
   kBracketLine:{ flex: 1, height: 2, maxWidth: 70, backgroundColor: 'rgba(100,180,255,0.55)', borderRadius: 2, marginHorizontal: 3 },
   kBracketTick:{ width: 2, height: 6, backgroundColor: 'rgba(100,180,255,0.6)', borderRadius: 2 },
-  kSub:        { fontSize: 10, color: '#8ab4e8', lineHeight: 14, marginBottom: 7 },
-  kBtn:        { flexDirection: 'row', alignItems: 'center', backgroundColor: '#3d7fff', borderRadius: 18, paddingVertical: 6, paddingHorizontal: 13, alignSelf: 'flex-start', elevation: 3 },
-  kBtnText:    { color: '#fff', fontSize: 11, fontWeight: '700', marginLeft: 5 },
+  kSub:        { fontSize: 11, color: '#8ab4e8', lineHeight: 15, marginBottom: 8 },
+  kBtn:        { flexDirection: 'row', alignItems: 'center', backgroundColor: '#3d7fff', borderRadius: 20, paddingVertical: 7, paddingHorizontal: 15, alignSelf: 'flex-start', elevation: 3 },
+  kBtnText:    { color: '#fff', fontSize: 12, fontWeight: '700', marginLeft: 5 },
   quotesCard:   { borderRadius: 12, overflow: 'hidden', height: 46, justifyContent: 'center' },
   quotesTicker: { overflow: 'hidden', height: 46 },
   quotesInner:  { flexDirection: 'row', alignItems: 'center', position: 'absolute', height: 46 },
