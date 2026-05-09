@@ -1,4 +1,4 @@
-  import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator, Animated,
   TouchableOpacity, Linking, ScrollView, Modal,
@@ -95,24 +95,26 @@ const GreetingToast = ({ name }: { name: string }) => {
   );
 };
 
-// ── Waving Hand — Animated.View wrapper (works on Android) ───────────────────
+// ── Waving Hand — waves for ~10 seconds then disappears forever (per app session) ──
 const WavingHand = () => {
   const rotate  = useRef(new Animated.Value(0)).current;
   const opacity = useRef(new Animated.Value(1)).current;
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
+    // 20 iterations × 500ms per cycle = ~10 seconds of waving
     Animated.sequence([
-      Animated.delay(300),
+      Animated.delay(500),
       Animated.loop(
         Animated.sequence([
-          Animated.timing(rotate, { toValue: 1,  duration: 150, useNativeDriver: false }),
-          Animated.timing(rotate, { toValue: -1, duration: 150, useNativeDriver: false }),
-          Animated.timing(rotate, { toValue: 0,  duration: 150, useNativeDriver: false }),
+          Animated.timing(rotate, { toValue: 1,  duration: 200, useNativeDriver: false }),
+          Animated.timing(rotate, { toValue: -1, duration: 200, useNativeDriver: false }),
+          Animated.timing(rotate, { toValue: 0,  duration: 100, useNativeDriver: false }),
         ]),
-        { iterations: 5 }
+        { iterations: 20 }
       ),
-      Animated.timing(opacity, { toValue: 0, duration: 500, useNativeDriver: false }),
+      // Fade out after waving
+      Animated.timing(opacity, { toValue: 0, duration: 700, useNativeDriver: false }),
     ]).start(() => setVisible(false));
   }, []);
 
@@ -121,15 +123,11 @@ const WavingHand = () => {
     outputRange: ['-30deg', '30deg'],
   });
 
+  // After animation done — show static hand forever
   if (!visible) return <Text style={{ fontSize: 18 }}>👋</Text>;
 
   return (
-    <Animated.View style={{
-      opacity,
-      transform: [{ rotate: rotateInterp }],
-      // origin point at bottom of hand
-      marginBottom: -2,
-    }}>
+    <Animated.View style={{ opacity, transform: [{ rotate: rotateInterp }] }}>
       <Text style={{ fontSize: 18 }}>👋</Text>
     </Animated.View>
   );
@@ -223,9 +221,9 @@ const MutualFundCard = () => {
   );
 };
 
-// ── Moving Quotes ─────────────────────────────────────────────────────────────
+// ── Moving Quotes — corrected Buffett quote ───────────────────────────────────
 const QUOTES = [
-  '❝ Be fearful when others are greedy, and greedy when others are fearful ❞  — Warren Buffett     ',
+  '❝ Be fearful when others are greedy and be greedy when others are fearful ❞  — Warren Buffett     ',
   '❝ No loss is also a profit in trading ❞  — DhanMatrix     ',
   '❝ Patience is the key to success in the market ❞  — DhanMatrix     ',
   '❝ The stock market transfers money from the impatient to the patient ❞  — Warren Buffett     ',
@@ -343,7 +341,6 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
-      {/* HEADER */}
       <View style={s.header}>
         <View style={s.hdrRow}>
           <View style={{ flex: 1 }}>
