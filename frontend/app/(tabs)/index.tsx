@@ -110,9 +110,9 @@ const WavingHand = () => {
           Animated.timing(rotate, { toValue: -1, duration: 200, useNativeDriver: false }),
           Animated.timing(rotate, { toValue: 0,  duration: 100, useNativeDriver: false }),
         ]),
-        { iterations: 20 }   // 20 × 500ms ≈ 10 seconds
+        { iterations: 6 }   // 20 × 500ms ≈ 10 seconds
       ),
-      Animated.timing(opacity, { toValue: 0, duration: 700, useNativeDriver: false }),
+      Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: false }),
     ]).start(() => setVisible(false));
   }, []);
 
@@ -221,7 +221,7 @@ const MutualFundCard = () => {
 
 // ── Moving Quotes ─────────────────────────────────────────────────────────────
 const QUOTES = [
-  '❝ Be fearful when others are greedy and be greedy when others are fearful ❞  — Warren Buffett     ',
+  '❝ Be fearful when others are greedy, and be greedy when others are fearful ❞ — Warren Buffett     ',
   '❝ No loss is also a profit in trading ❞  — DhanMatrix     ',
   '❝ Patience is the key to success in the market ❞  — DhanMatrix     ',
   '❝ The stock market transfers money from the impatient to the patient ❞  — Warren Buffett     ',
