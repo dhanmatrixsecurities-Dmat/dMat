@@ -95,14 +95,13 @@ const GreetingToast = ({ name }: { name: string }) => {
   );
 };
 
-// ── Waving Hand — waves for ~10 seconds then disappears forever (per app session) ──
+// ── Waving Hand — waves ~10s then completely disappears, returns null ─────────
 const WavingHand = () => {
   const rotate  = useRef(new Animated.Value(0)).current;
   const opacity = useRef(new Animated.Value(1)).current;
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    // 20 iterations × 500ms per cycle = ~10 seconds of waving
     Animated.sequence([
       Animated.delay(500),
       Animated.loop(
@@ -111,20 +110,19 @@ const WavingHand = () => {
           Animated.timing(rotate, { toValue: -1, duration: 200, useNativeDriver: false }),
           Animated.timing(rotate, { toValue: 0,  duration: 100, useNativeDriver: false }),
         ]),
-        { iterations: 20 }
+        { iterations: 20 }   // 20 × 500ms ≈ 10 seconds
       ),
-      // Fade out after waving
       Animated.timing(opacity, { toValue: 0, duration: 700, useNativeDriver: false }),
     ]).start(() => setVisible(false));
   }, []);
+
+  // After animation — nothing renders, hand is completely gone
+  if (!visible) return null;
 
   const rotateInterp = rotate.interpolate({
     inputRange:  [-1, 1],
     outputRange: ['-30deg', '30deg'],
   });
-
-  // After animation done — show static hand forever
-  if (!visible) return <Text style={{ fontSize: 18 }}>👋</Text>;
 
   return (
     <Animated.View style={{ opacity, transform: [{ rotate: rotateInterp }] }}>
@@ -221,7 +219,7 @@ const MutualFundCard = () => {
   );
 };
 
-// ── Moving Quotes — corrected Buffett quote ───────────────────────────────────
+// ── Moving Quotes ─────────────────────────────────────────────────────────────
 const QUOTES = [
   '❝ Be fearful when others are greedy and be greedy when others are fearful ❞  — Warren Buffett     ',
   '❝ No loss is also a profit in trading ❞  — DhanMatrix     ',
