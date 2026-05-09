@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { StatusBar } from 'expo-status-bar';
+import { Platform } from 'react-native';
 
 export default function TabLayout() {
   return (
@@ -16,21 +17,25 @@ export default function TabLayout() {
             backgroundColor: Colors.cardBackground,
             borderTopWidth: 1,
             borderTopColor: Colors.border,
+            height: Platform.OS === 'android' ? 58 : 80,
+            paddingBottom: Platform.OS === 'android' ? 6 : 20,
+            paddingTop: 4,
           },
           tabBarLabelStyle: {
             fontSize: 10,
             fontWeight: '600',
           },
-          // ── THIS removes the v7 circle/pill indicator behind active tab ──
+          // Kills the v7 circle/pill indicator that was creating the gap
           tabBarActiveIndicatorStyle: {
             backgroundColor: 'transparent',
+            height: 0,
           },
           headerStyle: { backgroundColor: Colors.primary },
           headerTintColor: Colors.secondary,
           headerTitleStyle: { fontWeight: 'bold', fontSize: 20 },
         }}
       >
-        {/* HOME — headerShown: false removes the "Home" title */}
+        {/* HOME — headerShown false, custom header handles status bar */}
         <Tabs.Screen
           name="index"
           options={{
@@ -62,7 +67,7 @@ export default function TabLayout() {
           }}
         />
 
-        {/* AJEEB — headerShown: false so KookyLogo topHeader shows */}
+        {/* AJEEB — headerShown false, KookyLogo in topHeader shows */}
         <Tabs.Screen
           name="ajeeb"
           options={{
@@ -75,7 +80,6 @@ export default function TabLayout() {
           }}
         />
 
-        {/* Hidden from tab bar */}
         <Tabs.Screen
           name="portfolio-stocks"
           options={{
