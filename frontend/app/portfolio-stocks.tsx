@@ -4,26 +4,20 @@ import {
   TouchableOpacity, ActivityIndicator, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { PremiumUpgradeScreen } from './(tabs)/active-trades';
 
 interface PortfolioStock {
-  id: string;
-  stockName?: string;
-  symbol?: string;
-  action?: 'BUY' | 'SELL';
-  type?: 'BUY' | 'SELL';
-  entryPrice: number;
-  targetPrice: number;
-  stopLoss: number;
-  horizon?: string;
-  pdfUrl?: string;
-  pdfName?: string;
-  showInApp?: boolean;
-  createdAt: any;
+  id: string; stockName?: string; symbol?: string;
+  action?: 'BUY' | 'SELL'; type?: 'BUY' | 'SELL';
+  entryPrice: number; targetPrice: number; stopLoss: number;
+  horizon?: string; pdfUrl?: string; pdfName?: string;
+  showInApp?: boolean; createdAt: any;
 }
 
 const isToday = (val: any): boolean => {
@@ -51,23 +45,15 @@ const formatDate = (val: any): string => {
 };
 
 function PortfolioCard({ item }: { item: PortfolioStock }) {
-  const action = item.action || item.type || 'BUY';
-  const isBuy = action === 'BUY';
+  const action      = item.action || item.type || 'BUY';
+  const isBuy       = action === 'BUY';
   const stockName   = item.stockName || item.symbol || '—';
   const entryPrice  = Number(item.entryPrice)  || 0;
   const targetPrice = Number(item.targetPrice) || 0;
   const stopLoss    = Number(item.stopLoss)    || 0;
-
-  const potential = entryPrice > 0
-    ? isBuy ? ((targetPrice - entryPrice) / entryPrice) * 100
-             : ((entryPrice - targetPrice) / entryPrice) * 100
-    : 0;
-  const risk = entryPrice > 0
-    ? isBuy ? ((entryPrice - stopLoss) / entryPrice) * 100
-             : ((stopLoss - entryPrice) / entryPrice) * 100
-    : 0;
-
-  const openChart = () => Linking.openURL(`https://www.tradingview.com/chart/?symbol=NSE:${stockName.toUpperCase().trim()}`);
+  const potential   = entryPrice > 0 ? (isBuy ? ((targetPrice - entryPrice) / entryPrice) : ((entryPrice - targetPrice) / entryPrice)) * 100 : 0;
+  const risk        = entryPrice > 0 ? (isBuy ? ((entryPrice - stopLoss) / entryPrice) : ((stopLoss - entryPrice) / entryPrice)) * 100 : 0;
+  const openChart   = () => Linking.openURL(`https://www.tradingview.com/chart/?symbol=NSE:${stockName.toUpperCase().trim()}`);
 
   return (
     <View style={s.card}>
@@ -75,17 +61,13 @@ function PortfolioCard({ item }: { item: PortfolioStock }) {
         <View style={s.cardTopLeft}>
           <View style={s.stockNameRow}>
             <Text style={s.stockName}>{stockName}</Text>
-            {isToday(item.createdAt) && (
-              <View style={s.todayBadge}><Text style={s.todayBadgeText}>Today</Text></View>
-            )}
+            {isToday(item.createdAt) && <View style={s.todayBadge}><Text style={s.todayBadgeText}>Today</Text></View>}
           </View>
           <View style={s.badgeRow}>
             <View style={[s.typeBadge, isBuy ? s.buyBadge : s.sellBadge]}>
               <Text style={[s.typeText, isBuy ? s.buyText : s.sellText]}>{action}</Text>
             </View>
-            <View style={s.portfolioBadge}>
-              <Text style={s.portfolioBadgeText}>Portfolio / Long Term</Text>
-            </View>
+            <View style={s.portfolioBadge}><Text style={s.portfolioBadgeText}>Portfolio / Long Term</Text></View>
           </View>
         </View>
         <TouchableOpacity style={s.chartBtn} onPress={openChart} activeOpacity={0.75}>
@@ -95,47 +77,25 @@ function PortfolioCard({ item }: { item: PortfolioStock }) {
       </View>
 
       <View style={s.priceGrid}>
-        <View style={s.priceItem}>
-          <Text style={s.priceLabel}>Entry</Text>
-          <Text style={s.priceValue}>₹{entryPrice.toFixed(2)}</Text>
-        </View>
-        <View style={[s.priceItem, s.priceBorder]}>
-          <Text style={s.priceLabel}>Target</Text>
-          <Text style={[s.priceValue, s.targetColor]}>₹{targetPrice.toFixed(2)}</Text>
-        </View>
-        <View style={s.priceItem}>
-          <Text style={s.priceLabel}>Stop Loss</Text>
-          <Text style={[s.priceValue, s.slColor]}>{stopLoss > 0 ? `₹${stopLoss.toFixed(2)}` : 'N/A'}</Text>
-        </View>
+        <View style={s.priceItem}><Text style={s.priceLabel}>Entry</Text><Text style={s.priceValue}>₹{entryPrice.toFixed(2)}</Text></View>
+        <View style={[s.priceItem, s.priceBorder]}><Text style={s.priceLabel}>Target</Text><Text style={[s.priceValue, s.targetColor]}>₹{targetPrice.toFixed(2)}</Text></View>
+        <View style={s.priceItem}><Text style={s.priceLabel}>Stop Loss</Text><Text style={[s.priceValue, s.slColor]}>{stopLoss > 0 ? `₹${stopLoss.toFixed(2)}` : 'N/A'}</Text></View>
       </View>
 
       <View style={s.metricsRow}>
-        <View style={s.metricBox}>
-          <Text style={s.metricLabel}>Potential</Text>
-          <Text style={[s.metricValue, s.targetColor]}>{`+${potential.toFixed(2)}%`}</Text>
-        </View>
-        <View style={s.metricBox}>
-          <Text style={s.metricLabel}>Risk</Text>
-          <Text style={[s.metricValue, s.slColor]}>{stopLoss > 0 ? `-${Math.abs(risk).toFixed(2)}%` : 'N/A'}</Text>
-        </View>
-        <View style={s.metricBox}>
-          <Text style={s.metricLabel}>Horizon</Text>
-          <Text style={s.metricValue}>{item.horizon || '1–5 Yr'}</Text>
-        </View>
+        <View style={s.metricBox}><Text style={s.metricLabel}>Potential</Text><Text style={[s.metricValue, s.targetColor]}>{`+${potential.toFixed(2)}%`}</Text></View>
+        <View style={s.metricBox}><Text style={s.metricLabel}>Risk</Text><Text style={[s.metricValue, s.slColor]}>{stopLoss > 0 ? `-${Math.abs(risk).toFixed(2)}%` : 'N/A'}</Text></View>
+        <View style={s.metricBox}><Text style={s.metricLabel}>Horizon</Text><Text style={s.metricValue}>{item.horizon || '1–5 Yr'}</Text></View>
       </View>
 
       {item.pdfUrl ? (
         <TouchableOpacity style={s.pdfBanner} onPress={() => Linking.openURL(item.pdfUrl!)} activeOpacity={0.8}>
-          <View style={s.pdfIconWrap}>
-            <Ionicons name="document-text-outline" size={16} color="#a5d6a7" />
-          </View>
+          <View style={s.pdfIconWrap}><Ionicons name="document-text-outline" size={16} color="#a5d6a7" /></View>
           <View style={s.pdfTextWrap}>
             <Text style={s.pdfTitle}>Research Report</Text>
             <Text style={s.pdfName} numberOfLines={1}>{item.pdfName || 'View Research PDF'}</Text>
           </View>
-          <View style={s.pdfBtn}>
-            <Text style={s.pdfBtnText}>View PDF</Text>
-          </View>
+          <View style={s.pdfBtn}><Text style={s.pdfBtnText}>View PDF</Text></View>
         </TouchableOpacity>
       ) : null}
 
@@ -147,109 +107,120 @@ function PortfolioCard({ item }: { item: PortfolioStock }) {
   );
 }
 
+// ── Header component reused in all states ─────────────────────────────────────
+function PortfolioHeader({ count }: { count?: number }) {
+  return (
+    <View style={s.pageHeader}>
+      <View style={s.pageTitleRow}>
+        <Text style={s.pageTitle}>Portfolio Stocks</Text>
+        {count !== undefined && <Text style={s.pageCount}>{count} active</Text>}
+      </View>
+      <Text style={s.pageSubtitle}>Long Term Investments</Text>
+    </View>
+  );
+}
+
 export default function PortfolioStocksScreen() {
-  const { userData } = useAuth();
-  const [stocks,     setStocks]     = useState<PortfolioStock[]>([]);
-  const [loading,    setLoading]    = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const { userData }                      = useAuth();
+  const theme                             = useTheme();
+  const [stocks,     setStocks]           = useState<PortfolioStock[]>([]);
+  const [loading,    setLoading]          = useState(true);
+  const [refreshing, setRefreshing]       = useState(false);
 
   useEffect(() => {
     if (userData?.status !== 'ACTIVE') { setLoading(false); return; }
-
     const allStocks: { [id: string]: PortfolioStock } = {};
-
     const unsub1 = onSnapshot(collection(db, 'activeTrades'), (snap) => {
       Object.keys(allStocks).forEach(k => { if (k.startsWith('active_')) delete allStocks[k]; });
       snap.docs.forEach(d => {
         const data = d.data();
-        const seg = (data.segment || '').toLowerCase();
-        if (seg === 'portfolio' && data.showInApp !== false) {
+        if ((data.segment || '').toLowerCase() === 'portfolio' && data.showInApp !== false)
           allStocks[`active_${d.id}`] = { id: d.id, ...data } as PortfolioStock;
-        }
       });
       updateList();
     });
-
     const unsub2 = onSnapshot(collection(db, 'portfolioStocks'), (snap) => {
       Object.keys(allStocks).forEach(k => { if (k.startsWith('port_')) delete allStocks[k]; });
       snap.docs.forEach(d => {
         const data = d.data();
-        if (data.showInApp !== false) {
-          allStocks[`port_${d.id}`] = { id: d.id, ...data } as PortfolioStock;
-        }
+        if (data.showInApp !== false) allStocks[`port_${d.id}`] = { id: d.id, ...data } as PortfolioStock;
       });
       updateList();
     });
-
     function updateList() {
       const sorted = Object.values(allStocks).sort((a, b) => {
         const aT = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
         const bT = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
         return bT - aT;
       });
-      setStocks(sorted);
-      setLoading(false);
-      setRefreshing(false);
+      setStocks(sorted); setLoading(false); setRefreshing(false);
     }
-
     return () => { unsub1(); unsub2(); };
   }, [userData]);
 
-  // ── SafeAreaView wraps everything — status bar no longer overlaps ─────────
+  // ── LOADING ───────────────────────────────────────────────────────────────
   if (loading) return (
-    <SafeAreaView style={s.safeArea} edges={['top']}>
-      <View style={s.center}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#0d1b3e' }} edges={['top']}>
+      <StatusBar style="light" backgroundColor="#0d1b3e" translucent={false} />
+      <PortfolioHeader />
+      <View style={[s.center, { backgroundColor: theme.isDark ? theme.background : '#f1f8f4' }]}>
         <ActivityIndicator size="large" color="#4caf50" />
       </View>
     </SafeAreaView>
   );
 
+  // ── BLOCKED ───────────────────────────────────────────────────────────────
   if (userData?.status === 'BLOCKED') return (
-    <SafeAreaView style={s.safeArea} edges={['top']}>
-      <View style={s.center}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#0d1b3e' }} edges={['top']}>
+      <StatusBar style="light" backgroundColor="#0d1b3e" translucent={false} />
+      <PortfolioHeader />
+      <View style={[s.center, { backgroundColor: theme.isDark ? theme.background : '#f1f8f4' }]}>
         <Ionicons name="lock-closed" size={64} color="#ef5350" />
         <Text style={s.blockedTitle}>Account Blocked</Text>
       </View>
     </SafeAreaView>
   );
 
+  // ── FREE — header stays dark blue, upgrade card below ────────────────────
   if (userData?.status === 'FREE') return (
-    <SafeAreaView style={s.safeArea} edges={['top']}>
-      <PremiumUpgradeScreen />
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#0d1b3e' }} edges={['top']}>
+      <StatusBar style="light" backgroundColor="#0d1b3e" translucent={false} />
+      <PortfolioHeader />
+      {/* Content below header uses theme bg — never white on top */}
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        <PremiumUpgradeScreen />
+      </View>
     </SafeAreaView>
   );
 
+  // ── EMPTY ─────────────────────────────────────────────────────────────────
   if (stocks.length === 0) return (
-    <SafeAreaView style={s.safeArea} edges={['top']}>
-      <View style={s.center}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#0d1b3e' }} edges={['top']}>
+      <StatusBar style="light" backgroundColor="#0d1b3e" translucent={false} />
+      <PortfolioHeader count={0} />
+      <View style={[s.center, { backgroundColor: theme.isDark ? theme.background : '#f1f8f4' }]}>
         <Ionicons name="leaf-outline" size={72} color="#4caf50" />
-        <Text style={s.emptyTitle}>No Portfolio Stocks Yet</Text>
-        <Text style={s.emptySub}>Long-term picks will appear here once posted by admin</Text>
+        <Text style={[s.emptyTitle, { color: theme.isDark ? '#4ade80' : '#2e7d32' }]}>No Portfolio Stocks Yet</Text>
+        <Text style={[s.emptySub, { color: theme.isDark ? '#86efac' : '#558b2f' }]}>Long-term picks will appear here once posted by admin</Text>
       </View>
     </SafeAreaView>
   );
 
+  // ── ACTIVE ────────────────────────────────────────────────────────────────
   return (
-    <SafeAreaView style={s.safeArea} edges={['top']}>
-      {/* ── Header — Option B: count inline left ── */}
-      <View style={s.pageHeader}>
-        <View style={s.pageTitleRow}>
-          <Text style={s.pageTitle}>Portfolio Stocks</Text>
-          <Text style={s.pageCount}>{stocks.length} active</Text>
-        </View>
-        <Text style={s.pageSubtitle}>Long Term Investments</Text>
-      </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#0d1b3e' }} edges={['top']}>
+      <StatusBar style="light" backgroundColor="#0d1b3e" translucent={false} />
+      <PortfolioHeader count={stocks.length} />
       <FlatList
+        style={{ backgroundColor: theme.isDark ? theme.background : '#f1f8f4' }}
         data={stocks}
         renderItem={({ item }) => <PortfolioCard item={item} />}
         keyExtractor={item => item.id}
         contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
+          <RefreshControl refreshing={refreshing}
             onRefresh={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 1500); }}
-            colors={['#4caf50']} tintColor="#4caf50"
-          />
+            colors={['#4caf50']} tintColor="#4caf50" />
         }
       />
     </SafeAreaView>
@@ -257,22 +228,15 @@ export default function PortfolioStocksScreen() {
 }
 
 const s = StyleSheet.create({
-  safeArea:     { flex: 1, backgroundColor: '#f1f8f4' }, // light bg for list area
+  center:       { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   pageHeader:   { backgroundColor: '#0d1b3e', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#1a3460' },
   pageTitleRow: { flexDirection: 'row', alignItems: 'baseline', gap: 10 },
   pageTitle:    { fontSize: 18, fontWeight: '800', color: '#fff' },
   pageCount:    { fontSize: 11, color: '#4ecfa8', fontWeight: '600' },
   pageSubtitle: { fontSize: 11, color: 'rgba(180,200,255,0.6)', marginTop: 3 },
-  screen:   { flex: 1, backgroundColor: '#f1f8f4' },
-  center:   { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, backgroundColor: '#f1f8f4' },
-  card: {
-    backgroundColor: '#0f4a24', borderRadius: 16, padding: 16, marginBottom: 16,
-    borderWidth: 1, borderColor: '#2e7d32',
-    shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 }, elevation: 5,
-  },
-  cardTop:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-  cardTopLeft: { flex: 1 },
+  card: { backgroundColor: '#0f4a24', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#2e7d32', shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 5 },
+  cardTop:            { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
+  cardTopLeft:        { flex: 1 },
   stockNameRow:       { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' },
   stockName:          { fontSize: 20, fontWeight: '900', color: '#f1f8e9' },
   todayBadge:         { backgroundColor: '#1b5e20', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, borderWidth: 1, borderColor: '#2e7d32' },
@@ -309,7 +273,7 @@ const s = StyleSheet.create({
   pdfBtnText:   { fontSize: 11, fontWeight: '700', color: '#f1f8e9' },
   footer:       { flexDirection: 'row', alignItems: 'center', gap: 5 },
   footerDate:   { fontSize: 11, color: '#81c784' },
-  emptyTitle:   { fontSize: 18, fontWeight: '700', color: '#2e7d32', marginTop: 16, textAlign: 'center' },
-  emptySub:     { fontSize: 13, color: '#558b2f', marginTop: 8, textAlign: 'center', lineHeight: 20 },
+  emptyTitle:   { fontSize: 18, fontWeight: '700', marginTop: 16, textAlign: 'center' },
+  emptySub:     { fontSize: 13, marginTop: 8, textAlign: 'center', lineHeight: 20 },
   blockedTitle: { fontSize: 22, fontWeight: '800', color: '#ef5350', marginTop: 16 },
 });
