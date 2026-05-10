@@ -4,7 +4,8 @@ import {
   StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Animated,
   StatusBar as RNStatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -78,7 +79,8 @@ const logo = StyleSheet.create({
 
 export default function KookyScreen() {
   const { userData } = useAuth();
-  const theme = useTheme();
+  const theme  = useTheme();
+  const insets = useSafeAreaInsets(); // accurate on all Android devices
 
   const [messages, setMessages] = useState<Message[]>([{
     id: '0', role: 'assistant',
@@ -154,10 +156,11 @@ export default function KookyScreen() {
     );
   }
 
-  // ── FREE — paddingTop = status bar height, content never goes up ────────────
+  // ── FREE — StatusBar translucent:false forces content below status bar on Android ──
   if (userData?.status === 'FREE') {
     return (
-      <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: RNStatusBar.currentHeight || 44 }}>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        <StatusBar style="dark" backgroundColor={theme.background} translucent={false} />
         <PremiumUpgradeScreen />
       </View>
     );
@@ -166,12 +169,15 @@ export default function KookyScreen() {
   // ── BLOCKED ───────────────────────────────────────────────────────────────
   if (userData?.status === 'BLOCKED') {
     return (
-      <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: RNStatusBar.currentHeight || 44, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
-        <Ionicons name="lock-closed" size={80} color={theme.error} />
-        <Text style={{ fontSize: 22, fontWeight: '800', color: theme.error, marginTop: 16, textAlign: 'center' }}>Account Blocked</Text>
-        <Text style={{ fontSize: 14, color: theme.textSecondary, marginTop: 10, textAlign: 'center', lineHeight: 22 }}>
-          Your account has been blocked.{'\n'}Please contact support for assistance.
-        </Text>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        <StatusBar style="dark" backgroundColor={theme.background} translucent={false} />
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+          <Ionicons name="lock-closed" size={80} color={theme.error} />
+          <Text style={{ fontSize: 22, fontWeight: '800', color: theme.error, marginTop: 16, textAlign: 'center' }}>Account Blocked</Text>
+          <Text style={{ fontSize: 14, color: theme.textSecondary, marginTop: 10, textAlign: 'center', lineHeight: 22 }}>
+            Your account has been blocked.{'\n'}Please contact support for assistance.
+          </Text>
+        </View>
       </View>
     );
   }
