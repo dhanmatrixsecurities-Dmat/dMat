@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -220,6 +220,15 @@ export default function ActiveTrades() {
   const prevTradeIdsRef = useRef<Set<string>>(new Set());
   const isFirstLoadRef  = useRef(true);
   const accessibleSegments = getAccessibleSegments(userData?.subscriptionAccess);
+
+  // ── Read segment param — auto-switch to correct tab when coming from ticker ──
+  const { segment: segmentParam } = useLocalSearchParams<{ segment?: string }>();
+  useEffect(() => {
+    if (segmentParam) {
+      const normalized: Segment = segmentParam === 'futures' ? 'futures' : segmentParam === 'options' ? 'options' : 'equity';
+      setActiveSegment(normalized);
+    }
+  }, [segmentParam]);
 
   useEffect(() => {
     if (accessibleSegments.length > 0 && !accessibleSegments.includes(activeSegment))
