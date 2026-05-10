@@ -7,7 +7,7 @@ import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
-import { PremiumUpgradeScreen } from './active-trades';
+import { PremiumUpgradeScreen } from './(tabs)/active-trades';
 
 interface PortfolioStock {
   id: string;
