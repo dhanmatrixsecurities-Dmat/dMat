@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { db, storage } from '../firebaseConfig';
+import { db } from '../firebaseConfig';
 import {
   collection, addDoc, updateDoc, deleteDoc,
   doc, onSnapshot, query, serverTimestamp,
 } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import {
   Box, Typography, Paper, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Chip, TextField, Autocomplete,
   Select, MenuItem, FormControl, InputLabel, Button,
   IconButton, Alert, Snackbar, CircularProgress,
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Switch, LinearProgress,
+  Switch, 
 } from '@mui/material';
 import { Add, Edit, Delete, UploadFile } from '@mui/icons-material';
 
@@ -47,14 +46,13 @@ const emptyForm = {
 };
 
 export default function AdminPortfolio() {
-  const [stocks, setStocks] = useState<PortfolioStock[]>([]);
-  const [form, setForm] = useState(emptyForm);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploading, setUploading] = useState(false);
+  const [stocks,         setStocks]         = useState<PortfolioStock[]>([]);
+  const [form,           setForm]           = useState(emptyForm);
+  const [editId,         setEditId]         = useState<string | null>(null);
+  const [loading,        setLoading]        = useState(false);
+  const [modalOpen,      setModalOpen]      = useState(false);
+  const [pdfLink, setPdfLink] = useState('');
+  const [pdfLinkName, setPdfLinkName] = useState('');
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false, message: '', severity: 'success',
   });
@@ -63,12 +61,11 @@ export default function AdminPortfolio() {
     const q = query(collection(db, 'portfolioStocks'));
     const unsub = onSnapshot(q, (snap) => {
       const data = snap.docs.map(d => ({ id: d.id, ...d.data() })) as PortfolioStock[];
-      const sorted = data.sort((a, b) => {
+      setStocks(data.sort((a, b) => {
         const aT = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
         const bT = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
         return bT - aT;
-      });
-      setStocks(sorted);
+      }));
     });
     return () => unsub();
   }, []);
@@ -79,49 +76,77 @@ export default function AdminPortfolio() {
   const formatDate = (ts: any) => {
     if (!ts) return '—';
     const date = ts.toDate ? ts.toDate() : new Date(ts);
-    if (isNaN(date.getTime())) return '—';
-    return date.toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return isNaN(date.getTime()) ? '—' : date.toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
   const handleToggleShowInApp = async (stock: PortfolioStock) => {
     await updateDoc(doc(db, 'portfolioStocks', stock.id), { showInApp: !stock.showInApp });
   };
 
-  const handleOpenAdd = () => { setEditId(null); setForm(emptyForm); setPdfFile(null); setModalOpen(true); };
+  const handleOpenAdd = () => { setEditId(null); setForm(emptyForm); setPdfLink(''); setPdfLinkName(''); setModalOpen(true); };
 
   const handleEdit = (stock: PortfolioStock) => {
     setEditId(stock.id);
-    setForm({
-      symbol: stock.symbol,
-      action: stock.action,
-      entryPrice: String(stock.entryPrice),
-      targetPrice: String(stock.targetPrice),
-      stopLoss: String(stock.stopLoss),
-      horizon: stock.horizon as Horizon,
-      rationale: stock.rationale || '',
-    });
-    setPdfFile(null);
+    setForm({ symbol: stock.symbol, action: stock.action, entryPrice: String(stock.entryPrice), targetPrice: String(stock.targetPrice), stopLoss: String(stock.stopLoss), horizon: stock.horizon as Horizon, rationale: stock.rationale || '' });
+    setPdfLink(stock.pdfUrl || '');
+    setPdfLinkName(stock.pdfName || '');
     setModalOpen(true);
   };
 
-  const handleCloseModal = () => { setModalOpen(false); setEditId(null); setForm(emptyForm); setPdfFile(null); };
+  const handleCloseModal = () => { setModalOpen(false); setEditId(null); setForm(emptyForm); setPdfLink(''); setPdfLinkName(''); };
 
-  const uploadPdf = async (): Promise<{ url: string; name: string } | null> => {
-    if (!pdfFile) return null;
-    setUploading(true);
-    setUploadProgress(0);
+  // ── PDF Upload — fixed with proper error reporting ─────────────────────────
+  const uploadPdf = (): Promise<{ url: string; name: string }> => {
     return new Promise((resolve, reject) => {
+      // Check storage is initialized
+      if (!storage) {
+        reject(new Error('Firebase Storage is not initialized. Check firebaseConfig.ts'));
+        return;
+      }
+      if (!pdfFile) {
+        reject(new Error('No file selected'));
+        return;
+      }
+
+      setUploading(true);
+      setUploadProgress(0);
+      setUploadError(null);
+
       const storageRef = ref(storage, `portfolio-reports/${Date.now()}_${pdfFile.name}`);
       const uploadTask = uploadBytesResumable(storageRef, pdfFile);
-      uploadTask.on('state_changed',
+
+      uploadTask.on(
+        'state_changed',
         (snapshot) => {
-          setUploadProgress((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          setUploadProgress(progress);
         },
-        (error) => { setUploading(false); reject(error); },
-        async () => {
-          const url = await getDownloadURL(uploadTask.snapshot.ref);
+        (error) => {
+          // ── Show actual error message ──
           setUploading(false);
-          resolve({ url, name: pdfFile.name });
+          let msg = 'Upload failed';
+          if (error.code === 'storage/unauthorized') {
+            msg = 'Upload failed: Firebase Storage rules are blocking the upload. Please update Storage rules to allow writes.';
+          } else if (error.code === 'storage/canceled') {
+            msg = 'Upload was cancelled';
+          } else if (error.code === 'storage/unknown') {
+            msg = 'Unknown upload error. Check your internet connection.';
+          } else {
+            msg = `Upload failed: ${error.message}`;
+          }
+          setUploadError(msg);
+          reject(new Error(msg));
+        },
+        async () => {
+          try {
+            const url = await getDownloadURL(uploadTask.snapshot.ref);
+            setUploading(false);
+            setUploadProgress(100);
+            resolve({ url, name: pdfFile.name });
+          } catch (err: any) {
+            setUploading(false);
+            reject(new Error(`Failed to get download URL: ${err.message}`));
+          }
         }
       );
     });
@@ -131,36 +156,44 @@ export default function AdminPortfolio() {
     e.preventDefault();
     setLoading(true);
     try {
+      // Convert Google Drive share link to direct view link
       let pdfData: { pdfUrl?: string; pdfName?: string } = {};
-      if (pdfFile) {
-        const result = await uploadPdf();
-        if (result) { pdfData.pdfUrl = result.url; pdfData.pdfName = result.name; }
+      if (pdfLink.trim()) {
+        // Convert share URL to embed/view URL
+        let finalUrl = pdfLink.trim();
+        // Handle drive.google.com/file/d/FILE_ID/view -> direct link
+        const driveMatch = pdfLink.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        if (driveMatch) {
+          finalUrl = `https://drive.google.com/file/d/${driveMatch[1]}/view`;
+        }
+        pdfData.pdfUrl  = finalUrl;
+        pdfData.pdfName = pdfLinkName.trim() || 'Research Report';
       }
 
       const payload: any = {
-        stockName: form.symbol.toUpperCase(),
-        symbol: form.symbol.toUpperCase(),
-        action: form.action,
-        entryPrice: parseFloat(form.entryPrice),
+        stockName:   form.symbol.toUpperCase(),
+        symbol:      form.symbol.toUpperCase(),
+        action:      form.action,
+        entryPrice:  parseFloat(form.entryPrice),
         targetPrice: parseFloat(form.targetPrice),
-        stopLoss: parseFloat(form.stopLoss),
-        horizon: form.horizon,
-        rationale: form.rationale,
+        stopLoss:    parseFloat(form.stopLoss),
+        horizon:     form.horizon,
+        rationale:   form.rationale,
         ...pdfData,
       };
 
       if (editId) {
         await updateDoc(doc(db, 'portfolioStocks', editId), payload);
-        showSnackbar('Stock updated!', 'success');
+        showSnackbar('Stock updated successfully!', 'success');
       } else {
         payload.createdAt = serverTimestamp();
         payload.showInApp = true;
         await addDoc(collection(db, 'portfolioStocks'), payload);
-        showSnackbar('Portfolio stock added!', 'success');
+        showSnackbar('Portfolio stock added successfully!', 'success');
       }
       handleCloseModal();
-    } catch (err) {
-      showSnackbar('Error saving stock', 'error');
+    } catch (err: any) {
+      showSnackbar(`Error: ${err.message || 'Failed to save stock'}`, 'error');
     }
     setLoading(false);
   };
@@ -182,9 +215,7 @@ export default function AdminPortfolio() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
         <Box>
           <Typography variant="h4" fontWeight="bold" gutterBottom>Portfolio Stocks</Typography>
-          <Typography variant="body1" color="text.secondary">
-            Long-term stock picks shown to active subscribers
-          </Typography>
+          <Typography variant="body1" color="text.secondary">Long-term stock picks shown to active subscribers</Typography>
         </Box>
         <Button variant="contained" startIcon={<Add />} onClick={handleOpenAdd}
           sx={{ backgroundColor: '#1a3d2b', mt: 1, borderRadius: 2, px: 3 }}>
@@ -193,14 +224,12 @@ export default function AdminPortfolio() {
       </Box>
 
       <Paper sx={{ p: 3 }}>
-        <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
-          Portfolio Stocks ({stocks.length})
-        </Typography>
+        <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>Portfolio Stocks ({stocks.length})</Typography>
         <TableContainer>
           <Table>
             <TableHead>
               <TableRow>
-                {['Stock', 'Type', 'Entry', 'Target', 'Stop Loss', 'Gain%', 'Horizon', 'PDF', 'Show In App', 'Posted', 'Actions'].map(h => (
+                {['Stock','Type','Entry','Target','Stop Loss','Gain%','Horizon','PDF','Show In App','Posted','Actions'].map(h => (
                   <TableCell key={h}><strong>{h}</strong></TableCell>
                 ))}
               </TableRow>
@@ -211,10 +240,8 @@ export default function AdminPortfolio() {
                 return (
                   <TableRow key={stock.id} hover>
                     <TableCell>
-                      <Box>
-                        <Typography fontWeight="bold">{stock.stockName}</Typography>
-                        <Typography variant="caption" color="text.secondary">Portfolio / Long Term</Typography>
-                      </Box>
+                      <Typography fontWeight="bold">{stock.stockName}</Typography>
+                      <Typography variant="caption" color="text.secondary">Portfolio / Long Term</Typography>
                     </TableCell>
                     <TableCell>
                       <Chip size="small" label={stock.action}
@@ -223,37 +250,23 @@ export default function AdminPortfolio() {
                     <TableCell>₹{stock.entryPrice}</TableCell>
                     <TableCell sx={{ color: 'green', fontWeight: 'bold' }}>₹{stock.targetPrice}</TableCell>
                     <TableCell sx={{ color: 'red', fontWeight: 'bold' }}>₹{stock.stopLoss}</TableCell>
-                    <TableCell sx={{ color: 'green', fontWeight: 'bold' }}>
-                      {gain ? `+${gain}%` : '—'}
-                    </TableCell>
+                    <TableCell sx={{ color: 'green', fontWeight: 'bold' }}>{gain ? `+${gain}%` : '—'}</TableCell>
                     <TableCell>
                       <Chip size="small" label={stock.horizon}
                         sx={{ backgroundColor: '#e8f5e9', color: '#1b5e20', fontWeight: '600', fontSize: 11 }} />
                     </TableCell>
                     <TableCell>
                       {stock.pdfUrl
-                        ? <Button size="small" variant="outlined" color="success"
-                            href={stock.pdfUrl} target="_blank"
-                            sx={{ fontSize: 11, textTransform: 'none' }}>
-                            View PDF
-                          </Button>
-                        : <Typography variant="caption" color="text.secondary">No PDF</Typography>
-                      }
+                        ? <Button size="small" variant="outlined" color="success" href={stock.pdfUrl} target="_blank" sx={{ fontSize: 11, textTransform: 'none' }}>View PDF</Button>
+                        : <Typography variant="caption" color="text.secondary">No PDF</Typography>}
                     </TableCell>
                     <TableCell>
-                      <Switch checked={stock.showInApp !== false}
-                        onChange={() => handleToggleShowInApp(stock)} color="success" size="small" />
+                      <Switch checked={stock.showInApp !== false} onChange={() => handleToggleShowInApp(stock)} color="success" size="small" />
                     </TableCell>
+                    <TableCell><Typography variant="caption">{formatDate(stock.createdAt)}</Typography></TableCell>
                     <TableCell>
-                      <Typography variant="caption">{formatDate(stock.createdAt)}</Typography>
-                    </TableCell>
-                    <TableCell>
-                      <IconButton size="small" onClick={() => handleEdit(stock)} sx={{ color: '#1a237e' }}>
-                        <Edit fontSize="small" />
-                      </IconButton>
-                      <IconButton size="small" onClick={() => handleDelete(stock)} sx={{ color: '#d32f2f' }}>
-                        <Delete fontSize="small" />
-                      </IconButton>
+                      <IconButton size="small" onClick={() => handleEdit(stock)} sx={{ color: '#1a237e' }}><Edit fontSize="small" /></IconButton>
+                      <IconButton size="small" onClick={() => handleDelete(stock)} sx={{ color: '#d32f2f' }}><Delete fontSize="small" /></IconButton>
                     </TableCell>
                   </TableRow>
                 );
@@ -277,7 +290,6 @@ export default function AdminPortfolio() {
         </DialogTitle>
         <Box component="form" onSubmit={handleSubmit}>
           <DialogContent sx={{ pt: 2 }}>
-
             <Autocomplete
               options={NSE_STOCKS}
               getOptionLabel={(option) => typeof option === 'string' ? option : `${option.symbol} - ${option.name}`}
@@ -292,11 +304,8 @@ export default function AdminPortfolio() {
               }}
               freeSolo
               renderInput={(params) => (
-                <TextField {...params} fullWidth label="Stock Name (NSE) *" required
-                  placeholder="e.g. RELIANCE"
-                  value={form.symbol}
-                  onChange={(e) => setForm({ ...form, symbol: e.target.value.toUpperCase() })}
-                />
+                <TextField {...params} fullWidth label="Stock Name (NSE) *" required placeholder="e.g. RELIANCE"
+                  value={form.symbol} onChange={(e) => setForm({ ...form, symbol: e.target.value.toUpperCase() })} />
               )}
               sx={{ mb: 2 }}
             />
@@ -310,12 +319,9 @@ export default function AdminPortfolio() {
             </FormControl>
 
             <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-              <TextField fullWidth label="Entry Price *" required type="number"
-                value={form.entryPrice} onChange={(e) => setForm({ ...form, entryPrice: e.target.value })} />
-              <TextField fullWidth label="Target Price *" required type="number"
-                value={form.targetPrice} onChange={(e) => setForm({ ...form, targetPrice: e.target.value })} />
-              <TextField fullWidth label="Stop Loss *" required type="number"
-                value={form.stopLoss} onChange={(e) => setForm({ ...form, stopLoss: e.target.value })} />
+              <TextField fullWidth label="Entry Price *" required type="number" value={form.entryPrice} onChange={(e) => setForm({ ...form, entryPrice: e.target.value })} />
+              <TextField fullWidth label="Target Price *" required type="number" value={form.targetPrice} onChange={(e) => setForm({ ...form, targetPrice: e.target.value })} />
+              <TextField fullWidth label="Stop Loss *" required type="number" value={form.stopLoss} onChange={(e) => setForm({ ...form, stopLoss: e.target.value })} />
             </Box>
 
             {form.entryPrice && form.targetPrice && (
@@ -326,8 +332,7 @@ export default function AdminPortfolio() {
 
             <FormControl fullWidth sx={{ mb: 2 }}>
               <InputLabel>Investment Horizon</InputLabel>
-              <Select label="Investment Horizon" value={form.horizon}
-                onChange={(e) => setForm({ ...form, horizon: e.target.value as Horizon })}>
+              <Select label="Investment Horizon" value={form.horizon} onChange={(e) => setForm({ ...form, horizon: e.target.value as Horizon })}>
                 <MenuItem value="1 Year">1 Year</MenuItem>
                 <MenuItem value="2 Years">2 Years</MenuItem>
                 <MenuItem value="3 Years">3 Years</MenuItem>
@@ -340,35 +345,54 @@ export default function AdminPortfolio() {
               value={form.rationale} onChange={(e) => setForm({ ...form, rationale: e.target.value })}
               sx={{ mb: 2 }} placeholder="Brief reason for recommending this stock..." />
 
-            {/* PDF Upload */}
+            {/* Google Drive PDF Link */}
             <Box sx={{ border: '2px dashed #2e7d32', borderRadius: 2, p: 2, backgroundColor: '#f1f8e9' }}>
               <Typography variant="subtitle2" fontWeight="bold" color="#1b5e20" sx={{ mb: 1 }}>
-                📄 Research Report (PDF) — Optional
+                📄 Research Report (Google Drive) — Optional
               </Typography>
-              <Button variant="outlined" component="label" startIcon={<UploadFile />} color="success" size="small">
-                {pdfFile ? pdfFile.name : 'Upload PDF'}
-                <input type="file" accept=".pdf" hidden onChange={(e) => setPdfFile(e.target.files?.[0] || null)} />
-              </Button>
-              {pdfFile && (
-                <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 1 }}>
-                  Selected: {pdfFile.name} ({(pdfFile.size / 1024 / 1024).toFixed(2)} MB)
-                </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+                Upload PDF to Google Drive → Share → Copy link → paste below
+              </Typography>
+              <TextField
+                fullWidth size="small" label="Google Drive Link"
+                placeholder="https://drive.google.com/file/d/..."
+                value={pdfLink}
+                onChange={(e) => setPdfLink(e.target.value)}
+                sx={{ mb: 1.5 }}
+                InputProps={{
+                  startAdornment: <span style={{ marginRight: 8, fontSize: 16 }}>🔗</span>
+                }}
+              />
+              <TextField
+                fullWidth size="small" label="Report Name (optional)"
+                placeholder="e.g. TCS Research Report Q1 2026"
+                value={pdfLinkName}
+                onChange={(e) => setPdfLinkName(e.target.value)}
+              />
+              {pdfLink.trim() && (
+                <Alert severity="success" sx={{ mt: 1.5, fontSize: 12 }}>
+                  ✅ Link saved — users can tap "View PDF" in the app to open it
+                </Alert>
               )}
-              {uploading && <LinearProgress variant="determinate" value={uploadProgress} sx={{ mt: 1 }} color="success" />}
             </Box>
-
           </DialogContent>
+
           <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
-            <Button onClick={handleCloseModal} variant="outlined">CANCEL</Button>
+            <Button onClick={handleCloseModal} variant="outlined" disabled={loading || uploading}>CANCEL</Button>
             <Button type="submit" variant="contained" disabled={loading || uploading}
               sx={{ backgroundColor: '#1a3d2b', px: 4 }}>
-              {loading || uploading ? <CircularProgress size={20} color="inherit" /> : editId ? 'UPDATE' : 'ADD'}
+              {loading || uploading
+                ? <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CircularProgress size={18} color="inherit" />
+                    <span>{uploading ? `Uploading ${Math.round(uploadProgress)}%` : 'Saving...'}</span>
+                  </Box>
+                : editId ? 'UPDATE' : 'ADD'}
             </Button>
           </DialogActions>
         </Box>
       </Dialog>
 
-      <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+      <Snackbar open={snackbar.open} autoHideDuration={5000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
         <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })}>
           {snackbar.message}
         </Alert>
