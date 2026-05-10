@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
   StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Animated,
+  StatusBar as RNStatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -153,27 +154,25 @@ export default function KookyScreen() {
     );
   }
 
-  // ── BLOCKED — own SafeAreaView, never goes behind status bar ─────────────
-  if (userData?.status === 'BLOCKED') {
+  // ── FREE — paddingTop = status bar height, content never goes up ────────────
+  if (userData?.status === 'FREE') {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['top']}>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
-          <Ionicons name="lock-closed" size={80} color={theme.error} />
-          <Text style={{ fontSize: 22, fontWeight: '800', color: theme.error, marginTop: 16, textAlign: 'center' }}>Account Blocked</Text>
-          <Text style={{ fontSize: 14, color: theme.textSecondary, marginTop: 10, textAlign: 'center', lineHeight: 22 }}>
-            Your account has been blocked.{'\n'}Please contact support for assistance.
-          </Text>
-        </View>
-      </SafeAreaView>
+      <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: RNStatusBar.currentHeight || 44 }}>
+        <PremiumUpgradeScreen />
+      </View>
     );
   }
 
-  // ── FREE — own SafeAreaView with theme.background, upgrade screen fits cleanly ──
-  if (userData?.status === 'FREE') {
+  // ── BLOCKED ───────────────────────────────────────────────────────────────
+  if (userData?.status === 'BLOCKED') {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['top']}>
-        <PremiumUpgradeScreen />
-      </SafeAreaView>
+      <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: RNStatusBar.currentHeight || 44, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+        <Ionicons name="lock-closed" size={80} color={theme.error} />
+        <Text style={{ fontSize: 22, fontWeight: '800', color: theme.error, marginTop: 16, textAlign: 'center' }}>Account Blocked</Text>
+        <Text style={{ fontSize: 14, color: theme.textSecondary, marginTop: 10, textAlign: 'center', lineHeight: 22 }}>
+          Your account has been blocked.{'\n'}Please contact support for assistance.
+        </Text>
+      </View>
     );
   }
 
