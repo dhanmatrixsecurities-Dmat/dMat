@@ -95,7 +95,14 @@ export default function KookyScreen() {
   const [portfolioInput, setPortfolioInput] = useState('');
   const scrollRef = useRef<ScrollView>(null);
 
-  if (userData?.status === 'FREE') return <PremiumUpgradeScreen />;
+  // ── FREE user — same upgrade screen as active-trades, identical look ──
+  if (userData?.status === 'FREE') {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['top']}>
+        <PremiumUpgradeScreen />
+      </SafeAreaView>
+    );
+  }
 
   const sendMessage = async (text?: string) => {
     const msgText = text || input.trim();
@@ -162,7 +169,7 @@ export default function KookyScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: HEADER_BG }} edges={['top']}>
 
-      {/* ── HEADER — fixed, never moves with keyboard ── */}
+      {/* HEADER — fixed, never moves with keyboard */}
       <View style={st.topHeader}>
         <KookyLogo size="small" />
         <TouchableOpacity style={st.portfolioTopBtn} onPress={() => setPortfolioMode(true)}>
@@ -178,19 +185,16 @@ export default function KookyScreen() {
         </Text>
       </View>
 
-      {/* ── CHAT + INPUT — only this resizes with keyboard ── */}
+      {/* CHAT — resizes with keyboard */}
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: theme.background }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={0}
       >
-        <ScrollView
-          ref={scrollRef}
-          style={[st.messages, { backgroundColor: theme.background }]}
+        <ScrollView ref={scrollRef} style={[st.messages, { backgroundColor: theme.background }]}
           contentContainerStyle={{ paddingVertical: 12, paddingBottom: 8 }}
           keyboardShouldPersistTaps="handled"
-          onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
-        >
+          onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}>
           {messages.map(msg => (
             <View key={msg.id} style={[
               st.bubble,
@@ -199,9 +203,7 @@ export default function KookyScreen() {
                 : [st.botBubble, { backgroundColor: theme.cardBackground, borderColor: theme.border }],
             ]}>
               {msg.role === 'assistant' && <Text style={[st.senderLabel, { color: theme.textSecondary }]}>Kooky //</Text>}
-              <Text style={[msg.role === 'user' ? st.userText : st.botText, msg.role !== 'user' && { color: theme.text }]}>
-                {msg.text}
-              </Text>
+              <Text style={[msg.role === 'user' ? st.userText : st.botText, msg.role !== 'user' && { color: theme.text }]}>{msg.text}</Text>
             </View>
           ))}
           {loading && (
@@ -226,7 +228,6 @@ export default function KookyScreen() {
           )}
         </ScrollView>
 
-        {/* Input bar — paddingBottom: 12 fixes cropping at bottom */}
         <View style={[st.inputRow, { backgroundColor: theme.cardBackground, borderTopColor: theme.border }]}>
           <TouchableOpacity style={st.portfolioIconBtn} onPress={() => setPortfolioMode(true)}>
             <Ionicons name="pie-chart" size={18} color="#fff" />
@@ -265,7 +266,6 @@ const st = StyleSheet.create({
   quickLabel:         { fontSize: 9, letterSpacing: 2, fontWeight: '700', marginBottom: 2 },
   quickBtn:           { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, borderWidth: 1 },
   quickBtnText:       { fontSize: 12, fontWeight: '500' },
-  // ── Input bar: paddingBottom: 12 prevents cropping ──
   inputRow:           { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10, paddingTop: 8, paddingBottom: 12, borderTopWidth: 1 },
   portfolioIconBtn:   { width: 40, height: 40, borderRadius: 10, backgroundColor: '#2979FF', alignItems: 'center', justifyContent: 'center' },
   textInput:          { flex: 1, height: 40, borderRadius: 20, paddingHorizontal: 16, fontSize: 13, borderWidth: 1 },
