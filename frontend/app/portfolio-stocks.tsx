@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, FlatList, RefreshControl,
   TouchableOpacity, ActivityIndicator, Linking,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import { useAuth } from '@/contexts/AuthContext';
@@ -52,7 +53,7 @@ const formatDate = (val: any): string => {
 function PortfolioCard({ item }: { item: PortfolioStock }) {
   const action = item.action || item.type || 'BUY';
   const isBuy = action === 'BUY';
-  const stockName = item.stockName || item.symbol || '—';
+  const stockName   = item.stockName || item.symbol || '—';
   const entryPrice  = Number(item.entryPrice)  || 0;
   const targetPrice = Number(item.targetPrice) || 0;
   const stopLoss    = Number(item.stopLoss)    || 0;
@@ -66,9 +67,7 @@ function PortfolioCard({ item }: { item: PortfolioStock }) {
              : ((stopLoss - entryPrice) / entryPrice) * 100
     : 0;
 
-  const openChart = () => {
-    Linking.openURL(`https://www.tradingview.com/chart/?symbol=NSE:${stockName.toUpperCase().trim()}`);
-  };
+  const openChart = () => Linking.openURL(`https://www.tradingview.com/chart/?symbol=NSE:${stockName.toUpperCase().trim()}`);
 
   return (
     <View style={s.card}>
@@ -150,8 +149,8 @@ function PortfolioCard({ item }: { item: PortfolioStock }) {
 
 export default function PortfolioStocksScreen() {
   const { userData } = useAuth();
-  const [stocks, setStocks]         = useState<PortfolioStock[]>([]);
-  const [loading, setLoading]       = useState(true);
+  const [stocks,     setStocks]     = useState<PortfolioStock[]>([]);
+  const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
@@ -196,31 +195,42 @@ export default function PortfolioStocksScreen() {
     return () => { unsub1(); unsub2(); };
   }, [userData]);
 
+  // ── SafeAreaView wraps everything — status bar no longer overlaps ─────────
   if (loading) return (
-    <View style={s.center}>
-      <ActivityIndicator size="large" color="#4caf50" />
-    </View>
+    <SafeAreaView style={s.safeArea} edges={['top']}>
+      <View style={s.center}>
+        <ActivityIndicator size="large" color="#4caf50" />
+      </View>
+    </SafeAreaView>
   );
 
   if (userData?.status === 'BLOCKED') return (
-    <View style={s.center}>
-      <Ionicons name="lock-closed" size={64} color="#ef5350" />
-      <Text style={s.blockedTitle}>Account Blocked</Text>
-    </View>
+    <SafeAreaView style={s.safeArea} edges={['top']}>
+      <View style={s.center}>
+        <Ionicons name="lock-closed" size={64} color="#ef5350" />
+        <Text style={s.blockedTitle}>Account Blocked</Text>
+      </View>
+    </SafeAreaView>
   );
 
-  if (userData?.status === 'FREE') return <PremiumUpgradeScreen />;
+  if (userData?.status === 'FREE') return (
+    <SafeAreaView style={s.safeArea} edges={['top']}>
+      <PremiumUpgradeScreen />
+    </SafeAreaView>
+  );
 
   if (stocks.length === 0) return (
-    <View style={s.center}>
-      <Ionicons name="leaf-outline" size={72} color="#4caf50" />
-      <Text style={s.emptyTitle}>No Portfolio Stocks Yet</Text>
-      <Text style={s.emptySub}>Long-term picks will appear here once posted by admin</Text>
-    </View>
+    <SafeAreaView style={s.safeArea} edges={['top']}>
+      <View style={s.center}>
+        <Ionicons name="leaf-outline" size={72} color="#4caf50" />
+        <Text style={s.emptyTitle}>No Portfolio Stocks Yet</Text>
+        <Text style={s.emptySub}>Long-term picks will appear here once posted by admin</Text>
+      </View>
+    </SafeAreaView>
   );
 
   return (
-    <View style={s.screen}>
+    <SafeAreaView style={s.safeArea} edges={['top']}>
       <FlatList
         data={stocks}
         renderItem={({ item }) => <PortfolioCard item={item} />}
@@ -234,14 +244,14 @@ export default function PortfolioStocksScreen() {
           />
         }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#f1f8f4' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, backgroundColor: '#f1f8f4' },
-
+  safeArea: { flex: 1, backgroundColor: '#0a3018' }, // dark green matches card bg — no white flash
+  screen:   { flex: 1, backgroundColor: '#f1f8f4' },
+  center:   { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, backgroundColor: '#f1f8f4' },
   card: {
     backgroundColor: '#0f4a24', borderRadius: 16, padding: 16, marginBottom: 16,
     borderWidth: 1, borderColor: '#2e7d32',
@@ -250,42 +260,42 @@ const s = StyleSheet.create({
   },
   cardTop:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
   cardTopLeft: { flex: 1 },
-  stockNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' },
-  stockName:    { fontSize: 20, fontWeight: '900', color: '#f1f8e9' },
-  todayBadge:   { backgroundColor: '#1b5e20', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, borderWidth: 1, borderColor: '#2e7d32' },
-  todayBadgeText: { fontSize: 10, fontWeight: '700', color: '#69f0ae' },
-  badgeRow:      { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  typeBadge:     { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 6 },
-  buyBadge:      { backgroundColor: '#2e7d32', borderWidth: 1, borderColor: '#43a047' },
-  sellBadge:     { backgroundColor: '#b71c1c', borderWidth: 1, borderColor: '#c62828' },
-  typeText:      { fontSize: 11, fontWeight: '800' },
-  buyText:       { color: '#b9f6ca' },
-  sellText:      { color: '#ffcdd2' },
-  portfolioBadge: { backgroundColor: '#1b5e20', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: '#33691e' },
+  stockNameRow:       { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' },
+  stockName:          { fontSize: 20, fontWeight: '900', color: '#f1f8e9' },
+  todayBadge:         { backgroundColor: '#1b5e20', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, borderWidth: 1, borderColor: '#2e7d32' },
+  todayBadgeText:     { fontSize: 10, fontWeight: '700', color: '#69f0ae' },
+  badgeRow:           { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  typeBadge:          { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 6 },
+  buyBadge:           { backgroundColor: '#2e7d32', borderWidth: 1, borderColor: '#43a047' },
+  sellBadge:          { backgroundColor: '#b71c1c', borderWidth: 1, borderColor: '#c62828' },
+  typeText:           { fontSize: 11, fontWeight: '800' },
+  buyText:            { color: '#b9f6ca' },
+  sellText:           { color: '#ffcdd2' },
+  portfolioBadge:     { backgroundColor: '#1b5e20', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: '#33691e' },
   portfolioBadgeText: { fontSize: 10, fontWeight: '700', color: '#ccff90' },
-  chartBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#1b5e20', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: '#2e7d32' },
-  chartBtnEmoji: { fontSize: 12 },
-  chartBtnText:  { fontSize: 11, fontWeight: '700', color: '#69f0ae' },
-  priceGrid:  { flexDirection: 'row', backgroundColor: '#1b5e20', borderRadius: 10, padding: 10, marginBottom: 10, borderWidth: 1, borderColor: '#2e7d32' },
-  priceItem:  { flex: 1, alignItems: 'center' },
-  priceBorder: { borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: '#2e7d32' },
-  priceLabel: { fontSize: 10, color: '#a5d6a7', marginBottom: 3 },
-  priceValue: { fontSize: 15, fontWeight: '800', color: '#f1f8e9' },
-  targetColor: { color: '#69f0ae' },
-  slColor:     { color: '#ff8a80' },
-  metricsRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
-  metricBox:  { flex: 1, backgroundColor: '#1b5e20', borderRadius: 8, padding: 8, alignItems: 'center', borderWidth: 1, borderColor: '#2e7d32' },
-  metricLabel: { fontSize: 10, color: '#a5d6a7', marginBottom: 2 },
-  metricValue: { fontSize: 14, fontWeight: '800', color: '#f1f8e9' },
-  pdfBanner: { backgroundColor: '#1b3a0a', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: '#2e6b10', flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
-  pdfIconWrap: { backgroundColor: '#2e6b10', borderRadius: 6, padding: 6 },
-  pdfTextWrap: { flex: 1 },
-  pdfTitle:    { fontSize: 12, fontWeight: '700', color: '#c8e6c9' },
-  pdfName:     { fontSize: 10, color: '#81c784', marginTop: 1 },
-  pdfBtn:      { backgroundColor: '#2e7d32', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: '#388e3c' },
-  pdfBtnText:  { fontSize: 11, fontWeight: '700', color: '#f1f8e9' },
-  footer:     { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  footerDate: { fontSize: 11, color: '#81c784' },
+  chartBtn:           { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#1b5e20', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: '#2e7d32' },
+  chartBtnEmoji:      { fontSize: 12 },
+  chartBtnText:       { fontSize: 11, fontWeight: '700', color: '#69f0ae' },
+  priceGrid:    { flexDirection: 'row', backgroundColor: '#1b5e20', borderRadius: 10, padding: 10, marginBottom: 10, borderWidth: 1, borderColor: '#2e7d32' },
+  priceItem:    { flex: 1, alignItems: 'center' },
+  priceBorder:  { borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: '#2e7d32' },
+  priceLabel:   { fontSize: 10, color: '#a5d6a7', marginBottom: 3 },
+  priceValue:   { fontSize: 15, fontWeight: '800', color: '#f1f8e9' },
+  targetColor:  { color: '#69f0ae' },
+  slColor:      { color: '#ff8a80' },
+  metricsRow:   { flexDirection: 'row', gap: 8, marginBottom: 10 },
+  metricBox:    { flex: 1, backgroundColor: '#1b5e20', borderRadius: 8, padding: 8, alignItems: 'center', borderWidth: 1, borderColor: '#2e7d32' },
+  metricLabel:  { fontSize: 10, color: '#a5d6a7', marginBottom: 2 },
+  metricValue:  { fontSize: 14, fontWeight: '800', color: '#f1f8e9' },
+  pdfBanner:    { backgroundColor: '#1b3a0a', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: '#2e6b10', flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+  pdfIconWrap:  { backgroundColor: '#2e6b10', borderRadius: 6, padding: 6 },
+  pdfTextWrap:  { flex: 1 },
+  pdfTitle:     { fontSize: 12, fontWeight: '700', color: '#c8e6c9' },
+  pdfName:      { fontSize: 10, color: '#81c784', marginTop: 1 },
+  pdfBtn:       { backgroundColor: '#2e7d32', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: '#388e3c' },
+  pdfBtnText:   { fontSize: 11, fontWeight: '700', color: '#f1f8e9' },
+  footer:       { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  footerDate:   { fontSize: 11, color: '#81c784' },
   emptyTitle:   { fontSize: 18, fontWeight: '700', color: '#2e7d32', marginTop: 16, textAlign: 'center' },
   emptySub:     { fontSize: 13, color: '#558b2f', marginTop: 8, textAlign: 'center', lineHeight: 20 },
   blockedTitle: { fontSize: 22, fontWeight: '800', color: '#ef5350', marginTop: 16 },
