@@ -378,13 +378,13 @@ export default function AdminPortfolio() {
           </DialogContent>
 
           <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
-            <Button onClick={handleCloseModal} variant="outlined" disabled={loading || uploading}>CANCEL</Button>
-            <Button type="submit" variant="contained" disabled={loading || uploading}
+            <Button onClick={handleCloseModal} variant="outlined" disabled={loading}>CANCEL</Button>
+            <Button type="submit" variant="contained" disabled={loading}
               sx={{ backgroundColor: '#1a3d2b', px: 4 }}>
-              {loading || uploading
+              {loading
                 ? <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <CircularProgress size={18} color="inherit" />
-                    <span>{uploading ? `Uploading ${Math.round(uploadProgress)}%` : 'Saving...'}</span>
+                    <span>Saving...</span>
                   </Box>
                 : editId ? 'UPDATE' : 'ADD'}
             </Button>
