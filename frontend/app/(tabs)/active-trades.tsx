@@ -8,43 +8,30 @@ import { db } from '@/firebaseConfig';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@/constants/Colors';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
+    shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: true,
   }),
 });
 
 type Segment = 'equity' | 'futures' | 'options';
 
 interface Trade {
-  id: string;
-  stockName?: string;
-  symbol?: string;
-  type?: 'BUY' | 'SELL';
-  action?: 'BUY' | 'SELL';
-  entryPrice: number;
-  targetPrice: number;
-  stopLoss: number;
-  strikePrice?: number;
-  optionType?: 'CE' | 'PE';
-  lotSize?: number;
-  expiryDate?: string;
-  duration?: string;
-  status: string;
-  createdAt: any;
-  segment?: Segment;
+  id: string; stockName?: string; symbol?: string;
+  type?: 'BUY' | 'SELL'; action?: 'BUY' | 'SELL';
+  entryPrice: number; targetPrice: number; stopLoss: number;
+  strikePrice?: number; optionType?: 'CE' | 'PE'; lotSize?: number;
+  expiryDate?: string; duration?: string; status: string;
+  createdAt: any; segment?: Segment;
 }
 
 const getAccessibleSegments = (subscriptionAccess?: string): Segment[] => {
   if (subscriptionAccess === 'equity') return ['equity'];
-  if (subscriptionAccess === 'fno') return ['futures', 'options'];
-  if (subscriptionAccess === 'all') return ['equity', 'futures', 'options'];
+  if (subscriptionAccess === 'fno')    return ['futures', 'options'];
+  if (subscriptionAccess === 'all')    return ['equity', 'futures', 'options'];
   return [];
 };
 
@@ -110,8 +97,20 @@ export function PremiumUpgradeScreen() {
         ))}
       </View>
 
+      {/* WhatsApp CTA */}
       <TouchableOpacity style={up.btn} onPress={() => Linking.openURL('https://wa.me/918383898886')} activeOpacity={0.87}>
+        <Ionicons name="logo-whatsapp" size={18} color="#fff" style={{ marginRight: 8 }} />
         <Text style={up.btnText}>Upgrade to Premium</Text>
+      </TouchableOpacity>
+
+      {/* Website link */}
+      <Text style={[up.moreDetailsTxt, { color: theme.textSecondary }]}>
+        For more details visit our website
+      </Text>
+      <TouchableOpacity style={up.websiteBtn} onPress={() => Linking.openURL('https://dhanmatrix.in')} activeOpacity={0.8}>
+        <Ionicons name="globe-outline" size={15} color="#3b82f6" />
+        <Text style={up.websiteTxt}>dhanmatrix.in</Text>
+        <Ionicons name="arrow-forward" size={13} color="#3b82f6" />
       </TouchableOpacity>
 
       <Text style={[up.footerNote, { color: theme.textSecondary }]}>Contact admin for subscription</Text>
@@ -130,16 +129,14 @@ function LockedSegmentScreen({ segment }: { segment: Segment }) {
     ]));
     a.start(); return () => a.stop();
   }, []);
-
   const label = segment === 'equity' ? 'Equity' : segment === 'futures' ? 'Futures' : 'Options';
   const isFno = segment === 'futures' || segment === 'options';
-
   return (
     <View style={[styles.lockedContainer, { backgroundColor: theme.background }]}>
       <Animated.View style={[styles.lockedIconWrap, { transform: [{ scale: pulseAnim }] }]}>
         <Ionicons name="lock-closed" size={52} color="#fff" />
       </Animated.View>
-      <Text style={[styles.lockedTitle, { color: theme.text }]}>{label} Access Locked</Text>
+      <Text style={[styles.lockedTitle,    { color: theme.text }]}>{label} Access Locked</Text>
       <Text style={[styles.lockedSubtitle, { color: theme.textSecondary }]}>
         Your current plan does not include{' '}
         <Text style={styles.lockedHighlight}>{label}</Text> trading signals.
@@ -196,11 +193,7 @@ function SubscriptionBanner({ endDate }: { endDate?: string }) {
   );
 }
 
-const segmentLabel = (seg?: string): string => {
-  if (seg === 'futures') return 'Futures';
-  if (seg === 'options') return 'Options';
-  return 'Equity';
-};
+const segmentLabel = (seg?: string) => seg === 'futures' ? 'Futures' : seg === 'options' ? 'Options' : 'Equity';
 
 const isToday = (val: any): boolean => {
   try {
@@ -220,12 +213,10 @@ export default function ActiveTrades() {
   const { userData } = useAuth();
   const router  = useRouter();
   const theme   = useTheme();
-
-  const [trades, setTrades]         = useState<Trade[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [activeSegment, setActiveSegment] = useState<Segment>('equity');
-
+  const [trades,         setTrades]         = useState<Trade[]>([]);
+  const [loading,        setLoading]        = useState(true);
+  const [refreshing,     setRefreshing]     = useState(false);
+  const [activeSegment,  setActiveSegment]  = useState<Segment>('equity');
   const prevTradeIdsRef = useRef<Set<string>>(new Set());
   const isFirstLoadRef  = useRef(true);
   const accessibleSegments = getAccessibleSegments(userData?.subscriptionAccess);
@@ -259,10 +250,8 @@ export default function ActiveTrades() {
                   content: {
                     title: `New ${t.type || t.action || 'TRADE'} Trade Alert! [${segmentLabel(t.segment)}]`,
                     body: `${t.stockName} | ${segmentLabel(t.segment)} | Entry: ₹${t.entryPrice} | Target: ₹${t.targetPrice} | SL: ₹${t.stopLoss}`,
-                    sound: true,
-                    data: { tradeId: t.id, segment: t.segment ?? 'equity' },
-                  },
-                  trigger: null,
+                    sound: true, data: { tradeId: t.id, segment: t.segment ?? 'equity' },
+                  }, trigger: null,
                 });
               }
             }
@@ -294,7 +283,6 @@ export default function ActiveTrades() {
   const tabLabels: { key: Segment; label: string }[] = [
     { key: 'equity', label: 'Equity' }, { key: 'futures', label: 'Futures' }, { key: 'options', label: 'Options' },
   ];
-
   const openChart = (stockName: string) => Linking.openURL(`https://www.tradingview.com/chart/?symbol=NSE:${stockName.toUpperCase().trim()}`);
 
   const renderTradeCard = ({ item }: { item: Trade }) => {
@@ -306,7 +294,6 @@ export default function ActiveTrades() {
     const isFnO       = seg === 'options' || seg === 'futures';
     const potential   = entryPrice > 0 ? (isBuy ? ((targetPrice - entryPrice) / entryPrice) : ((entryPrice - targetPrice) / entryPrice)) * 100 : 0;
     const risk        = entryPrice > 0 ? (isBuy ? ((entryPrice - stopLoss) / entryPrice) : ((stopLoss - entryPrice) / entryPrice)) * 100 : 0;
-
     return (
       <View style={[styles.tradeCard, { backgroundColor: theme.cardBackground }]}>
         <View style={styles.tradeHeader}>
@@ -327,14 +314,12 @@ export default function ActiveTrades() {
           </View>
           <Ionicons name="pulse" size={24} color={theme.primary} />
         </View>
-
         {isFnO && (item.expiryDate || item.duration) && (
           <View style={[styles.fnoRow, { backgroundColor: theme.isDark ? 'rgba(146,64,14,0.15)' : '#FFFBEB' }]}>
             {item.expiryDate && <View style={styles.fnoItem}><Ionicons name="calendar-outline" size={13} color="#92400E" /><Text style={styles.fnoText}>Expiry: {item.expiryDate}</Text></View>}
             {item.duration   && <View style={styles.fnoItem}><Ionicons name="time-outline"     size={13} color="#92400E" /><Text style={styles.fnoText}>{item.duration}</Text></View>}
           </View>
         )}
-
         <View style={[styles.priceGrid, { borderBottomColor: theme.border }]}>
           <View style={styles.priceItem}>
             <Text style={[styles.priceLabel, { color: theme.textSecondary }]}>Entry Price</Text>
@@ -349,7 +334,6 @@ export default function ActiveTrades() {
             <Text style={[styles.priceValue, { color: theme.error }]}>{stopLoss > 0 ? `₹${stopLoss.toFixed(2)}` : 'N/A'}</Text>
           </View>
         </View>
-
         <View style={styles.metricsRow}>
           <View style={styles.metric}>
             <Text style={[styles.metricLabel, { color: theme.textSecondary }]}>Potential Gain</Text>
@@ -360,7 +344,6 @@ export default function ActiveTrades() {
             <Text style={[styles.metricValue, { color: theme.error }]}>{stopLoss > 0 ? `-${Math.abs(risk).toFixed(2)}%` : 'N/A'}</Text>
           </View>
         </View>
-
         <View style={styles.cardFooter}>
           <View style={styles.dateContainer}>
             <Ionicons name="time-outline" size={14} color={theme.textSecondary} />
@@ -385,7 +368,6 @@ export default function ActiveTrades() {
   };
 
   if (loading) return <View style={[styles.centerContainer, { backgroundColor: theme.background }]}><ActivityIndicator size="large" color={theme.primary} /></View>;
-
   if (userData?.status === 'BLOCKED') {
     return (
       <View style={[styles.centerContainer, { backgroundColor: theme.background }]}>
@@ -395,28 +377,20 @@ export default function ActiveTrades() {
       </View>
     );
   }
-
   if (userData?.status === 'FREE') return <PremiumUpgradeScreen />;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <SubscriptionBanner endDate={userData?.subscriptionEndDate} />
-
       <View style={[styles.tabRow, { backgroundColor: theme.cardBackground }]}>
         {tabLabels.map(({ key, label }) => {
           const count    = countBySegment(key);
           const hasToday = trades.some((t) => normalizeSegment(t.segment) === key && isToday(t.createdAt));
           const isLocked = !accessibleSegments.includes(key);
           return (
-            <TouchableOpacity
-              key={key}
-              style={[styles.tab, activeSegment === key && styles.tabActive, isLocked && styles.tabLocked]}
-              onPress={() => setActiveSegment(key)} activeOpacity={0.8}
-            >
+            <TouchableOpacity key={key} style={[styles.tab, activeSegment === key && styles.tabActive, isLocked && styles.tabLocked]} onPress={() => setActiveSegment(key)} activeOpacity={0.8}>
               {isLocked && <Ionicons name="lock-closed" size={11} color={activeSegment === key ? '#fff' : '#9ca3af'} style={{ marginRight: 2 }} />}
-              <Text style={[styles.tabText, { color: theme.textSecondary }, activeSegment === key && styles.tabTextActive, isLocked && styles.tabTextLocked]}>
-                {label}
-              </Text>
+              <Text style={[styles.tabText, { color: theme.textSecondary }, activeSegment === key && styles.tabTextActive, isLocked && styles.tabTextLocked]}>{label}</Text>
               {!isLocked && count > 0 && (
                 <View style={[styles.badge, activeSegment === key && styles.badgeActive]}>
                   <Text style={[styles.badgeText, activeSegment === key && styles.badgeTextActive]}>{count}</Text>
@@ -427,7 +401,6 @@ export default function ActiveTrades() {
           );
         })}
       </View>
-
       {!accessibleSegments.includes(activeSegment) ? (
         <LockedSegmentScreen segment={activeSegment} />
       ) : filteredTrades.length === 0 ? (
@@ -437,16 +410,9 @@ export default function ActiveTrades() {
           <Text style={[styles.emptySubtext, { color: theme.textSecondary }]}>Pull down to refresh and check for new trades</Text>
         </View>
       ) : (
-        <FlatList
-          data={filteredTrades}
-          renderItem={renderTradeCard}
-          keyExtractor={(item) => item.id}
+        <FlatList data={filteredTrades} renderItem={renderTradeCard} keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing}
-              onRefresh={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 1500); }}
-              colors={[theme.primary]} tintColor={theme.primary} />
-          }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 1500); }} colors={[theme.primary]} tintColor={theme.primary} />}
         />
       )}
     </View>
@@ -472,8 +438,12 @@ export const up = StyleSheet.create({
   aiBadge:         { borderRadius: 6, borderWidth: 1, paddingHorizontal: 6, paddingVertical: 1 },
   aiBadgeText:     { fontSize: 10, fontWeight: '800', letterSpacing: 0.3 },
   featureDesc:     { fontSize: 13, lineHeight: 18 },
-  btn:             { width: '100%', backgroundColor: '#f97316', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginBottom: 12, shadowColor: '#f97316', shadowOpacity: 0.35, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 6 },
+  btn:             { width: '100%', backgroundColor: '#f97316', borderRadius: 14, paddingVertical: 16, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', marginBottom: 12, shadowColor: '#f97316', shadowOpacity: 0.35, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 6 },
   btnText:         { color: '#fff', fontSize: 16, fontWeight: '900', letterSpacing: 0.3 },
+  // Website link button
+  websiteBtn:      { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#eff6ff', borderWidth: 1, borderColor: '#bfdbfe', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 11, width: '100%', marginBottom: 14 },
+  websiteTxt:      { flex: 1, fontSize: 13, color: '#3b82f6', fontWeight: '700' },
+  moreDetailsTxt:  { fontSize: 12, textAlign: 'center', marginBottom: 8 },
   footerNote:      { fontSize: 12, textAlign: 'center' },
 });
 
