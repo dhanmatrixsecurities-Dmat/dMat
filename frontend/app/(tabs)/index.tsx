@@ -4,7 +4,7 @@ import {
   TouchableOpacity, Linking, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import Svg, {
   Circle, G, Ellipse, Polygon, Rect, Line, Polyline, Path,
@@ -17,6 +17,9 @@ import { PremiumUpgradeScreen } from './active-trades';
 
 interface ClosedTrade {
   id: string; profitLossPercent: number; segment?: 'equity' | 'futures' | 'options';
+}
+interface ActiveTrade {
+  id: string; segment?: string; createdAt?: any;
 }
 interface SegmentStats {
   total: number; profitable: number; losing: number; accuracy: number;
@@ -32,6 +35,14 @@ const getGreeting = () => {
 const getTodayKey = () => {
   const d = new Date();
   return `greeting_shown_${d.getFullYear()}_${d.getMonth()}_${d.getDate()}`;
+};
+
+// Normalize segment string to one of 3 valid values
+const normalizeSegment = (seg?: string): 'equity' | 'futures' | 'options' => {
+  const s = seg?.toLowerCase();
+  if (s === 'futures') return 'futures';
+  if (s === 'options') return 'options';
+  return 'equity';
 };
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -68,7 +79,6 @@ const DonutGauge = ({ accuracy, size, strokeWidth, fillColor, trackColor, textCo
   );
 };
 
-// ── Greeting Toast — positioned lower so it shows inside screen ───────────────
 const GreetingToast = ({ name }: { name: string }) => {
   const slide   = useRef(new Animated.Value(-100)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -125,12 +135,16 @@ const WavingHand = () => {
   );
 };
 
-const TickerChip = () => (
-  <View style={s.chip}>
-    <View style={s.chipDot} />
-    <Text style={s.chipText}>New Trade Posted</Text>
-  </View>
-);
+// ── Ticker chip shows segment label ──────────────────────────────────────────
+const TickerChip = ({ segment }: { segment: string }) => {
+  const label = segment === 'futures' ? 'Futures' : segment === 'options' ? 'Options' : 'Equity';
+  return (
+    <View style={s.chip}>
+      <View style={s.chipDot} />
+      <Text style={s.chipText}>New {label} Trade</Text>
+    </View>
+  );
+};
 
 // ── Portfolio — LEAF icon ─────────────────────────────────────────────────────
 const PortfolioCard = ({ onPress, isFree }: { onPress: () => void; isFree: boolean }) => {
@@ -141,8 +155,8 @@ const PortfolioCard = ({ onPress, isFree }: { onPress: () => void; isFree: boole
     Animated.sequence([
       Animated.delay(500),
       Animated.parallel([
-        Animated.timing(scaleA, { toValue: 1.12, duration: 300, useNativeDriver: true }),
-        Animated.timing(bounceY, { toValue: -8, duration: 300, useNativeDriver: true }),
+        Animated.timing(scaleA,  { toValue: 1.12, duration: 300, useNativeDriver: true }),
+        Animated.timing(bounceY, { toValue: -8,   duration: 300, useNativeDriver: true }),
       ]),
       Animated.parallel([
         Animated.spring(scaleA,  { toValue: 1, friction: 5, tension: 80, useNativeDriver: true }),
@@ -161,30 +175,17 @@ const PortfolioCard = ({ onPress, isFree }: { onPress: () => void; isFree: boole
           {isFree ? (
             <Text style={{ fontSize: 26 }}>🔒</Text>
           ) : (
-            // ── Leaf icon ──
             <Svg width={32} height={32} viewBox="0 0 34 34" fill="none">
-              {/* Main leaf shape */}
-              <Path
-                d="M17 4 C10 4 6 10 6 17 C6 22 9 26 14 28 L14 30 L17 30 L20 30 L20 28 C25 26 28 22 28 17 C28 10 24 4 17 4 Z"
-                fill="#4ade80" opacity="0.9"
-              />
-              {/* Leaf inner highlight */}
-              <Path
-                d="M17 6 C12 6 8.5 11 8.5 17 C8.5 21 11 24.5 15 26.5"
-                stroke="#86efac" strokeWidth="1.5" strokeLinecap="round" fill="none"
-              />
-              {/* Centre vein */}
-              <Line x1="17" y1="8" x2="17" y2="28" stroke="#16a34a" strokeWidth="1.8" strokeLinecap="round" />
-              {/* Side veins left */}
+              <Path d="M17 4 C10 4 6 10 6 17 C6 22 9 26 14 28 L14 30 L17 30 L20 30 L20 28 C25 26 28 22 28 17 C28 10 24 4 17 4 Z" fill="#4ade80" opacity="0.9" />
+              <Path d="M17 6 C12 6 8.5 11 8.5 17 C8.5 21 11 24.5 15 26.5" stroke="#86efac" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+              <Line x1="17" y1="8"  x2="17" y2="28" stroke="#16a34a" strokeWidth="1.8" strokeLinecap="round" />
               <Line x1="17" y1="13" x2="11" y2="17" stroke="#16a34a" strokeWidth="1.1" strokeLinecap="round" />
               <Line x1="17" y1="18" x2="10" y2="21" stroke="#16a34a" strokeWidth="1.1" strokeLinecap="round" />
-              <Line x1="17" y1="23" x2="12" y2="26" stroke="#16a34a" strokeWidth="1" strokeLinecap="round" />
-              {/* Side veins right */}
+              <Line x1="17" y1="23" x2="12" y2="26" stroke="#16a34a" strokeWidth="1"   strokeLinecap="round" />
               <Line x1="17" y1="13" x2="23" y2="17" stroke="#16a34a" strokeWidth="1.1" strokeLinecap="round" />
               <Line x1="17" y1="18" x2="24" y2="21" stroke="#16a34a" strokeWidth="1.1" strokeLinecap="round" />
-              <Line x1="17" y1="23" x2="22" y2="26" stroke="#16a34a" strokeWidth="1" strokeLinecap="round" />
-              {/* Stem */}
-              <Line x1="17" y1="29" x2="17" y2="32" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" />
+              <Line x1="17" y1="23" x2="22" y2="26" stroke="#16a34a" strokeWidth="1"   strokeLinecap="round" />
+              <Line x1="17" y1="29" x2="17" y2="32" stroke="#16a34a" strokeWidth="2"   strokeLinecap="round" />
             </Svg>
           )}
         </View>
@@ -265,6 +266,8 @@ export default function HomeScreen() {
   const [options,      setOptions]      = useState<SegmentStats>({ total: 0, profitable: 0, losing: 0, accuracy: 0 });
   const [showGreeting, setShowGreeting] = useState(false);
   const [showUpgrade,  setShowUpgrade]  = useState(false);
+  // ── Latest active trades for ticker — each with their segment ──────────────
+  const [activeTrades, setActiveTrades] = useState<ActiveTrade[]>([]);
 
   const tickerAnim  = useRef(new Animated.Value(0)).current;
   const robotFloat  = useRef(new Animated.Value(0)).current;
@@ -293,6 +296,7 @@ export default function HomeScreen() {
     ])).start();
   }, []);
 
+  // ── Fetch closed trades stats ──────────────────────────────────────────────
   useEffect(() => {
     (async () => {
       try {
@@ -305,6 +309,16 @@ export default function HomeScreen() {
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
     })();
+  }, []);
+
+  // ── Listen to active trades for ticker — real-time, shows correct segment ──
+  useEffect(() => {
+    const q = query(collection(db, 'activeTrades'));
+    const unsub = onSnapshot(q, (snap) => {
+      const trades = snap.docs.map(d => ({ id: d.id, ...d.data() })) as ActiveTrade[];
+      setActiveTrades(trades);
+    });
+    return () => unsub();
   }, []);
 
   useEffect(() => {
@@ -320,9 +334,17 @@ export default function HomeScreen() {
   const firstName    = userData?.name?.trim().split(' ')[0] || 'there';
   const avatarLetter = (userData?.name || 'U')[0].toUpperCase();
 
+  // ── Navigate to active trades with correct segment ─────────────────────────
+  const handleTickerPress = (segment?: string) => {
+    router.push({
+      pathname: '/(tabs)/active-trades',
+      params: { segment: segment || 'equity' },
+    });
+  };
+
   const handlePortfolioStocksPress = () => {
     if (userData?.status === 'FREE') { setShowUpgrade(true); }
-    else { router.push('/(tabs)/portfolio-stocks'); }
+    else { router.push('/portfolio-stocks'); } // ← updated path after moving file
   };
 
   if (loading) return <View style={[s.loading, { backgroundColor: theme.background }]}><ActivityIndicator size="large" color="#3b82f6" /></View>;
@@ -333,10 +355,14 @@ export default function HomeScreen() {
     { label: 'Options', stats: options, color: '#8b5cf6', trackColor: theme.isDark ? '#2a1050' : '#f0eaff', borderColor: '#8b5cf6' },
   ];
 
+  // Repeat active trades for ticker display (min 6 items)
+  const tickerTrades = activeTrades.length > 0
+    ? [...activeTrades, ...activeTrades, ...activeTrades].slice(0, Math.max(6, activeTrades.length * 2))
+    : [{ id: '1', segment: 'equity' }, { id: '2', segment: 'futures' }, { id: '3', segment: 'options' }];
+
   return (
     <SafeAreaView style={[s.outer, { backgroundColor: theme.headerBg }]} edges={['top']}>
 
-      {/* Greeting toast — top:70 keeps it below the header ── */}
       {showGreeting && (
         <View style={s.toastWrapper} pointerEvents="none">
           <GreetingToast name={userData?.name || ''} />
@@ -364,7 +390,9 @@ export default function HomeScreen() {
           </View>
           <View style={s.avatar}><Text style={s.avatarTxt}>{avatarLetter}</Text></View>
         </View>
-        <TouchableOpacity style={s.tickerPill} onPress={() => router.push('/(tabs)/active-trades')} activeOpacity={0.82}>
+
+        {/* Ticker pill — each chip navigates to its own segment */}
+        <View style={s.tickerPill}>
           <Animated.View style={[s.tickerIcon, { transform: [{ scale: iconPopAnim }] }]}>
             <Svg width={10} height={10} viewBox="0 0 12 12" fill="none">
               <Polyline points="2,6 5,9 10,3" stroke="#4ecfa8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -373,10 +401,19 @@ export default function HomeScreen() {
           <Text style={s.tickerTag}>View</Text>
           <View style={s.tickerTrack}>
             <Animated.View style={[s.tickerInner, { transform: [{ translateX: tickerAnim }] }]}>
-              {[0,1,2,3,4,5,6,7].map(i => <View key={i} style={s.chipWrap}><TickerChip /></View>)}
+              {tickerTrades.map((trade, i) => (
+                <TouchableOpacity
+                  key={`${trade.id}-${i}`}
+                  style={s.chipWrap}
+                  onPress={() => handleTickerPress(trade.segment)}
+                  activeOpacity={0.75}
+                >
+                  <TickerChip segment={normalizeSegment(trade.segment)} />
+                </TouchableOpacity>
+              ))}
             </Animated.View>
           </View>
-        </TouchableOpacity>
+        </View>
       </View>
 
       {/* FIXED CONTENT */}
@@ -440,12 +477,10 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ── KOOKY card — View only, Ask Me button navigates ── */}
+        {/* KOOKY card — View only, Ask Me navigates */}
         <View style={s.kookyCard}>
           <View style={s.kOrb1} pointerEvents="none" />
           <View style={s.kOrb2} pointerEvents="none" />
-
-          {/* Robot — 95px wide */}
           <Animated.View style={[s.kRobot, { transform: [{ translateY: robotFloat }] }]}>
             <Svg width={95} height={126} viewBox="0 0 84 112" fill="none">
               <Line x1="42" y1="4" x2="42" y2="16" stroke="#60aaff" strokeWidth="2.4" strokeLinecap="round" />
@@ -477,14 +512,11 @@ export default function HomeScreen() {
               <Rect x="52" y="110" width="14" height="2" rx="1" fill="#3060c0" />
             </Svg>
           </Animated.View>
-
-          {/* Text side */}
           <View style={s.kText}>
             <View style={s.kLivePill}>
               <Animated.View style={[s.kLiveDot, { opacity: liveDotAnim }]} />
               <Text style={s.kLiveTxt}>AI Assistant</Text>
             </View>
-            {/* KOOKY 26px */}
             <Text style={s.kName}>
               <Text style={{ color: '#7eb8ff' }}>K</Text>
               <Text style={{ color: '#ffffff' }}>OO</Text>
@@ -517,7 +549,6 @@ const s = StyleSheet.create({
   content: { flex: 1, padding: 6, paddingBottom: 4 },
   modalClose:     { backgroundColor: '#001F3F', paddingHorizontal: 20, paddingVertical: 14, alignItems: 'flex-end' },
   modalCloseText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  // Toast wrapper — positioned below header, not at very top
   toastWrapper: { position: 'absolute', top: 80, left: 16, right: 16, zIndex: 999 },
   toast: { backgroundColor: '#001F3F', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 8 },
   toastEmoji: { fontSize: 26, marginRight: 12 },
