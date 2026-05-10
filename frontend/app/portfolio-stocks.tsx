@@ -257,7 +257,7 @@ export default function PortfolioStocksScreen() {
 }
 
 const s = StyleSheet.create({
-  safeArea:     { flex: 1, backgroundColor: '#0d1b3e' },
+  safeArea:     { flex: 1, backgroundColor: '#f1f8f4' }, // light bg for list area
   pageHeader:   { backgroundColor: '#0d1b3e', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#1a3460' },
   pageTitleRow: { flexDirection: 'row', alignItems: 'baseline', gap: 10 },
   pageTitle:    { fontSize: 18, fontWeight: '800', color: '#fff' },
