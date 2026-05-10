@@ -163,7 +163,7 @@ export default function PortfolioStocksScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#0d1b3e' }} edges={['top']}>
       <StatusBar style="light" backgroundColor="#0d1b3e" translucent={false} />
       <PortfolioHeader />
-      <View style={[s.center, { backgroundColor: theme.isDark ? theme.background : '#f1f8f4' }]}>
+      <View style={[s.center, { backgroundColor: theme.background }]}>
         <ActivityIndicator size="large" color="#4caf50" />
       </View>
     </SafeAreaView>
@@ -174,7 +174,7 @@ export default function PortfolioStocksScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#0d1b3e' }} edges={['top']}>
       <StatusBar style="light" backgroundColor="#0d1b3e" translucent={false} />
       <PortfolioHeader />
-      <View style={[s.center, { backgroundColor: theme.isDark ? theme.background : '#f1f8f4' }]}>
+      <View style={[s.center, { backgroundColor: theme.background }]}>
         <Ionicons name="lock-closed" size={64} color="#ef5350" />
         <Text style={s.blockedTitle}>Account Blocked</Text>
       </View>
@@ -225,7 +225,7 @@ export default function PortfolioStocksScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#0d1b3e' }} edges={['top']}>
       <StatusBar style="light" backgroundColor="#0d1b3e" translucent={false} />
       <PortfolioHeader count={0} />
-      <View style={[s.center, { backgroundColor: theme.isDark ? theme.background : '#f1f8f4' }]}>
+      <View style={[s.center, { backgroundColor: theme.background }]}>
         <Ionicons name="leaf-outline" size={72} color="#4caf50" />
         <Text style={[s.emptyTitle, { color: theme.isDark ? '#4ade80' : '#2e7d32' }]}>No Portfolio Stocks Yet</Text>
         <Text style={[s.emptySub, { color: theme.isDark ? '#86efac' : '#558b2f' }]}>Long-term picks will appear here once posted by admin</Text>
@@ -238,12 +238,13 @@ export default function PortfolioStocksScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#0d1b3e' }} edges={['top']}>
       <StatusBar style="light" backgroundColor="#0d1b3e" translucent={false} />
       <PortfolioHeader count={stocks.length} />
-      <View style={{ flex: 1, backgroundColor: theme.isDark ? theme.background : '#f1f8f4' }}>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
         <FlatList
+          style={{ flex: 1, backgroundColor: theme.background }}
           data={stocks}
           renderItem={({ item }) => <PortfolioCard item={item} />}
           keyExtractor={item => item.id}
-          contentContainerStyle={{ padding: 16, paddingBottom: 32, backgroundColor: theme.isDark ? theme.background : '#f1f8f4' }}
+          contentContainerStyle={{ padding: 16, paddingBottom: 32, backgroundColor: theme.background }}
           refreshControl={
             <RefreshControl refreshing={refreshing}
               onRefresh={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 1500); }}
