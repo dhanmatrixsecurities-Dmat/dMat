@@ -2,9 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
   StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Animated,
-  StatusBar as RNStatusBar,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,15 +13,11 @@ import { PremiumUpgradeScreen } from './active-trades';
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://your-vercel-app.vercel.app';
 const HEADER_BG   = '#0B1A2E';
 
-interface Message {
-  id: string; role: 'user' | 'assistant'; text: string;
-}
+interface Message { id: string; role: 'user' | 'assistant'; text: string; }
 
 const QUICK_QUESTIONS = [
-  'Analyze Reliance Industries',
-  'Analyze TCS',
-  'What is intraday trading?',
-  'How to read RSI indicator?',
+  'Analyze Reliance Industries', 'Analyze TCS',
+  'What is intraday trading?', 'How to read RSI indicator?',
   'SIP vs lump sum — which is better?',
 ];
 
@@ -30,7 +25,6 @@ function KookyLogo() {
   const blink    = useRef(new Animated.Value(1)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
   const eyeSize = 24, irisSize = 10, pupilSize = 4;
-
   useEffect(() => {
     Animated.loop(Animated.sequence([
       Animated.delay(4000),
@@ -42,28 +36,18 @@ function KookyLogo() {
       Animated.timing(glowAnim, { toValue: 0, duration: 2000, useNativeDriver: false }),
     ])).start();
   }, []);
-
   const borderColor = glowAnim.interpolate({ inputRange: [0, 1], outputRange: ['#2979FF', '#82B1FF'] });
-
   const Eye = () => (
-    <Animated.View style={[logo.eye, {
-      width: eyeSize, height: eyeSize, borderRadius: eyeSize / 2,
-      borderColor, transform: [{ scaleY: blink }],
-      shadowColor: '#2979FF', shadowOpacity: 0.6, shadowRadius: 8,
-      shadowOffset: { width: 0, height: 0 }, elevation: 5,
-    }]}>
-      <View style={[logo.iris, { width: irisSize, height: irisSize, borderRadius: irisSize / 2 }]}>
-        <View style={[logo.pupil, { width: pupilSize, height: pupilSize, borderRadius: pupilSize / 2 }]} />
+    <Animated.View style={[logo.eye, { width: eyeSize, height: eyeSize, borderRadius: eyeSize/2, borderColor, transform: [{ scaleY: blink }], shadowColor: '#2979FF', shadowOpacity: 0.6, shadowRadius: 8, shadowOffset: { width: 0, height: 0 }, elevation: 5 }]}>
+      <View style={[logo.iris, { width: irisSize, height: irisSize, borderRadius: irisSize/2 }]}>
+        <View style={[logo.pupil, { width: pupilSize, height: pupilSize, borderRadius: pupilSize/2 }]} />
       </View>
       <View style={logo.shine} />
     </Animated.View>
   );
-
   return (
     <View style={logo.row}>
-      <Text style={logo.letter}>K</Text>
-      <Eye /><Eye />
-      <Text style={logo.letter}>KY</Text>
+      <Text style={logo.letter}>K</Text><Eye /><Eye /><Text style={logo.letter}>KY</Text>
     </View>
   );
 }
@@ -77,15 +61,31 @@ const logo = StyleSheet.create({
   shine:  { position: 'absolute', top: 4, right: 4, width: 4, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.85)' },
 });
 
+// ── Shared header used for FREE, BLOCKED and ACTIVE ───────────────────────────
+function KookyHeader({ onPortfolioPress }: { onPortfolioPress?: () => void }) {
+  return (
+    <View style={st.topHeader}>
+      <KookyLogo />
+      {onPortfolioPress ? (
+        <TouchableOpacity style={st.portfolioTopBtn} onPress={onPortfolioPress}>
+          <Ionicons name="pie-chart" size={12} color="#fff" />
+          <Text style={st.portfolioTopBtnText}>Portfolio</Text>
+        </TouchableOpacity>
+      ) : (
+        <View style={[st.portfolioTopBtn, { opacity: 0.4 }]}>
+          <Ionicons name="pie-chart" size={12} color="#fff" />
+          <Text style={st.portfolioTopBtnText}>Portfolio</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
 export default function KookyScreen() {
   const { userData } = useAuth();
-  const theme  = useTheme();
-  const insets = useSafeAreaInsets(); // accurate on all Android devices
+  const theme = useTheme();
 
-  const [messages, setMessages] = useState<Message[]>([{
-    id: '0', role: 'assistant',
-    text: 'Kooky online. Ask me anything about stocks, trading, or mutual funds.\n\nTip: Try "Analyze Reliance" or tap Portfolio to analyze your holdings.',
-  }]);
+  const [messages, setMessages]           = useState<Message[]>([{ id: '0', role: 'assistant', text: 'Kooky online. Ask me anything about stocks, trading, or mutual funds.\n\nTip: Try "Analyze Reliance" or tap Portfolio to analyze your holdings.' }]);
   const [input,          setInput]          = useState('');
   const [loading,        setLoading]        = useState(false);
   const [showQuick,      setShowQuick]      = useState(true);
@@ -98,18 +98,14 @@ export default function KookyScreen() {
     if (!msgText || loading) return;
     setInput(''); setShowQuick(false);
     const userMsg: Message = { id: Date.now().toString(), role: 'user', text: msgText };
-    const updatedMessages  = [...messages, userMsg];
-    setMessages(updatedMessages);
-    setLoading(true);
+    const updated = [...messages, userMsg];
+    setMessages(updated); setLoading(true);
     try {
-      const response = await fetch(`${BACKEND_URL}/api/kooky`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: updatedMessages.map(m => ({ role: m.role, content: m.text })), user_id: null }),
-      });
-      const data = await response.json();
-      setMessages(prev => [...prev, { id: Date.now().toString() + 'b', role: 'assistant', text: data?.reply || 'Signal lost. Try again.' }]);
+      const res  = await fetch(`${BACKEND_URL}/api/kooky`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: updated.map(m => ({ role: m.role, content: m.text })), user_id: null }) });
+      const data = await res.json();
+      setMessages(prev => [...prev, { id: Date.now() + 'b', role: 'assistant', text: data?.reply || 'Signal lost. Try again.' }]);
     } catch {
-      setMessages(prev => [...prev, { id: Date.now().toString() + 'e', role: 'assistant', text: '📡 Signal lost. Check your connection and try again.' }]);
+      setMessages(prev => [...prev, { id: Date.now() + 'e', role: 'assistant', text: '📡 Signal lost. Check your connection and try again.' }]);
     } finally {
       setLoading(false);
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
@@ -122,10 +118,41 @@ export default function KookyScreen() {
     sendMessage(`Analyze my stock portfolio:\n${portfolioInput}`);
   };
 
+  // ── BLOCKED ───────────────────────────────────────────────────────────────
+  if (userData?.status === 'BLOCKED') {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: HEADER_BG }} edges={['top']}>
+        <StatusBar style="light" backgroundColor={HEADER_BG} translucent={false} />
+        <KookyHeader />
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, backgroundColor: theme.background }}>
+          <Ionicons name="lock-closed" size={80} color={theme.error} />
+          <Text style={{ fontSize: 22, fontWeight: '800', color: theme.error, marginTop: 16, textAlign: 'center' }}>Account Blocked</Text>
+          <Text style={{ fontSize: 14, color: theme.textSecondary, marginTop: 10, textAlign: 'center', lineHeight: 22 }}>Your account has been blocked.{'\n'}Please contact support for assistance.</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ── FREE — KookyLogo header at top, subscription card below ──────────────
+  if (userData?.status === 'FREE') {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: HEADER_BG }} edges={['top']}>
+        <StatusBar style="light" backgroundColor={HEADER_BG} translucent={false} />
+        {/* Kooky header — always visible */}
+        <KookyHeader />
+        {/* Subscription card fills the rest */}
+        <View style={{ flex: 1, backgroundColor: theme.background }}>
+          <PremiumUpgradeScreen />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   // ── Portfolio mode ────────────────────────────────────────────────────────
   if (portfolioMode) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: HEADER_BG }} edges={['top']}>
+        <StatusBar style="light" backgroundColor={HEADER_BG} translucent={false} />
         <KeyboardAvoidingView style={{ flex: 1, backgroundColor: theme.background }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={[st.portfolioOverlay, { backgroundColor: theme.background }]}>
             <View style={st.portfolioHeader}>
@@ -137,15 +164,9 @@ export default function KookyScreen() {
             </View>
             <View style={[st.portfolioHintCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
               <Text style={[st.portfolioHintTitle, { color: theme.textSecondary }]}>HOW TO ENTER HOLDINGS</Text>
-              <Text style={[st.portfolioHint, { color: theme.text }]}>
-                Reliance Industries - ₹50,000{'\n'}TCS - ₹30,000{'\n'}HDFC Bank - ₹20,000{'\n'}Infosys - ₹15,000
-              </Text>
+              <Text style={[st.portfolioHint, { color: theme.text }]}>Reliance Industries - ₹50,000{'\n'}TCS - ₹30,000{'\n'}HDFC Bank - ₹20,000</Text>
             </View>
-            <TextInput
-              style={[st.portfolioTextArea, { backgroundColor: theme.cardBackground, borderColor: theme.border, color: theme.text }]}
-              value={portfolioInput} onChangeText={setPortfolioInput}
-              placeholder="Enter your stocks and amounts here..."
-              placeholderTextColor={theme.textSecondary} multiline autoFocus />
+            <TextInput style={[st.portfolioTextArea, { backgroundColor: theme.cardBackground, borderColor: theme.border, color: theme.text }]} value={portfolioInput} onChangeText={setPortfolioInput} placeholder="Enter your stocks and amounts here..." placeholderTextColor={theme.textSecondary} multiline autoFocus />
             <TouchableOpacity style={st.portfolioSubmitBtn} onPress={sendPortfolioAnalysis}>
               <Ionicons name="analytics-outline" size={18} color="#fff" />
               <Text style={st.portfolioSubmitText}>Analyze My Portfolio</Text>
@@ -156,107 +177,55 @@ export default function KookyScreen() {
     );
   }
 
-  // ── FREE — StatusBar translucent:false forces content below status bar on Android ──
-  if (userData?.status === 'FREE') {
-    return (
-      <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <StatusBar style="dark" backgroundColor={theme.background} translucent={false} />
-        <PremiumUpgradeScreen />
-      </View>
-    );
-  }
-
-  // ── BLOCKED ───────────────────────────────────────────────────────────────
-  if (userData?.status === 'BLOCKED') {
-    return (
-      <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <StatusBar style="dark" backgroundColor={theme.background} translucent={false} />
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
-          <Ionicons name="lock-closed" size={80} color={theme.error} />
-          <Text style={{ fontSize: 22, fontWeight: '800', color: theme.error, marginTop: 16, textAlign: 'center' }}>Account Blocked</Text>
-          <Text style={{ fontSize: 14, color: theme.textSecondary, marginTop: 10, textAlign: 'center', lineHeight: 22 }}>
-            Your account has been blocked.{'\n'}Please contact support for assistance.
-          </Text>
-        </View>
-      </View>
-    );
-  }
-
-  // ── ACTIVE — full chat UI ─────────────────────────────────────────────────
+  // ── ACTIVE — full chat ────────────────────────────────────────────────────
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: HEADER_BG }} edges={['top']}>
-      {/* HEADER — fixed */}
-      <View style={st.topHeader}>
-            <KookyLogo />
-            <TouchableOpacity style={st.portfolioTopBtn} onPress={() => setPortfolioMode(true)}>
-              <Ionicons name="pie-chart" size={12} color="#fff" />
-              <Text style={st.portfolioTopBtnText}>Portfolio</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={[st.agentBadge, { backgroundColor: theme.cardBackground, borderBottomColor: theme.border }]}>
-            <View style={st.statusDot} />
-            <Text style={[st.agentBadgeText, { color: theme.textSecondary }]}>
-              Kooky — Decoding the <Text style={st.moneyMatrix}>Money Matrix</Text>
-            </Text>
-          </View>
-
-          {/* CHAT */}
-          <KeyboardAvoidingView
-            style={{ flex: 1, backgroundColor: theme.background }}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={0}
-          >
-            <ScrollView ref={scrollRef} style={[st.messages, { backgroundColor: theme.background }]}
-              contentContainerStyle={{ paddingVertical: 12, paddingBottom: 8 }}
-              keyboardShouldPersistTaps="handled"
-              onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}>
-              {messages.map(msg => (
-                <View key={msg.id} style={[
-                  st.bubble,
-                  msg.role === 'user'
-                    ? [st.userBubble, { backgroundColor: HEADER_BG }]
-                    : [st.botBubble, { backgroundColor: theme.cardBackground, borderColor: theme.border }],
-                ]}>
-                  {msg.role === 'assistant' && <Text style={[st.senderLabel, { color: theme.textSecondary }]}>Kooky //</Text>}
-                  <Text style={[msg.role === 'user' ? st.userText : st.botText, msg.role !== 'user' && { color: theme.text }]}>{msg.text}</Text>
-                </View>
-              ))}
-              {loading && (
-                <View style={[st.bubble, st.botBubble, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
-                  <Text style={[st.senderLabel, { color: theme.textSecondary }]}>Kooky //</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <ActivityIndicator size="small" color="#2979FF" />
-                    <Text style={[st.loadingText, { color: theme.textSecondary }]}>Analyzing markets...</Text>
-                  </View>
-                </View>
-              )}
-              {showQuick && (
-                <View style={st.quickWrap}>
-                  <Text style={[st.quickLabel, { color: theme.textSecondary }]}>QUICK ACTIONS</Text>
-                  {QUICK_QUESTIONS.map(q => (
-                    <TouchableOpacity key={q} style={[st.quickBtn, { backgroundColor: theme.cardBackground, borderColor: theme.border }]} onPress={() => sendMessage(q)}>
-                      <Text style={[st.quickBtnText, { color: theme.text }]}>{q}</Text>
-                      <Ionicons name="arrow-forward" size={11} color="#2979FF" />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </ScrollView>
-
-            <View style={[st.inputRow, { backgroundColor: theme.cardBackground, borderTopColor: theme.border }]}>
-              <TouchableOpacity style={st.portfolioIconBtn} onPress={() => setPortfolioMode(true)}>
-                <Ionicons name="pie-chart" size={18} color="#fff" />
-              </TouchableOpacity>
-              <TextInput
-                style={[st.textInput, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
-                value={input} onChangeText={setInput}
-                placeholder="Ask Kooky about markets..." placeholderTextColor={theme.textSecondary}
-                onSubmitEditing={() => sendMessage()} returnKeyType="send" multiline={false} />
-              <TouchableOpacity style={[st.sendBtn, loading && st.sendBtnDisabled]} onPress={() => sendMessage()} disabled={loading}>
-                <Ionicons name="send" size={18} color="#fff" />
-              </TouchableOpacity>
+      <StatusBar style="light" backgroundColor={HEADER_BG} translucent={false} />
+      <KookyHeader onPortfolioPress={() => setPortfolioMode(true)} />
+      <View style={[st.agentBadge, { backgroundColor: theme.cardBackground, borderBottomColor: theme.border }]}>
+        <View style={st.statusDot} />
+        <Text style={[st.agentBadgeText, { color: theme.textSecondary }]}>
+          Kooky — Decoding the <Text style={st.moneyMatrix}>Money Matrix</Text>
+        </Text>
+      </View>
+      <KeyboardAvoidingView style={{ flex: 1, backgroundColor: theme.background }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={0}>
+        <ScrollView ref={scrollRef} style={[st.messages, { backgroundColor: theme.background }]} contentContainerStyle={{ paddingVertical: 12, paddingBottom: 8 }} keyboardShouldPersistTaps="handled" onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}>
+          {messages.map(msg => (
+            <View key={msg.id} style={[st.bubble, msg.role === 'user' ? [st.userBubble, { backgroundColor: HEADER_BG }] : [st.botBubble, { backgroundColor: theme.cardBackground, borderColor: theme.border }]]}>
+              {msg.role === 'assistant' && <Text style={[st.senderLabel, { color: theme.textSecondary }]}>Kooky //</Text>}
+              <Text style={[msg.role === 'user' ? st.userText : st.botText, msg.role !== 'user' && { color: theme.text }]}>{msg.text}</Text>
             </View>
+          ))}
+          {loading && (
+            <View style={[st.bubble, st.botBubble, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+              <Text style={[st.senderLabel, { color: theme.textSecondary }]}>Kooky //</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <ActivityIndicator size="small" color="#2979FF" />
+                <Text style={[st.loadingText, { color: theme.textSecondary }]}>Analyzing markets...</Text>
+              </View>
+            </View>
+          )}
+          {showQuick && (
+            <View style={st.quickWrap}>
+              <Text style={[st.quickLabel, { color: theme.textSecondary }]}>QUICK ACTIONS</Text>
+              {QUICK_QUESTIONS.map(q => (
+                <TouchableOpacity key={q} style={[st.quickBtn, { backgroundColor: theme.cardBackground, borderColor: theme.border }]} onPress={() => sendMessage(q)}>
+                  <Text style={[st.quickBtnText, { color: theme.text }]}>{q}</Text>
+                  <Ionicons name="arrow-forward" size={11} color="#2979FF" />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </ScrollView>
+        <View style={[st.inputRow, { backgroundColor: theme.cardBackground, borderTopColor: theme.border }]}>
+          <TouchableOpacity style={st.portfolioIconBtn} onPress={() => setPortfolioMode(true)}>
+            <Ionicons name="pie-chart" size={18} color="#fff" />
+          </TouchableOpacity>
+          <TextInput style={[st.textInput, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]} value={input} onChangeText={setInput} placeholder="Ask Kooky about markets..." placeholderTextColor={theme.textSecondary} onSubmitEditing={() => sendMessage()} returnKeyType="send" multiline={false} />
+          <TouchableOpacity style={[st.sendBtn, loading && st.sendBtnDisabled]} onPress={() => sendMessage()} disabled={loading}>
+            <Ionicons name="send" size={18} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
