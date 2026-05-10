@@ -4,7 +4,7 @@ import {
   TouchableOpacity, Linking, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { collection, getDocs, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
+import { collection, getDocs, onSnapshot, query } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import Svg, {
   Circle, G, Ellipse, Polygon, Rect, Line, Polyline, Path,
@@ -19,7 +19,7 @@ interface ClosedTrade {
   id: string; profitLossPercent: number; segment?: 'equity' | 'futures' | 'options';
 }
 interface ActiveTrade {
-  id: string; segment?: string; createdAt?: any;
+  id: string; segment?: string;
 }
 interface SegmentStats {
   total: number; profitable: number; losing: number; accuracy: number;
@@ -37,7 +37,6 @@ const getTodayKey = () => {
   return `greeting_shown_${d.getFullYear()}_${d.getMonth()}_${d.getDate()}`;
 };
 
-// Normalize segment string to one of 3 valid values
 const normalizeSegment = (seg?: string): 'equity' | 'futures' | 'options' => {
   const s = seg?.toLowerCase();
   if (s === 'futures') return 'futures';
@@ -135,34 +134,19 @@ const WavingHand = () => {
   );
 };
 
-// ── Ticker chip shows segment label ──────────────────────────────────────────
-const TickerChip = ({ segment }: { segment: string }) => {
-  const label = segment === 'futures' ? 'Futures' : segment === 'options' ? 'Options' : 'Equity';
-  return (
-    <View style={s.chip}>
-      <View style={s.chipDot} />
-      <Text style={s.chipText}>New {label} Trade</Text>
-    </View>
-  );
-};
+// ── Ticker chip — always shows "New Trade Posted" ─────────────────────────────
+const TickerChip = () => (
+  <View style={s.chip}>
+    <View style={s.chipDot} />
+    <Text style={s.chipText}>New Trade Posted</Text>
+  </View>
+);
 
-// ── Portfolio — LEAF icon ─────────────────────────────────────────────────────
+// ── Portfolio — CANDLESTICK icon ──────────────────────────────────────────────
 const PortfolioCard = ({ onPress, isFree }: { onPress: () => void; isFree: boolean }) => {
   const theme   = useTheme();
   const bounceY = useRef(new Animated.Value(0)).current;
-  const scaleA  = useRef(new Animated.Value(1)).current;
   useEffect(() => {
-    Animated.sequence([
-      Animated.delay(500),
-      Animated.parallel([
-        Animated.timing(scaleA,  { toValue: 1.12, duration: 300, useNativeDriver: true }),
-        Animated.timing(bounceY, { toValue: -8,   duration: 300, useNativeDriver: true }),
-      ]),
-      Animated.parallel([
-        Animated.spring(scaleA,  { toValue: 1, friction: 5, tension: 80, useNativeDriver: true }),
-        Animated.spring(bounceY, { toValue: 0, friction: 5, tension: 80, useNativeDriver: true }),
-      ]),
-    ]).start();
     Animated.loop(Animated.sequence([
       Animated.timing(bounceY, { toValue: -3, duration: 700, useNativeDriver: true }),
       Animated.timing(bounceY, { toValue: 0,  duration: 700, useNativeDriver: true }),
@@ -170,22 +154,27 @@ const PortfolioCard = ({ onPress, isFree }: { onPress: () => void; isFree: boole
   }, []);
   return (
     <TouchableOpacity style={s.rc} activeOpacity={0.82} onPress={onPress}>
-      <Animated.View style={{ transform: [{ translateY: bounceY }, { scale: scaleA }] }}>
+      <Animated.View style={{ transform: [{ translateY: bounceY }] }}>
         <View style={[s.circle, { backgroundColor: '#1a6030', shadowColor: '#1a6030' }]}>
           {isFree ? (
             <Text style={{ fontSize: 26 }}>🔒</Text>
           ) : (
+            // ── Candlestick chart icon ──
             <Svg width={32} height={32} viewBox="0 0 34 34" fill="none">
-              <Path d="M17 4 C10 4 6 10 6 17 C6 22 9 26 14 28 L14 30 L17 30 L20 30 L20 28 C25 26 28 22 28 17 C28 10 24 4 17 4 Z" fill="#4ade80" opacity="0.9" />
-              <Path d="M17 6 C12 6 8.5 11 8.5 17 C8.5 21 11 24.5 15 26.5" stroke="#86efac" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-              <Line x1="17" y1="8"  x2="17" y2="28" stroke="#16a34a" strokeWidth="1.8" strokeLinecap="round" />
-              <Line x1="17" y1="13" x2="11" y2="17" stroke="#16a34a" strokeWidth="1.1" strokeLinecap="round" />
-              <Line x1="17" y1="18" x2="10" y2="21" stroke="#16a34a" strokeWidth="1.1" strokeLinecap="round" />
-              <Line x1="17" y1="23" x2="12" y2="26" stroke="#16a34a" strokeWidth="1"   strokeLinecap="round" />
-              <Line x1="17" y1="13" x2="23" y2="17" stroke="#16a34a" strokeWidth="1.1" strokeLinecap="round" />
-              <Line x1="17" y1="18" x2="24" y2="21" stroke="#16a34a" strokeWidth="1.1" strokeLinecap="round" />
-              <Line x1="17" y1="23" x2="22" y2="26" stroke="#16a34a" strokeWidth="1"   strokeLinecap="round" />
-              <Line x1="17" y1="29" x2="17" y2="32" stroke="#16a34a" strokeWidth="2"   strokeLinecap="round" />
+              {/* Base line */}
+              <Line x1="3" y1="29" x2="31" y2="29" stroke="#c8f5d0" strokeWidth="1.8" strokeLinecap="round" />
+              {/* Candle 1 — green */}
+              <Line x1="8"  y1="5"  x2="8"  y2="9"  stroke="#c8f5d0" strokeWidth="1.5" strokeLinecap="round" />
+              <Rect x="5"  y="9"  width="6" height="11" rx="1.5" fill="#4ade80" />
+              <Line x1="8"  y1="20" x2="8"  y2="24" stroke="#c8f5d0" strokeWidth="1.5" strokeLinecap="round" />
+              {/* Candle 2 — red */}
+              <Line x1="17" y1="7"  x2="17" y2="11" stroke="#fca5a5" strokeWidth="1.5" strokeLinecap="round" />
+              <Rect x="14" y="11" width="6" height="8"  rx="1.5" fill="#f87171" />
+              <Line x1="17" y1="19" x2="17" y2="23" stroke="#fca5a5" strokeWidth="1.5" strokeLinecap="round" />
+              {/* Candle 3 — green tall */}
+              <Line x1="26" y1="4"  x2="26" y2="8"  stroke="#c8f5d0" strokeWidth="1.5" strokeLinecap="round" />
+              <Rect x="23" y="8"  width="6" height="13" rx="1.5" fill="#4ade80" />
+              <Line x1="26" y1="21" x2="26" y2="25" stroke="#c8f5d0" strokeWidth="1.5" strokeLinecap="round" />
             </Svg>
           )}
         </View>
@@ -266,7 +255,6 @@ export default function HomeScreen() {
   const [options,      setOptions]      = useState<SegmentStats>({ total: 0, profitable: 0, losing: 0, accuracy: 0 });
   const [showGreeting, setShowGreeting] = useState(false);
   const [showUpgrade,  setShowUpgrade]  = useState(false);
-  // ── Latest active trades for ticker — each with their segment ──────────────
   const [activeTrades, setActiveTrades] = useState<ActiveTrade[]>([]);
 
   const tickerAnim  = useRef(new Animated.Value(0)).current;
@@ -296,7 +284,6 @@ export default function HomeScreen() {
     ])).start();
   }, []);
 
-  // ── Fetch closed trades stats ──────────────────────────────────────────────
   useEffect(() => {
     (async () => {
       try {
@@ -311,12 +298,9 @@ export default function HomeScreen() {
     })();
   }, []);
 
-  // ── Listen to active trades for ticker — real-time, shows correct segment ──
   useEffect(() => {
-    const q = query(collection(db, 'activeTrades'));
-    const unsub = onSnapshot(q, (snap) => {
-      const trades = snap.docs.map(d => ({ id: d.id, ...d.data() })) as ActiveTrade[];
-      setActiveTrades(trades);
+    const unsub = onSnapshot(query(collection(db, 'activeTrades')), (snap) => {
+      setActiveTrades(snap.docs.map(d => ({ id: d.id, ...d.data() })) as ActiveTrade[]);
     });
     return () => unsub();
   }, []);
@@ -334,17 +318,20 @@ export default function HomeScreen() {
   const firstName    = userData?.name?.trim().split(' ')[0] || 'there';
   const avatarLetter = (userData?.name || 'U')[0].toUpperCase();
 
-  // ── Navigate to active trades with correct segment ─────────────────────────
+  // ── Most recent trade segment for VIEW button ─────────────────────────────
+  const latestSegment = activeTrades.length > 0 ? normalizeSegment(activeTrades[0].segment) : 'equity';
+
+  // ── Navigate to active trades — passes segment ────────────────────────────
   const handleTickerPress = (segment?: string) => {
     router.push({
       pathname: '/(tabs)/active-trades',
-      params: { segment: segment || 'equity' },
+      params: { segment: normalizeSegment(segment) },
     });
   };
 
   const handlePortfolioStocksPress = () => {
     if (userData?.status === 'FREE') { setShowUpgrade(true); }
-    else { router.push('/portfolio-stocks'); } // ← updated path after moving file
+    else { router.push('/portfolio-stocks'); }
   };
 
   if (loading) return <View style={[s.loading, { backgroundColor: theme.background }]}><ActivityIndicator size="large" color="#3b82f6" /></View>;
@@ -355,14 +342,13 @@ export default function HomeScreen() {
     { label: 'Options', stats: options, color: '#8b5cf6', trackColor: theme.isDark ? '#2a1050' : '#f0eaff', borderColor: '#8b5cf6' },
   ];
 
-  // Repeat active trades for ticker display (min 6 items)
-  const tickerTrades = activeTrades.length > 0
-    ? [...activeTrades, ...activeTrades, ...activeTrades].slice(0, Math.max(6, activeTrades.length * 2))
-    : [{ id: '1', segment: 'equity' }, { id: '2', segment: 'futures' }, { id: '3', segment: 'options' }];
+  // Pad ticker to at least 6 items
+  const tickerItems = activeTrades.length > 0
+    ? [...activeTrades, ...activeTrades, ...activeTrades].slice(0, Math.max(8, activeTrades.length * 3))
+    : [{ id: '1', segment: 'equity' }, { id: '2', segment: 'futures' }, { id: '3', segment: 'options' }, { id: '4', segment: 'equity' }];
 
   return (
     <SafeAreaView style={[s.outer, { backgroundColor: theme.headerBg }]} edges={['top']}>
-
       {showGreeting && (
         <View style={s.toastWrapper} pointerEvents="none">
           <GreetingToast name={userData?.name || ''} />
@@ -391,24 +377,30 @@ export default function HomeScreen() {
           <View style={s.avatar}><Text style={s.avatarTxt}>{avatarLetter}</Text></View>
         </View>
 
-        {/* Ticker pill — each chip navigates to its own segment */}
+        {/* Ticker pill — VIEW navigates to latest trade segment, chips navigate to their own segment */}
         <View style={s.tickerPill}>
-          <Animated.View style={[s.tickerIcon, { transform: [{ scale: iconPopAnim }] }]}>
-            <Svg width={10} height={10} viewBox="0 0 12 12" fill="none">
-              <Polyline points="2,6 5,9 10,3" stroke="#4ecfa8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </Svg>
-          </Animated.View>
-          <Text style={s.tickerTag}>View</Text>
+          <TouchableOpacity
+            style={{ flexDirection: 'row', alignItems: 'center' }}
+            onPress={() => handleTickerPress(latestSegment)}
+            activeOpacity={0.7}
+          >
+            <Animated.View style={[s.tickerIcon, { transform: [{ scale: iconPopAnim }] }]}>
+              <Svg width={10} height={10} viewBox="0 0 12 12" fill="none">
+                <Polyline points="2,6 5,9 10,3" stroke="#4ecfa8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </Svg>
+            </Animated.View>
+            <Text style={s.tickerTag}>View</Text>
+          </TouchableOpacity>
           <View style={s.tickerTrack}>
             <Animated.View style={[s.tickerInner, { transform: [{ translateX: tickerAnim }] }]}>
-              {tickerTrades.map((trade, i) => (
+              {tickerItems.map((trade, i) => (
                 <TouchableOpacity
                   key={`${trade.id}-${i}`}
                   style={s.chipWrap}
                   onPress={() => handleTickerPress(trade.segment)}
-                  activeOpacity={0.75}
+                  activeOpacity={0.7}
                 >
-                  <TickerChip segment={normalizeSegment(trade.segment)} />
+                  <TickerChip />
                 </TouchableOpacity>
               ))}
             </Animated.View>
@@ -477,12 +469,12 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* KOOKY card — View only, Ask Me navigates */}
+        {/* KOOKY — slightly bigger robot, larger Ask Me */}
         <View style={s.kookyCard}>
           <View style={s.kOrb1} pointerEvents="none" />
           <View style={s.kOrb2} pointerEvents="none" />
           <Animated.View style={[s.kRobot, { transform: [{ translateY: robotFloat }] }]}>
-            <Svg width={95} height={126} viewBox="0 0 84 112" fill="none">
+            <Svg width={100} height={132} viewBox="0 0 84 112" fill="none">
               <Line x1="42" y1="4" x2="42" y2="16" stroke="#60aaff" strokeWidth="2.4" strokeLinecap="round" />
               <Polygon points="42,1 43.6,5.5 48.5,5.5 44.6,8.3 46,13 42,10.2 38,13 39.4,8.3 35.5,5.5 40.4,5.5" fill="#90ccff" />
               <Rect x="9" y="16" width="66" height="48" rx="23" fill="#0e3580" stroke="#4080ff" strokeWidth="1.8" />
@@ -528,7 +520,7 @@ export default function HomeScreen() {
             </View>
             <Text style={s.kSub}>Ask me anything about your portfolio and financial market.</Text>
             <TouchableOpacity style={s.kBtn} onPress={() => router.push('/(tabs)/ajeeb')} activeOpacity={0.82}>
-              <Svg width={13} height={13} viewBox="0 0 16 16" fill="none">
+              <Svg width={14} height={14} viewBox="0 0 16 16" fill="none">
                 <Circle cx="8" cy="8" r="6.5" stroke="white" strokeWidth="1.5" />
                 <Path d="M5.5 8.5l2 2 3-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </Svg>
@@ -594,18 +586,19 @@ const s = StyleSheet.create({
   kookyCard:   { flex: 1, backgroundColor: '#0a2a6e', borderRadius: 16, padding: 10, flexDirection: 'row', alignItems: 'center', overflow: 'hidden', position: 'relative', borderWidth: 1.5, borderColor: 'rgba(80,140,255,0.25)', marginBottom: 5 },
   kOrb1:       { position: 'absolute', top: -25, right: -25, width: 110, height: 110, borderRadius: 55, backgroundColor: 'rgba(80,140,255,0.12)' },
   kOrb2:       { position: 'absolute', bottom: -20, left: -15, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(30,80,200,0.15)' },
-  kRobot:      { width: 100, alignItems: 'center', justifyContent: 'center', zIndex: 2, marginRight: 8 },
+  kRobot:      { width: 105, alignItems: 'center', justifyContent: 'center', zIndex: 2, marginRight: 8 },
   kText:       { flex: 1, zIndex: 2 },
   kLivePill:   { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(100,160,255,0.15)', borderWidth: 1, borderColor: 'rgba(100,160,255,0.3)', borderRadius: 20, paddingVertical: 2, paddingHorizontal: 7, alignSelf: 'flex-start', marginBottom: 5 },
   kLiveDot:    { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#60aaff', marginRight: 4 },
   kLiveTxt:    { fontSize: 8, fontWeight: '700', color: '#90c8ff', letterSpacing: 0.5, textTransform: 'uppercase' },
   kName:       { fontSize: 26, fontWeight: '900', lineHeight: 26, letterSpacing: -0.5, marginBottom: 4 },
-  kBracket:    { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  kBracket:    { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
   kBracketLine:{ flex: 1, height: 2, maxWidth: 70, backgroundColor: 'rgba(100,180,255,0.55)', borderRadius: 2, marginHorizontal: 3 },
   kBracketTick:{ width: 2, height: 6, backgroundColor: 'rgba(100,180,255,0.6)', borderRadius: 2 },
   kSub:        { fontSize: 11, color: '#8ab4e8', lineHeight: 15, marginBottom: 8 },
-  kBtn:        { flexDirection: 'row', alignItems: 'center', backgroundColor: '#3d7fff', borderRadius: 20, paddingVertical: 7, paddingHorizontal: 15, alignSelf: 'flex-start', elevation: 3 },
-  kBtnText:    { color: '#fff', fontSize: 12, fontWeight: '700', marginLeft: 5 },
+  // Ask Me — larger font + bigger padding
+  kBtn:        { flexDirection: 'row', alignItems: 'center', backgroundColor: '#3d7fff', borderRadius: 20, paddingVertical: 8, paddingHorizontal: 16, alignSelf: 'flex-start', elevation: 3 },
+  kBtnText:    { color: '#fff', fontSize: 14, fontWeight: '700', marginLeft: 6 },
   quotesCard:   { borderRadius: 12, overflow: 'hidden', height: 46, justifyContent: 'center' },
   quotesTicker: { overflow: 'hidden', height: 46 },
   quotesInner:  { flexDirection: 'row', alignItems: 'center', position: 'absolute', height: 46 },
