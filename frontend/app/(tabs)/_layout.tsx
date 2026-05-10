@@ -34,7 +34,7 @@ function TabLayoutInner() {
         <Tabs.Screen name="active-trades"    options={{ title: 'Active Trades',               tabBarIcon: ({ color, size }) => <Ionicons name="pulse"         size={size} color={color} /> }} />
         <Tabs.Screen name="closed-trades"    options={{ title: 'Closed Trades',               tabBarIcon: ({ color, size }) => <Ionicons name="checkmark-done" size={size} color={color} /> }} />
         <Tabs.Screen name="ajeeb"            options={{ title: '🤖 ai',         headerShown: false, tabBarIcon: ({ color, size }) => <Ionicons name="sparkles"     size={size} color={color} />, tabBarLabelStyle: { fontSize: 10, fontWeight: '600' } }} />
-        <Tabs.Screen name="portfolio-stocks" options={{ href: null, title: 'Portfolio Stocks' }} />
+
         <Tabs.Screen name="profile"          options={{ title: 'Profile',                     tabBarIcon: ({ color, size }) => <Ionicons name="person"        size={size} color={color} /> }} />
       </Tabs>
     </>
