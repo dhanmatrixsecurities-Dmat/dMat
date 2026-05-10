@@ -269,9 +269,12 @@ export default function Profile() {
             <Text style={[styles.menuText, { color: txt }]}>Contact Support</Text>
             <Ionicons name="chevron-forward" size={24} color={txtSec} />
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.menuItem, { backgroundColor: card }]} onPress={() => Linking.openURL('https://dhanmatrix.com/privacy-policy')}>
-            <Ionicons name="shield-checkmark-outline" size={24} color={primary} />
-            <Text style={[styles.menuText, { color: txt }]}>Privacy Policy</Text>
+          <TouchableOpacity style={[styles.menuItem, { backgroundColor: card }]} onPress={() => Linking.openURL('https://dhanmatrix.in')}>
+            <Ionicons name="globe-outline" size={24} color="#3b82f6" />
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={[styles.menuText, { color: txt, marginLeft: 0 }]}>Website & Privacy Policy</Text>
+              <Text style={{ fontSize: 12, color: '#3b82f6', marginTop: 1 }}>dhanmatrix.in</Text>
+            </View>
             <Ionicons name="chevron-forward" size={24} color={txtSec} />
           </TouchableOpacity>
         </View>
