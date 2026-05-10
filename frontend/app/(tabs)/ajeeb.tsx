@@ -153,19 +153,35 @@ export default function KookyScreen() {
     );
   }
 
-  // ── Main screen — SafeAreaView ALWAYS wraps so status bar stays dark blue ──
+  // ── BLOCKED — own SafeAreaView, never goes behind status bar ─────────────
+  if (userData?.status === 'BLOCKED') {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['top']}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+          <Ionicons name="lock-closed" size={80} color={theme.error} />
+          <Text style={{ fontSize: 22, fontWeight: '800', color: theme.error, marginTop: 16, textAlign: 'center' }}>Account Blocked</Text>
+          <Text style={{ fontSize: 14, color: theme.textSecondary, marginTop: 10, textAlign: 'center', lineHeight: 22 }}>
+            Your account has been blocked.{'\n'}Please contact support for assistance.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ── FREE — own SafeAreaView with theme.background, upgrade screen fits cleanly ──
+  if (userData?.status === 'FREE') {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['top']}>
+        <PremiumUpgradeScreen />
+      </SafeAreaView>
+    );
+  }
+
+  // ── ACTIVE — full chat UI ─────────────────────────────────────────────────
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: HEADER_BG }} edges={['top']}>
-
-      {/* FREE user — upgrade screen inside SafeAreaView so dark blue shows at top */}
-      {userData?.status === 'FREE' ? (
-        <View style={{ flex: 1, backgroundColor: theme.background }}>
-          <PremiumUpgradeScreen />
-        </View>
-      ) : (
-        <>
-          {/* HEADER — fixed */}
-          <View style={st.topHeader}>
+      {/* HEADER — fixed */}
+      <View style={st.topHeader}>
             <KookyLogo />
             <TouchableOpacity style={st.portfolioTopBtn} onPress={() => setPortfolioMode(true)}>
               <Ionicons name="pie-chart" size={12} color="#fff" />
@@ -236,9 +252,7 @@ export default function KookyScreen() {
                 <Ionicons name="send" size={18} color="#fff" />
               </TouchableOpacity>
             </View>
-          </KeyboardAvoidingView>
-        </>
-      )}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
