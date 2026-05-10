@@ -211,18 +211,19 @@ export default function PortfolioStocksScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#0d1b3e' }} edges={['top']}>
       <StatusBar style="light" backgroundColor="#0d1b3e" translucent={false} />
       <PortfolioHeader count={stocks.length} />
-      <FlatList
-        style={{ backgroundColor: theme.isDark ? theme.background : '#f1f8f4' }}
-        data={stocks}
-        renderItem={({ item }) => <PortfolioCard item={item} />}
-        keyExtractor={item => item.id}
-        contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
-        refreshControl={
-          <RefreshControl refreshing={refreshing}
-            onRefresh={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 1500); }}
-            colors={['#4caf50']} tintColor="#4caf50" />
-        }
-      />
+      <View style={{ flex: 1, backgroundColor: theme.isDark ? theme.background : '#f1f8f4' }}>
+        <FlatList
+          data={stocks}
+          renderItem={({ item }) => <PortfolioCard item={item} />}
+          keyExtractor={item => item.id}
+          contentContainerStyle={{ padding: 16, paddingBottom: 32, backgroundColor: theme.isDark ? theme.background : '#f1f8f4' }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing}
+              onRefresh={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 1500); }}
+              colors={['#4caf50']} tintColor="#4caf50" />
+          }
+        />
+      </View>
     </SafeAreaView>
   );
 }
