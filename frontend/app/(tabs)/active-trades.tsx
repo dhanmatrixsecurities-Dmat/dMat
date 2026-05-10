@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, FlatList, RefreshControl,
-  TouchableOpacity, ActivityIndicator, Animated, Linking, ScrollView,
+  TouchableOpacity, ActivityIndicator, Animated, Linking,
 } from 'react-native';
 import { collection, query, onSnapshot } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
@@ -35,86 +35,75 @@ const getAccessibleSegments = (subscriptionAccess?: string): Segment[] => {
   return [];
 };
 
-// ─── PREMIUM UPGRADE SCREEN ───────────────────────────────────────────────────
+// ─── PREMIUM UPGRADE SCREEN — fixed one page, no scroll ──────────────────────
 export function PremiumUpgradeScreen() {
   const theme     = useTheme();
   const crownAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.loop(Animated.sequence([
-      Animated.timing(crownAnim, { toValue: -6, duration: 600, useNativeDriver: true }),
-      Animated.timing(crownAnim, { toValue: 0,  duration: 600, useNativeDriver: true }),
+      Animated.timing(crownAnim, { toValue: -5, duration: 700, useNativeDriver: true }),
+      Animated.timing(crownAnim, { toValue: 0,  duration: 700, useNativeDriver: true }),
     ])).start();
   }, []);
 
   const features = [
-    { title: 'Kooky', badge: 'AI', titleColor: '#4f46e5', badgeColor: '#4f46e5', desc: 'Analyze your portfolio holdings & get expert stock insights' },
-    { title: 'Portfolio Stocks', titleColor: '#f59e0b', desc: '3–10 stocks/month · FA + TA + Micro-indicator analysis' },
-    { title: 'Swing Trading',    titleColor: '#22c55e', desc: '10–50 stocks/month based on market conditions' },
-    { title: 'Future Trading',   titleColor: '#f59e0b', desc: '10–30 calls/month · Entry, exit & stop-loss levels' },
-    { title: 'Option Trading',   titleColor: '#a855f7', desc: '30–70 calls/month · Risk-managed setups' },
-    { title: 'Mutual Fund',      titleColor: '#3b82f6', desc: 'Personal SIP management · We adjust your SIP based on market conditions' },
+    { title: 'Kooky AI',         titleColor: '#4f46e5', desc: 'Portfolio analysis & expert stock insights' },
+    { title: 'Portfolio Stocks', titleColor: '#f59e0b', desc: '3–10 stocks/month · FA + TA analysis' },
+    { title: 'Swing Trading',    titleColor: '#22c55e', desc: '10–50 stocks/month · market conditions' },
+    { title: 'Future Trading',   titleColor: '#f59e0b', desc: '10–30 calls/month · entry, exit & SL' },
+    { title: 'Option Trading',   titleColor: '#a855f7', desc: '30–70 calls/month · risk-managed' },
+    { title: 'Mutual Fund',      titleColor: '#3b82f6', desc: 'Personal SIP management' },
   ];
 
   return (
-    <ScrollView
-      style={[up.scroll, { backgroundColor: theme.background }]}
-      contentContainerStyle={up.container}
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={[up.container, { backgroundColor: theme.background }]}>
+
+      {/* Crown */}
       <Animated.View style={[up.crownWrap, { transform: [{ translateY: crownAnim }] }]}>
         <Text style={up.crownEmoji}>👑</Text>
       </Animated.View>
 
       <Text style={[up.title, { color: theme.text }]}>Upgrade to Premium</Text>
 
+      {/* Warning banner */}
       <View style={up.banner}>
         <Text style={up.bannerIcon}>🔒</Text>
         <Text style={up.bannerText}>
-          These services are available only to{' '}
-          <Text style={up.bannerBold}>Premium subscribers</Text>
+          Available only to <Text style={up.bannerBold}>Premium subscribers</Text>
         </Text>
       </View>
 
-      <View style={up.featureList}>
+      {/* Feature list — compact */}
+      <View style={[up.featureList, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
         {features.map((f, i) => (
-          <View key={i} style={up.featureRow}>
+          <View key={i} style={[up.featureRow, i < features.length - 1 && { borderBottomWidth: 1, borderBottomColor: theme.divider }]}>
             <View style={up.checkCircle}>
-              <Ionicons name="checkmark" size={14} color="#fff" />
+              <Ionicons name="checkmark" size={11} color="#fff" />
             </View>
-            <View style={up.featureTextWrap}>
-              <View style={up.featureTitleRow}>
-                <Text style={[up.featureTitle, { color: f.titleColor }]}>{f.title}</Text>
-                {f.badge ? (
-                  <View style={[up.aiBadge, { backgroundColor: f.badgeColor + '18', borderColor: f.badgeColor + '40' }]}>
-                    <Text style={[up.aiBadgeText, { color: f.badgeColor }]}>{f.badge}</Text>
-                  </View>
-                ) : null}
-              </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[up.featureTitle, { color: f.titleColor }]}>{f.title}</Text>
               <Text style={[up.featureDesc, { color: theme.textSecondary }]}>{f.desc}</Text>
             </View>
           </View>
         ))}
       </View>
 
-      {/* WhatsApp CTA */}
+      {/* CTA */}
       <TouchableOpacity style={up.btn} onPress={() => Linking.openURL('https://wa.me/918383898886')} activeOpacity={0.87}>
-        <Ionicons name="logo-whatsapp" size={18} color="#fff" style={{ marginRight: 8 }} />
+        <Ionicons name="logo-whatsapp" size={16} color="#fff" style={{ marginRight: 6 }} />
         <Text style={up.btnText}>Upgrade to Premium</Text>
       </TouchableOpacity>
 
-      {/* Website link */}
-      <Text style={[up.moreDetailsTxt, { color: theme.textSecondary }]}>
-        For more details visit our website
-      </Text>
-      <TouchableOpacity style={up.websiteBtn} onPress={() => Linking.openURL('https://dhanmatrix.in')} activeOpacity={0.8}>
-        <Ionicons name="globe-outline" size={15} color="#3b82f6" />
-        <Text style={up.websiteTxt}>dhanmatrix.in</Text>
-        <Ionicons name="arrow-forward" size={13} color="#3b82f6" />
+      {/* Website */}
+      <TouchableOpacity style={[up.websiteBtn, { backgroundColor: theme.isDark ? 'rgba(59,130,246,0.1)' : '#eff6ff', borderColor: theme.isDark ? '#1d4ed8' : '#bfdbfe' }]} onPress={() => Linking.openURL('https://dhanmatrix.in')} activeOpacity={0.8}>
+        <Ionicons name="globe-outline" size={14} color="#3b82f6" />
+        <Text style={up.websiteTxt}>For more details visit dhanmatrix.in</Text>
+        <Ionicons name="arrow-forward" size={12} color="#3b82f6" />
       </TouchableOpacity>
 
       <Text style={[up.footerNote, { color: theme.textSecondary }]}>Contact admin for subscription</Text>
-    </ScrollView>
+    </View>
   );
 }
 
@@ -138,8 +127,7 @@ function LockedSegmentScreen({ segment }: { segment: Segment }) {
       </Animated.View>
       <Text style={[styles.lockedTitle,    { color: theme.text }]}>{label} Access Locked</Text>
       <Text style={[styles.lockedSubtitle, { color: theme.textSecondary }]}>
-        Your current plan does not include{' '}
-        <Text style={styles.lockedHighlight}>{label}</Text> trading signals.
+        Your current plan does not include <Text style={styles.lockedHighlight}>{label}</Text> trading signals.
       </Text>
       <View style={[styles.lockedCard, { backgroundColor: theme.cardBackground }]}>
         <Text style={[styles.lockedCardTitle, { color: theme.text }]}>
@@ -147,7 +135,7 @@ function LockedSegmentScreen({ segment }: { segment: Segment }) {
         </Text>
         <Text style={[styles.lockedCardDesc, { color: theme.textSecondary }]}>
           {isFno
-            ? 'Get access to Futures & Options trade signals with expiry dates, strike prices, lot sizes and more.'
+            ? 'Get access to Futures & Options trade signals with expiry dates, strike prices and lot sizes.'
             : 'Get access to Equity trade signals with live entry, target and stop loss alerts.'}
         </Text>
         <View style={styles.lockedFeatures}>
@@ -213,16 +201,18 @@ export default function ActiveTrades() {
   const { userData } = useAuth();
   const router  = useRouter();
   const theme   = useTheme();
-  const [trades,         setTrades]         = useState<Trade[]>([]);
-  const [loading,        setLoading]        = useState(true);
-  const [refreshing,     setRefreshing]     = useState(false);
-  const [activeSegment,  setActiveSegment]  = useState<Segment>('equity');
+  const { segment: segmentParam } = useLocalSearchParams<{ segment?: string }>();
+
+  const [trades,        setTrades]        = useState<Trade[]>([]);
+  const [loading,       setLoading]       = useState(true);
+  const [refreshing,    setRefreshing]    = useState(false);
+  const [activeSegment, setActiveSegment] = useState<Segment>('equity');
+
   const prevTradeIdsRef = useRef<Set<string>>(new Set());
   const isFirstLoadRef  = useRef(true);
   const accessibleSegments = getAccessibleSegments(userData?.subscriptionAccess);
 
-  // ── Read segment param — auto-switch to correct tab when coming from ticker ──
-  const { segment: segmentParam } = useLocalSearchParams<{ segment?: string }>();
+  // Auto-switch to segment from ticker navigation
   useEffect(() => {
     if (segmentParam) {
       const normalized: Segment = segmentParam === 'futures' ? 'futures' : segmentParam === 'options' ? 'options' : 'equity';
@@ -377,6 +367,7 @@ export default function ActiveTrades() {
   };
 
   if (loading) return <View style={[styles.centerContainer, { backgroundColor: theme.background }]}><ActivityIndicator size="large" color={theme.primary} /></View>;
+
   if (userData?.status === 'BLOCKED') {
     return (
       <View style={[styles.centerContainer, { backgroundColor: theme.background }]}>
@@ -386,6 +377,8 @@ export default function ActiveTrades() {
       </View>
     );
   }
+
+  // FREE — fixed one page upgrade screen
   if (userData?.status === 'FREE') return <PremiumUpgradeScreen />;
 
   return (
@@ -399,7 +392,7 @@ export default function ActiveTrades() {
           return (
             <TouchableOpacity key={key} style={[styles.tab, activeSegment === key && styles.tabActive, isLocked && styles.tabLocked]} onPress={() => setActiveSegment(key)} activeOpacity={0.8}>
               {isLocked && <Ionicons name="lock-closed" size={11} color={activeSegment === key ? '#fff' : '#9ca3af'} style={{ marginRight: 2 }} />}
-              <Text style={[styles.tabText, { color: theme.textSecondary }, activeSegment === key && styles.tabTextActive, isLocked && styles.tabTextLocked]}>{label}</Text>
+              <Text style={[styles.tabText, { color: theme.textSecondary }, activeSegment === key && styles.tabTextActive]}>{label}</Text>
               {!isLocked && count > 0 && (
                 <View style={[styles.badge, activeSegment === key && styles.badgeActive]}>
                   <Text style={[styles.badgeText, activeSegment === key && styles.badgeTextActive]}>{count}</Text>
@@ -416,44 +409,47 @@ export default function ActiveTrades() {
         <View style={[styles.emptyContainer, { backgroundColor: theme.background }]}>
           <Ionicons name="bar-chart-outline" size={80} color={theme.textSecondary} />
           <Text style={[styles.emptyText, { color: theme.text }]}>No active {activeSegment} trades</Text>
-          <Text style={[styles.emptySubtext, { color: theme.textSecondary }]}>Pull down to refresh and check for new trades</Text>
+          <Text style={[styles.emptySubtext, { color: theme.textSecondary }]}>Pull down to refresh</Text>
         </View>
       ) : (
-        <FlatList data={filteredTrades} renderItem={renderTradeCard} keyExtractor={(item) => item.id}
+        <FlatList
+          data={filteredTrades}
+          renderItem={renderTradeCard}
+          keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 1500); }} colors={[theme.primary]} tintColor={theme.primary} />}
+          refreshControl={
+            <RefreshControl refreshing={refreshing}
+              onRefresh={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 1500); }}
+              colors={[theme.primary]} tintColor={theme.primary} />
+          }
         />
       )}
     </View>
   );
 }
 
+// ─── STYLES ───────────────────────────────────────────────────────────────────
 export const up = StyleSheet.create({
-  scroll:          { flex: 1 },
-  container:       { alignItems: 'center', paddingTop: 36, paddingHorizontal: 24, paddingBottom: 40 },
-  crownWrap:       { width: 80, height: 80, borderRadius: 40, backgroundColor: '#fff8e7', alignItems: 'center', justifyContent: 'center', marginBottom: 18, shadowColor: '#f59e0b', shadowOpacity: 0.25, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
-  crownEmoji:      { fontSize: 38 },
-  title:           { fontSize: 24, fontWeight: '900', textAlign: 'center', marginBottom: 20 },
-  banner:          { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#fff7ed', borderWidth: 1, borderColor: '#fed7aa', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, width: '100%', marginBottom: 24 },
-  bannerIcon:      { fontSize: 15 },
-  bannerText:      { flex: 1, fontSize: 13, color: '#ea580c', lineHeight: 18 },
-  bannerBold:      { fontWeight: '800', color: '#ea580c' },
-  featureList:     { width: '100%', gap: 14, marginBottom: 28 },
-  featureRow:      { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  checkCircle:     { width: 26, height: 26, borderRadius: 13, backgroundColor: '#22c55e', alignItems: 'center', justifyContent: 'center', marginTop: 2, flexShrink: 0 },
-  featureTextWrap: { flex: 1 },
-  featureTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
-  featureTitle:    { fontSize: 15, fontWeight: '800' },
-  aiBadge:         { borderRadius: 6, borderWidth: 1, paddingHorizontal: 6, paddingVertical: 1 },
-  aiBadgeText:     { fontSize: 10, fontWeight: '800', letterSpacing: 0.3 },
-  featureDesc:     { fontSize: 13, lineHeight: 18 },
-  btn:             { width: '100%', backgroundColor: '#f97316', borderRadius: 14, paddingVertical: 16, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', marginBottom: 12, shadowColor: '#f97316', shadowOpacity: 0.35, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 6 },
-  btnText:         { color: '#fff', fontSize: 16, fontWeight: '900', letterSpacing: 0.3 },
-  // Website link button
-  websiteBtn:      { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#eff6ff', borderWidth: 1, borderColor: '#bfdbfe', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 11, width: '100%', marginBottom: 14 },
-  websiteTxt:      { flex: 1, fontSize: 13, color: '#3b82f6', fontWeight: '700' },
-  moreDetailsTxt:  { fontSize: 12, textAlign: 'center', marginBottom: 8 },
-  footerNote:      { fontSize: 12, textAlign: 'center' },
+  // Fixed one-page container — no ScrollView
+  container:    { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, paddingVertical: 16 },
+  crownWrap:    { width: 60, height: 60, borderRadius: 30, backgroundColor: '#fff8e7', alignItems: 'center', justifyContent: 'center', marginBottom: 10, shadowColor: '#f59e0b', shadowOpacity: 0.25, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 5 },
+  crownEmoji:   { fontSize: 28 },
+  title:        { fontSize: 20, fontWeight: '900', textAlign: 'center', marginBottom: 10 },
+  banner:       { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#fff7ed', borderWidth: 1, borderColor: '#fed7aa', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, width: '100%', marginBottom: 12 },
+  bannerIcon:   { fontSize: 14 },
+  bannerText:   { flex: 1, fontSize: 12, color: '#ea580c', lineHeight: 16 },
+  bannerBold:   { fontWeight: '800', color: '#ea580c' },
+  // Compact feature list card
+  featureList:  { width: '100%', borderRadius: 12, borderWidth: 1, marginBottom: 14, overflow: 'hidden' },
+  featureRow:   { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 8 },
+  checkCircle:  { width: 20, height: 20, borderRadius: 10, backgroundColor: '#22c55e', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  featureTitle: { fontSize: 13, fontWeight: '800', marginBottom: 1 },
+  featureDesc:  { fontSize: 11, lineHeight: 14 },
+  btn:          { width: '100%', backgroundColor: '#f97316', borderRadius: 12, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', marginBottom: 10, shadowColor: '#f97316', shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 5 },
+  btnText:      { color: '#fff', fontSize: 15, fontWeight: '900' },
+  websiteBtn:   { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9, width: '100%', marginBottom: 10 },
+  websiteTxt:   { flex: 1, fontSize: 12, color: '#3b82f6', fontWeight: '600' },
+  footerNote:   { fontSize: 11, textAlign: 'center' },
 });
 
 const styles = StyleSheet.create({
@@ -468,7 +464,6 @@ const styles = StyleSheet.create({
   tabLocked:         { opacity: 0.6 },
   tabText:           { fontSize: 13, fontWeight: '600' },
   tabTextActive:     { color: '#fff' },
-  tabTextLocked:     { color: '#9ca3af' },
   badge:             { backgroundColor: '#E5E7EB', borderRadius: 10, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
   badgeActive:       { backgroundColor: 'rgba(255,255,255,0.25)' },
   badgeText:         { fontSize: 10, fontWeight: '700', color: '#374151' },
