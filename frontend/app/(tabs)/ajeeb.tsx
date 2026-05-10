@@ -55,28 +55,20 @@ function KookyLogo() {
 const logo = StyleSheet.create({
   row:    { flexDirection: 'row', alignItems: 'center', gap: 4 },
   letter: { fontWeight: '900', color: '#2979FF', fontSize: 18, fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace', textShadowColor: '#2979FF', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8 },
-  eye:    { borderWidth: 2, backgroundColor: '#0D2247', alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  eye:    { borderWidth: 2, backgroundColor: '#0D2247', alignItems: 'center', justifyContent: 'center' },
   iris:   { backgroundColor: '#1565C0', alignItems: 'center', justifyContent: 'center' },
   pupil:  { backgroundColor: '#4A9EFF' },
   shine:  { position: 'absolute', top: 4, right: 4, width: 4, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.85)' },
 });
 
-// ── Shared header used for FREE, BLOCKED and ACTIVE ───────────────────────────
 function KookyHeader({ onPortfolioPress }: { onPortfolioPress?: () => void }) {
   return (
     <View style={st.topHeader}>
       <KookyLogo />
-      {onPortfolioPress ? (
-        <TouchableOpacity style={st.portfolioTopBtn} onPress={onPortfolioPress}>
-          <Ionicons name="pie-chart" size={12} color="#fff" />
-          <Text style={st.portfolioTopBtnText}>Portfolio</Text>
-        </TouchableOpacity>
-      ) : (
-        <View style={[st.portfolioTopBtn, { opacity: 0.4 }]}>
-          <Ionicons name="pie-chart" size={12} color="#fff" />
-          <Text style={st.portfolioTopBtnText}>Portfolio</Text>
-        </View>
-      )}
+      <TouchableOpacity style={[st.portfolioTopBtn, !onPortfolioPress && { opacity: 0.4 }]} onPress={onPortfolioPress}>
+        <Ionicons name="pie-chart" size={12} color="#fff" />
+        <Text style={st.portfolioTopBtnText}>Portfolio</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -85,7 +77,7 @@ export default function KookyScreen() {
   const { userData } = useAuth();
   const theme = useTheme();
 
-  const [messages, setMessages]           = useState<Message[]>([{ id: '0', role: 'assistant', text: 'Kooky online. Ask me anything about stocks, trading, or mutual funds.\n\nTip: Try "Analyze Reliance" or tap Portfolio to analyze your holdings.' }]);
+  const [messages,       setMessages]       = useState<Message[]>([{ id: '0', role: 'assistant', text: 'Kooky online. Ask me anything about stocks, trading, or mutual funds.\n\nTip: Try "Analyze Reliance" or tap Portfolio to analyze your holdings.' }]);
   const [input,          setInput]          = useState('');
   const [loading,        setLoading]        = useState(false);
   const [showQuick,      setShowQuick]      = useState(true);
@@ -103,9 +95,9 @@ export default function KookyScreen() {
     try {
       const res  = await fetch(`${BACKEND_URL}/api/kooky`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: updated.map(m => ({ role: m.role, content: m.text })), user_id: null }) });
       const data = await res.json();
-      setMessages(prev => [...prev, { id: Date.now() + 'b', role: 'assistant', text: data?.reply || 'Signal lost. Try again.' }]);
+      setMessages(prev => [...prev, { id: Date.now() + 'b', role: 'assistant', text: data?.reply || 'Signal lost.' }]);
     } catch {
-      setMessages(prev => [...prev, { id: Date.now() + 'e', role: 'assistant', text: '📡 Signal lost. Check your connection and try again.' }]);
+      setMessages(prev => [...prev, { id: Date.now() + 'e', role: 'assistant', text: '📡 Signal lost. Check your connection.' }]);
     } finally {
       setLoading(false);
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
@@ -118,37 +110,44 @@ export default function KookyScreen() {
     sendMessage(`Analyze my stock portfolio:\n${portfolioInput}`);
   };
 
-  // ── BLOCKED ───────────────────────────────────────────────────────────────
-  if (userData?.status === 'BLOCKED') {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: HEADER_BG }} edges={['top']}>
-        <StatusBar style="light" backgroundColor={HEADER_BG} translucent={false} />
-        <KookyHeader />
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, backgroundColor: theme.background }}>
-          <Ionicons name="lock-closed" size={80} color={theme.error} />
-          <Text style={{ fontSize: 22, fontWeight: '800', color: theme.error, marginTop: 16, textAlign: 'center' }}>Account Blocked</Text>
-          <Text style={{ fontSize: 14, color: theme.textSecondary, marginTop: 10, textAlign: 'center', lineHeight: 22 }}>Your account has been blocked.{'\n'}Please contact support for assistance.</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // ── FREE — KookyLogo header at top, subscription card below ──────────────
+  // ─────────────────────────────────────────────────────────────────────────
+  // FREE — translucent:false pushes ALL content below status bar on Android
+  // KookyHeader at top in dark blue, subscription card below in theme bg
+  // ─────────────────────────────────────────────────────────────────────────
   if (userData?.status === 'FREE') {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: HEADER_BG }} edges={['top']}>
+      <View style={{ flex: 1, backgroundColor: HEADER_BG }}>
         <StatusBar style="light" backgroundColor={HEADER_BG} translucent={false} />
-        {/* Kooky header — always visible */}
+        {/* Kooky header — pinned at top, never goes up */}
         <KookyHeader />
-        {/* Subscription card fills the rest */}
+        {/* Subscription card — fills rest of screen in theme background */}
         <View style={{ flex: 1, backgroundColor: theme.background }}>
           <PremiumUpgradeScreen />
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
-  // ── Portfolio mode ────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
+  // BLOCKED
+  // ─────────────────────────────────────────────────────────────────────────
+  if (userData?.status === 'BLOCKED') {
+    return (
+      <View style={{ flex: 1, backgroundColor: HEADER_BG }}>
+        <StatusBar style="light" backgroundColor={HEADER_BG} translucent={false} />
+        <KookyHeader />
+        <View style={{ flex: 1, backgroundColor: theme.background, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+          <Ionicons name="lock-closed" size={80} color={theme.error} />
+          <Text style={{ fontSize: 22, fontWeight: '800', color: theme.error, marginTop: 16, textAlign: 'center' }}>Account Blocked</Text>
+          <Text style={{ fontSize: 14, color: theme.textSecondary, marginTop: 10, textAlign: 'center', lineHeight: 22 }}>Your account has been blocked.{'\n'}Please contact support.</Text>
+        </View>
+      </View>
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // PORTFOLIO MODE
+  // ─────────────────────────────────────────────────────────────────────────
   if (portfolioMode) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: HEADER_BG }} edges={['top']}>
@@ -177,7 +176,9 @@ export default function KookyScreen() {
     );
   }
 
-  // ── ACTIVE — full chat ────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
+  // ACTIVE — full chat UI
+  // ─────────────────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: HEADER_BG }} edges={['top']}>
       <StatusBar style="light" backgroundColor={HEADER_BG} translucent={false} />
