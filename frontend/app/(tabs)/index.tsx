@@ -134,7 +134,6 @@ const WavingHand = () => {
   );
 };
 
-// ── Ticker chip — always shows "New Trade Posted" ─────────────────────────────
 const TickerChip = () => (
   <View style={s.chip}>
     <View style={s.chipDot} />
@@ -159,19 +158,14 @@ const PortfolioCard = ({ onPress, isFree }: { onPress: () => void; isFree: boole
           {isFree ? (
             <Text style={{ fontSize: 26 }}>🔒</Text>
           ) : (
-            // ── Candlestick chart icon ──
             <Svg width={32} height={32} viewBox="0 0 34 34" fill="none">
-              {/* Base line */}
-              <Line x1="3" y1="29" x2="31" y2="29" stroke="#c8f5d0" strokeWidth="1.8" strokeLinecap="round" />
-              {/* Candle 1 — green */}
+              <Line x1="3"  y1="29" x2="31" y2="29" stroke="#c8f5d0" strokeWidth="1.8" strokeLinecap="round" />
               <Line x1="8"  y1="5"  x2="8"  y2="9"  stroke="#c8f5d0" strokeWidth="1.5" strokeLinecap="round" />
               <Rect x="5"  y="9"  width="6" height="11" rx="1.5" fill="#4ade80" />
               <Line x1="8"  y1="20" x2="8"  y2="24" stroke="#c8f5d0" strokeWidth="1.5" strokeLinecap="round" />
-              {/* Candle 2 — red */}
               <Line x1="17" y1="7"  x2="17" y2="11" stroke="#fca5a5" strokeWidth="1.5" strokeLinecap="round" />
               <Rect x="14" y="11" width="6" height="8"  rx="1.5" fill="#f87171" />
               <Line x1="17" y1="19" x2="17" y2="23" stroke="#fca5a5" strokeWidth="1.5" strokeLinecap="round" />
-              {/* Candle 3 — green tall */}
               <Line x1="26" y1="4"  x2="26" y2="8"  stroke="#c8f5d0" strokeWidth="1.5" strokeLinecap="round" />
               <Rect x="23" y="8"  width="6" height="13" rx="1.5" fill="#4ade80" />
               <Line x1="26" y1="21" x2="26" y2="25" stroke="#c8f5d0" strokeWidth="1.5" strokeLinecap="round" />
@@ -300,7 +294,8 @@ export default function HomeScreen() {
 
   useEffect(() => {
     const unsub = onSnapshot(query(collection(db, 'activeTrades')), (snap) => {
-      setActiveTrades(snap.docs.map(d => ({ id: d.id, ...d.data() })) as ActiveTrade[]);
+      const trades = snap.docs.map(d => ({ id: d.id, ...d.data() })) as ActiveTrade[];
+      setActiveTrades(trades);
     });
     return () => unsub();
   }, []);
@@ -318,12 +313,12 @@ export default function HomeScreen() {
   const firstName    = userData?.name?.trim().split(' ')[0] || 'there';
   const avatarLetter = (userData?.name || 'U')[0].toUpperCase();
 
-  // ── Most recent trade segment for VIEW button ─────────────────────────────
+  // ── Latest trade segment for VIEW button ─────────────────────────────────
   const latestSegment = activeTrades.length > 0 ? normalizeSegment(activeTrades[0].segment) : 'equity';
 
-  // ── Navigate to active trades — passes segment ────────────────────────────
+  // ── FIX: router.navigate updates params on already-mounted tab screens ────
   const handleTickerPress = (segment?: string) => {
-    router.push({
+    router.navigate({
       pathname: '/(tabs)/active-trades',
       params: { segment: normalizeSegment(segment) },
     });
@@ -342,7 +337,6 @@ export default function HomeScreen() {
     { label: 'Options', stats: options, color: '#8b5cf6', trackColor: theme.isDark ? '#2a1050' : '#f0eaff', borderColor: '#8b5cf6' },
   ];
 
-  // Pad ticker to at least 6 items
   const tickerItems = activeTrades.length > 0
     ? [...activeTrades, ...activeTrades, ...activeTrades].slice(0, Math.max(8, activeTrades.length * 3))
     : [{ id: '1', segment: 'equity' }, { id: '2', segment: 'futures' }, { id: '3', segment: 'options' }, { id: '4', segment: 'equity' }];
@@ -377,8 +371,9 @@ export default function HomeScreen() {
           <View style={s.avatar}><Text style={s.avatarTxt}>{avatarLetter}</Text></View>
         </View>
 
-        {/* Ticker pill — VIEW navigates to latest trade segment, chips navigate to their own segment */}
+        {/* Ticker pill */}
         <View style={s.tickerPill}>
+          {/* VIEW button — navigates to latest trade's segment */}
           <TouchableOpacity
             style={{ flexDirection: 'row', alignItems: 'center' }}
             onPress={() => handleTickerPress(latestSegment)}
@@ -469,7 +464,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* KOOKY — slightly bigger robot, larger Ask Me */}
+        {/* KOOKY */}
         <View style={s.kookyCard}>
           <View style={s.kOrb1} pointerEvents="none" />
           <View style={s.kOrb2} pointerEvents="none" />
@@ -596,7 +591,6 @@ const s = StyleSheet.create({
   kBracketLine:{ flex: 1, height: 2, maxWidth: 70, backgroundColor: 'rgba(100,180,255,0.55)', borderRadius: 2, marginHorizontal: 3 },
   kBracketTick:{ width: 2, height: 6, backgroundColor: 'rgba(100,180,255,0.6)', borderRadius: 2 },
   kSub:        { fontSize: 11, color: '#8ab4e8', lineHeight: 15, marginBottom: 8 },
-  // Ask Me — larger font + bigger padding
   kBtn:        { flexDirection: 'row', alignItems: 'center', backgroundColor: '#3d7fff', borderRadius: 20, paddingVertical: 8, paddingHorizontal: 16, alignSelf: 'flex-start', elevation: 3 },
   kBtnText:    { color: '#fff', fontSize: 14, fontWeight: '700', marginLeft: 6 },
   quotesCard:   { borderRadius: 12, overflow: 'hidden', height: 46, justifyContent: 'center' },
