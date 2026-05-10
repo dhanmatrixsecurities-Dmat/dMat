@@ -3,7 +3,7 @@ import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
   StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Animated,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
@@ -75,7 +75,8 @@ function KookyHeader({ onPortfolioPress }: { onPortfolioPress?: () => void }) {
 
 export default function KookyScreen() {
   const { userData } = useAuth();
-  const theme = useTheme();
+  const theme  = useTheme();
+  const insets = useSafeAreaInsets();
 
   const [messages,       setMessages]       = useState<Message[]>([{ id: '0', role: 'assistant', text: 'Kooky online. Ask me anything about stocks, trading, or mutual funds.\n\nTip: Try "Analyze Reliance" or tap Portfolio to analyze your holdings.' }]);
   const [input,          setInput]          = useState('');
@@ -118,9 +119,9 @@ export default function KookyScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: HEADER_BG }}>
         <StatusBar style="light" backgroundColor={HEADER_BG} translucent={false} />
-        {/* Kooky header — pinned at top, never goes up */}
-        <KookyHeader />
-        {/* Subscription card — fills rest of screen in theme background */}
+        <View style={{ backgroundColor: HEADER_BG, paddingTop: insets.top }}>
+          <KookyHeader />
+        </View>
         <View style={{ flex: 1, backgroundColor: theme.background }}>
           <PremiumUpgradeScreen />
         </View>
@@ -128,14 +129,13 @@ export default function KookyScreen() {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // BLOCKED
-  // ─────────────────────────────────────────────────────────────────────────
   if (userData?.status === 'BLOCKED') {
     return (
       <View style={{ flex: 1, backgroundColor: HEADER_BG }}>
         <StatusBar style="light" backgroundColor={HEADER_BG} translucent={false} />
-        <KookyHeader />
+        <View style={{ backgroundColor: HEADER_BG, paddingTop: insets.top }}>
+          <KookyHeader />
+        </View>
         <View style={{ flex: 1, backgroundColor: theme.background, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
           <Ionicons name="lock-closed" size={80} color={theme.error} />
           <Text style={{ fontSize: 22, fontWeight: '800', color: theme.error, marginTop: 16, textAlign: 'center' }}>Account Blocked</Text>
