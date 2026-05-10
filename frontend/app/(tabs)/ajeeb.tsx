@@ -10,6 +10,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { PremiumUpgradeScreen } from './active-trades';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://your-vercel-app.vercel.app';
+const HEADER_BG   = '#0B1A2E';
 
 interface Message {
   id: string; role: 'user' | 'assistant'; text: string;
@@ -23,16 +24,10 @@ const QUICK_QUESTIONS = [
   'SIP vs lump sum — which is better?',
 ];
 
-const HEADER_BG = '#0B1A2E';
-
-function KookyLogo({ size = 'large' }: { size?: 'small' | 'large' }) {
+function KookyLogo() {
   const blink    = useRef(new Animated.Value(1)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
-  const isSmall   = size === 'small';
-  const eyeSize   = isSmall ? 24 : 32;
-  const fontSize  = isSmall ? 18 : 24;
-  const irisSize  = isSmall ? 10 : 14;
-  const pupilSize = isSmall ? 4  : 6;
+  const eyeSize = 24, irisSize = 10, pupilSize = 4;
 
   useEffect(() => {
     Animated.loop(Animated.sequence([
@@ -64,16 +59,16 @@ function KookyLogo({ size = 'large' }: { size?: 'small' | 'large' }) {
 
   return (
     <View style={logo.row}>
-      <Text style={[logo.letter, { fontSize }]}>K</Text>
+      <Text style={logo.letter}>K</Text>
       <Eye /><Eye />
-      <Text style={[logo.letter, { fontSize }]}>KY</Text>
+      <Text style={logo.letter}>KY</Text>
     </View>
   );
 }
 
 const logo = StyleSheet.create({
   row:    { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  letter: { fontWeight: '900', color: '#2979FF', fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace', textShadowColor: '#2979FF', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8 },
+  letter: { fontWeight: '900', color: '#2979FF', fontSize: 18, fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace', textShadowColor: '#2979FF', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8 },
   eye:    { borderWidth: 2, backgroundColor: '#0D2247', alignItems: 'center', justifyContent: 'center', position: 'relative' },
   iris:   { backgroundColor: '#1565C0', alignItems: 'center', justifyContent: 'center' },
   pupil:  { backgroundColor: '#4A9EFF' },
@@ -95,12 +90,12 @@ export default function KookyScreen() {
   const [portfolioInput, setPortfolioInput] = useState('');
   const scrollRef = useRef<ScrollView>(null);
 
-  // ── FREE user — same upgrade screen as active-trades, identical look ──
+  // ── FREE user — identical layout to active-trades ────────────────────────────
   if (userData?.status === 'FREE') {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['top']}>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
         <PremiumUpgradeScreen />
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -168,10 +163,9 @@ export default function KookyScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: HEADER_BG }} edges={['top']}>
-
-      {/* HEADER — fixed, never moves with keyboard */}
+      {/* HEADER — fixed, never moves */}
       <View style={st.topHeader}>
-        <KookyLogo size="small" />
+        <KookyLogo />
         <TouchableOpacity style={st.portfolioTopBtn} onPress={() => setPortfolioMode(true)}>
           <Ionicons name="pie-chart" size={12} color="#fff" />
           <Text style={st.portfolioTopBtnText}>Portfolio</Text>
