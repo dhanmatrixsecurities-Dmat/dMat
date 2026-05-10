@@ -35,7 +35,7 @@ const getAccessibleSegments = (subscriptionAccess?: string): Segment[] => {
   return [];
 };
 
-// ─── PREMIUM UPGRADE SCREEN — fixed one page, no scroll ──────────────────────
+// ─── PREMIUM UPGRADE SCREEN ───────────────────────────────────────────────────
 export function PremiumUpgradeScreen() {
   const theme     = useTheme();
   const crownAnim = useRef(new Animated.Value(0)).current;
@@ -58,23 +58,16 @@ export function PremiumUpgradeScreen() {
 
   return (
     <View style={[up.container, { backgroundColor: theme.background }]}>
-
-      {/* Crown */}
       <Animated.View style={[up.crownWrap, { transform: [{ translateY: crownAnim }] }]}>
         <Text style={up.crownEmoji}>👑</Text>
       </Animated.View>
-
       <Text style={[up.title, { color: theme.text }]}>Upgrade to Premium</Text>
-
-      {/* Warning banner */}
       <View style={up.banner}>
         <Text style={up.bannerIcon}>🔒</Text>
         <Text style={up.bannerText}>
           Available only to <Text style={up.bannerBold}>Premium subscribers</Text>
         </Text>
       </View>
-
-      {/* Feature list — compact */}
       <View style={[up.featureList, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
         {features.map((f, i) => (
           <View key={i} style={[up.featureRow, i < features.length - 1 && { borderBottomWidth: 1, borderBottomColor: theme.divider }]}>
@@ -88,20 +81,15 @@ export function PremiumUpgradeScreen() {
           </View>
         ))}
       </View>
-
-      {/* CTA */}
       <TouchableOpacity style={up.btn} onPress={() => Linking.openURL('https://wa.me/918383898886')} activeOpacity={0.87}>
         <Ionicons name="logo-whatsapp" size={16} color="#fff" style={{ marginRight: 6 }} />
         <Text style={up.btnText}>Upgrade to Premium</Text>
       </TouchableOpacity>
-
-      {/* Website */}
       <TouchableOpacity style={[up.websiteBtn, { backgroundColor: theme.isDark ? 'rgba(59,130,246,0.1)' : '#eff6ff', borderColor: theme.isDark ? '#1d4ed8' : '#bfdbfe' }]} onPress={() => Linking.openURL('https://dhanmatrix.in')} activeOpacity={0.8}>
         <Ionicons name="globe-outline" size={14} color="#3b82f6" />
         <Text style={up.websiteTxt}>For more details visit dhanmatrix.in</Text>
         <Ionicons name="arrow-forward" size={12} color="#3b82f6" />
       </TouchableOpacity>
-
       <Text style={[up.footerNote, { color: theme.textSecondary }]}>Contact admin for subscription</Text>
     </View>
   );
@@ -134,9 +122,7 @@ function LockedSegmentScreen({ segment }: { segment: Segment }) {
           {isFno ? '📈 Upgrade to F&O Plan' : '📊 Upgrade to Equity Plan'}
         </Text>
         <Text style={[styles.lockedCardDesc, { color: theme.textSecondary }]}>
-          {isFno
-            ? 'Get access to Futures & Options trade signals with expiry dates, strike prices and lot sizes.'
-            : 'Get access to Equity trade signals with live entry, target and stop loss alerts.'}
+          {isFno ? 'Get access to Futures & Options trade signals.' : 'Get access to Equity trade signals.'}
         </Text>
         <View style={styles.lockedFeatures}>
           {(isFno
@@ -188,7 +174,6 @@ const isToday = (val: any): boolean => {
     let d: Date;
     if (val && typeof val.toDate === 'function') d = val.toDate();
     else if (val && typeof val.seconds === 'number') d = new Date(val.seconds * 1000);
-    else if (val && typeof val._seconds === 'number') d = new Date(val._seconds * 1000);
     else d = new Date(val || 0);
     if (isNaN(d.getTime())) return false;
     const now = new Date();
@@ -212,7 +197,6 @@ export default function ActiveTrades() {
   const isFirstLoadRef  = useRef(true);
   const accessibleSegments = getAccessibleSegments(userData?.subscriptionAccess);
 
-  // Auto-switch to segment from ticker navigation
   useEffect(() => {
     if (segmentParam) {
       const normalized: Segment = segmentParam === 'futures' ? 'futures' : segmentParam === 'options' ? 'options' : 'equity';
@@ -228,17 +212,30 @@ export default function ActiveTrades() {
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as { tradeId?: string; segment?: string };
-      router.push({ pathname: '/(tabs)/active-trades', params: { tradeId: data?.tradeId, segment: data?.segment } });
+      router.push({ pathname: '/(tabs)/active-trades', params: { segment: data?.segment } });
     });
     return () => sub.remove();
   }, []);
 
   useEffect(() => {
     if (userData?.status !== 'ACTIVE') { setLoading(false); return; }
+
+    // ── FIX: Reset refs every time listener is set up ──────────────────────
+    // This prevents old trades from firing notifications when user
+    // upgrades from FREE to ACTIVE (listener restarts, Firestore sends
+    // all existing docs as "added" — we treat them as first load)
+    isFirstLoadRef.current  = true;
+    prevTradeIdsRef.current = new Set();
+    // ───────────────────────────────────────────────────────────────────────
+
     const q = query(collection(db, 'activeTrades'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const tradesData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })).filter((t: any) => t.showInApp !== false) as Trade[];
+      const tradesData = snapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter((t: any) => t.showInApp !== false) as Trade[];
+
       if (!isFirstLoadRef.current) {
+        // Only send notifications for genuinely new trades
         snapshot.docChanges().forEach((change) => {
           if (change.type === 'added') {
             const t = { id: change.doc.id, ...change.doc.data() } as Trade;
@@ -248,17 +245,21 @@ export default function ActiveTrades() {
                 Notifications.scheduleNotificationAsync({
                   content: {
                     title: `New ${t.type || t.action || 'TRADE'} Trade Alert! [${segmentLabel(t.segment)}]`,
-                    body: `${t.stockName} | ${segmentLabel(t.segment)} | Entry: ₹${t.entryPrice} | Target: ₹${t.targetPrice} | SL: ₹${t.stopLoss}`,
-                    sound: true, data: { tradeId: t.id, segment: t.segment ?? 'equity' },
-                  }, trigger: null,
+                    body:  `${t.stockName} | Entry: ₹${t.entryPrice} | Target: ₹${t.targetPrice} | SL: ₹${t.stopLoss}`,
+                    sound: true,
+                    data:  { tradeId: t.id, segment: t.segment ?? 'equity' },
+                  },
+                  trigger: null,
                 });
               }
             }
           }
         });
       }
+
       prevTradeIdsRef.current = new Set(tradesData.map((t) => t.id));
       isFirstLoadRef.current  = false;
+
       const getTime = (val: any) => {
         if (!val) return 0;
         if (typeof val.toDate === 'function') return val.toDate().getTime();
@@ -267,8 +268,9 @@ export default function ActiveTrades() {
       setTrades([...tradesData].sort((a, b) => getTime(b.createdAt) - getTime(a.createdAt)));
       setLoading(false); setRefreshing(false);
     }, () => { setLoading(false); setRefreshing(false); });
+
     return () => unsubscribe();
-  }, [userData]);
+  }, [userData]); // re-runs when userData changes (FREE → ACTIVE)
 
   const normalizeSegment = (seg?: string): Segment => {
     const s = seg?.toLowerCase();
@@ -277,8 +279,8 @@ export default function ActiveTrades() {
     return 'equity';
   };
 
-  const filteredTrades = trades.filter((t) => normalizeSegment(t.segment) === activeSegment);
-  const countBySegment = (seg: Segment) => trades.filter((t) => normalizeSegment(t.segment) === seg).length;
+  const filteredTrades     = trades.filter((t) => normalizeSegment(t.segment) === activeSegment);
+  const countBySegment     = (seg: Segment) => trades.filter((t) => normalizeSegment(t.segment) === seg).length;
   const tabLabels: { key: Segment; label: string }[] = [
     { key: 'equity', label: 'Equity' }, { key: 'futures', label: 'Futures' }, { key: 'options', label: 'Options' },
   ];
@@ -306,7 +308,7 @@ export default function ActiveTrades() {
             </View>
             <View style={styles.badgeRow}>
               <View style={[styles.typeBadge, isBuy ? styles.buyBadge : styles.sellBadge]}>
-                <Text style={[styles.typeText, isBuy ? styles.buyText : styles.sellText]}>{item.type}</Text>
+                <Text style={[styles.typeText, isBuy ? styles.buyText : styles.sellText]}>{item.type || item.action}</Text>
               </View>
               {isFnO && item.lotSize && <View style={styles.lotBadge}><Text style={styles.lotText}>Lot: {item.lotSize}</Text></View>}
             </View>
@@ -320,28 +322,13 @@ export default function ActiveTrades() {
           </View>
         )}
         <View style={[styles.priceGrid, { borderBottomColor: theme.border }]}>
-          <View style={styles.priceItem}>
-            <Text style={[styles.priceLabel, { color: theme.textSecondary }]}>Entry Price</Text>
-            <Text style={[styles.priceValue, { color: theme.text }]}>₹{entryPrice.toFixed(2)}</Text>
-          </View>
-          <View style={styles.priceItem}>
-            <Text style={[styles.priceLabel, { color: theme.textSecondary }]}>Target</Text>
-            <Text style={[styles.priceValue, { color: theme.success }]}>₹{targetPrice.toFixed(2)}</Text>
-          </View>
-          <View style={styles.priceItem}>
-            <Text style={[styles.priceLabel, { color: theme.textSecondary }]}>Stop Loss</Text>
-            <Text style={[styles.priceValue, { color: theme.error }]}>{stopLoss > 0 ? `₹${stopLoss.toFixed(2)}` : 'N/A'}</Text>
-          </View>
+          <View style={styles.priceItem}><Text style={[styles.priceLabel, { color: theme.textSecondary }]}>Entry Price</Text><Text style={[styles.priceValue, { color: theme.text }]}>₹{entryPrice.toFixed(2)}</Text></View>
+          <View style={styles.priceItem}><Text style={[styles.priceLabel, { color: theme.textSecondary }]}>Target</Text><Text style={[styles.priceValue, { color: theme.success }]}>₹{targetPrice.toFixed(2)}</Text></View>
+          <View style={styles.priceItem}><Text style={[styles.priceLabel, { color: theme.textSecondary }]}>Stop Loss</Text><Text style={[styles.priceValue, { color: theme.error }]}>{stopLoss > 0 ? `₹${stopLoss.toFixed(2)}` : 'N/A'}</Text></View>
         </View>
         <View style={styles.metricsRow}>
-          <View style={styles.metric}>
-            <Text style={[styles.metricLabel, { color: theme.textSecondary }]}>Potential Gain</Text>
-            <Text style={[styles.metricValue, { color: potential >= 0 ? theme.success : theme.error }]}>{potential >= 0 ? '+' : ''}{potential.toFixed(2)}%</Text>
-          </View>
-          <View style={styles.metric}>
-            <Text style={[styles.metricLabel, { color: theme.textSecondary }]}>Risk</Text>
-            <Text style={[styles.metricValue, { color: theme.error }]}>{stopLoss > 0 ? `-${Math.abs(risk).toFixed(2)}%` : 'N/A'}</Text>
-          </View>
+          <View style={styles.metric}><Text style={[styles.metricLabel, { color: theme.textSecondary }]}>Potential Gain</Text><Text style={[styles.metricValue, { color: potential >= 0 ? theme.success : theme.error }]}>{potential >= 0 ? '+' : ''}{potential.toFixed(2)}%</Text></View>
+          <View style={styles.metric}><Text style={[styles.metricLabel, { color: theme.textSecondary }]}>Risk</Text><Text style={[styles.metricValue, { color: theme.error }]}>{stopLoss > 0 ? `-${Math.abs(risk).toFixed(2)}%` : 'N/A'}</Text></View>
         </View>
         <View style={styles.cardFooter}>
           <View style={styles.dateContainer}>
@@ -352,8 +339,7 @@ export default function ActiveTrades() {
                 if (isNaN(d.getTime())) return '—';
                 const now = new Date();
                 const todayFlag = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
-                const timeStr = d.toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit' });
-                return todayFlag ? `Today, ${timeStr}` : d.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                return todayFlag ? `Today, ${d.toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit' })}` : d.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
               })()}
             </Text>
           </View>
@@ -378,7 +364,6 @@ export default function ActiveTrades() {
     );
   }
 
-  // FREE — fixed one page upgrade screen
   if (userData?.status === 'FREE') return <PremiumUpgradeScreen />;
 
   return (
@@ -393,11 +378,7 @@ export default function ActiveTrades() {
             <TouchableOpacity key={key} style={[styles.tab, activeSegment === key && styles.tabActive, isLocked && styles.tabLocked]} onPress={() => setActiveSegment(key)} activeOpacity={0.8}>
               {isLocked && <Ionicons name="lock-closed" size={11} color={activeSegment === key ? '#fff' : '#9ca3af'} style={{ marginRight: 2 }} />}
               <Text style={[styles.tabText, { color: theme.textSecondary }, activeSegment === key && styles.tabTextActive]}>{label}</Text>
-              {!isLocked && count > 0 && (
-                <View style={[styles.badge, activeSegment === key && styles.badgeActive]}>
-                  <Text style={[styles.badgeText, activeSegment === key && styles.badgeTextActive]}>{count}</Text>
-                </View>
-              )}
+              {!isLocked && count > 0 && <View style={[styles.badge, activeSegment === key && styles.badgeActive]}><Text style={[styles.badgeText, activeSegment === key && styles.badgeTextActive]}>{count}</Text></View>}
               {!isLocked && hasToday && <View style={styles.todayDot} />}
             </TouchableOpacity>
           );
@@ -412,25 +393,16 @@ export default function ActiveTrades() {
           <Text style={[styles.emptySubtext, { color: theme.textSecondary }]}>Pull down to refresh</Text>
         </View>
       ) : (
-        <FlatList
-          data={filteredTrades}
-          renderItem={renderTradeCard}
-          keyExtractor={(item) => item.id}
+        <FlatList data={filteredTrades} renderItem={renderTradeCard} keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing}
-              onRefresh={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 1500); }}
-              colors={[theme.primary]} tintColor={theme.primary} />
-          }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 1500); }} colors={[theme.primary]} tintColor={theme.primary} />}
         />
       )}
     </View>
   );
 }
 
-// ─── STYLES ───────────────────────────────────────────────────────────────────
 export const up = StyleSheet.create({
-  // Fixed one-page container — no ScrollView
   container:    { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, paddingVertical: 16 },
   crownWrap:    { width: 60, height: 60, borderRadius: 30, backgroundColor: '#fff8e7', alignItems: 'center', justifyContent: 'center', marginBottom: 10, shadowColor: '#f59e0b', shadowOpacity: 0.25, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 5 },
   crownEmoji:   { fontSize: 28 },
@@ -439,7 +411,6 @@ export const up = StyleSheet.create({
   bannerIcon:   { fontSize: 14 },
   bannerText:   { flex: 1, fontSize: 12, color: '#ea580c', lineHeight: 16 },
   bannerBold:   { fontWeight: '800', color: '#ea580c' },
-  // Compact feature list card
   featureList:  { width: '100%', borderRadius: 12, borderWidth: 1, marginBottom: 14, overflow: 'hidden' },
   featureRow:   { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 8 },
   checkCircle:  { width: 20, height: 20, borderRadius: 10, backgroundColor: '#22c55e', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
