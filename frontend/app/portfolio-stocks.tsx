@@ -186,9 +186,36 @@ export default function PortfolioStocksScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#0d1b3e' }} edges={['top']}>
       <StatusBar style="light" backgroundColor="#0d1b3e" translucent={false} />
       <PortfolioHeader />
-      {/* Content below header uses theme bg — never white on top */}
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <PremiumUpgradeScreen />
+      </View>
+    </SafeAreaView>
+  );
+
+  // ── ACTIVE but no portfolio access — show locked screen ──────────────────
+  const access = (userData as any)?.subscriptionAccess || 'none';
+  const hasPortfolioAccess = access === 'portfolio' || access === 'all';
+
+  if (!hasPortfolioAccess) return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#0d1b3e' }} edges={['top']}>
+      <StatusBar style="light" backgroundColor="#0d1b3e" translucent={false} />
+      <PortfolioHeader />
+      <View style={{ flex: 1, backgroundColor: theme.background, alignItems: 'center', justifyContent: 'center', padding: 28 }}>
+        <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#1a6030', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+          <Ionicons name="lock-closed" size={40} color="#4ade80" />
+        </View>
+        <Text style={{ fontSize: 20, fontWeight: '800', color: theme.text, textAlign: 'center', marginBottom: 8 }}>
+          Portfolio Access Locked
+        </Text>
+        <Text style={{ fontSize: 13, color: theme.textSecondary, textAlign: 'center', lineHeight: 20, marginBottom: 24 }}>
+          Your current plan does not include Portfolio Stocks access.
+        </Text>
+        <View style={{ backgroundColor: theme.isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 8, width: '100%' }}>
+          <Ionicons name="headset-outline" size={18} color="#6366f1" />
+          <Text style={{ fontSize: 13, color: '#4338ca', fontWeight: '600', flex: 1 }}>
+            Contact admin to upgrade to Portfolio or All Pages plan
+          </Text>
+        </View>
       </View>
     </SafeAreaView>
   );
