@@ -231,6 +231,14 @@ export default function PortfolioStocksScreen() {
 
   return (
     <SafeAreaView style={s.safeArea} edges={['top']}>
+      {/* ── Header — Option B: count inline left ── */}
+      <View style={s.pageHeader}>
+        <View style={s.pageTitleRow}>
+          <Text style={s.pageTitle}>Portfolio Stocks</Text>
+          <Text style={s.pageCount}>{stocks.length} active</Text>
+        </View>
+        <Text style={s.pageSubtitle}>Long Term Investments</Text>
+      </View>
       <FlatList
         data={stocks}
         renderItem={({ item }) => <PortfolioCard item={item} />}
@@ -249,7 +257,12 @@ export default function PortfolioStocksScreen() {
 }
 
 const s = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#0a3018' }, // dark green matches card bg — no white flash
+  safeArea:     { flex: 1, backgroundColor: '#0d1b3e' },
+  pageHeader:   { backgroundColor: '#0d1b3e', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#1a3460' },
+  pageTitleRow: { flexDirection: 'row', alignItems: 'baseline', gap: 10 },
+  pageTitle:    { fontSize: 18, fontWeight: '800', color: '#fff' },
+  pageCount:    { fontSize: 11, color: '#4ecfa8', fontWeight: '600' },
+  pageSubtitle: { fontSize: 11, color: 'rgba(180,200,255,0.6)', marginTop: 3 },
   screen:   { flex: 1, backgroundColor: '#f1f8f4' },
   center:   { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, backgroundColor: '#f1f8f4' },
   card: {
