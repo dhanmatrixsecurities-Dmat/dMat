@@ -1,288 +1,210 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ActivityIndicator, Animated,
-  TouchableOpacity, Linking, Modal,
+  View, Text, StyleSheet, ActivityIndicator, Animated, TouchableOpacity,
+  Linking, Modal, TextInput, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { collection, getDocs, onSnapshot, query } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
-import Svg, {
-  Circle, G, Ellipse, Polygon, Rect, Line, Polyline, Path,
-} from 'react-native-svg';
+import Svg, { Circle, G, Ellipse, Polygon, Rect, Line, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
-import { PremiumUpgradeScreen } from './active-trades';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface ClosedTrade {
   id: string; profitLossPercent: number; segment?: 'equity' | 'futures' | 'options';
-}
-interface ActiveTrade {
-  id: string; segment?: string;
 }
 interface SegmentStats {
   total: number; profitable: number; losing: number; accuracy: number;
 }
 
-const getGreeting = () => {
-  const h = new Date().getHours();
-  if (h >= 5  && h < 12) return { text: 'Good morning',   emoji: '☀️' };
-  if (h >= 12 && h < 17) return { text: 'Good afternoon', emoji: '🌤️' };
-  if (h >= 17 && h < 21) return { text: 'Good evening',   emoji: '🌙' };
-  return                         { text: 'Good night',     emoji: '🌙' };
+function isSubscriptionActive(userData: any): boolean {
+  if (!userData) return false;
+  if (userData.status !== 'ACTIVE') return false;
+  if (!userData.subscriptionEndDate) return false;
+  const end = new Date(userData.subscriptionEndDate);
+  end.setHours(23, 59, 59, 999);
+  return end >= new Date();
+}
+
+// ── Greeting helpers ─────────────────────────────────────────────────
+const getGreeting = (): { text: string; emoji: string } => {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12)  return { text: 'Good morning',   emoji: '☀️' };
+  if (hour >= 12 && hour < 17) return { text: 'Good afternoon', emoji: '🌤️' };
+  if (hour >= 17 && hour < 21) return { text: 'Good evening',   emoji: '🌙' };
+  return                               { text: 'Good night',     emoji: '🌙' };
 };
-const getTodayKey = () => {
+
+const getTodayKey = (): string => {
   const d = new Date();
   return `greeting_shown_${d.getFullYear()}_${d.getMonth()}_${d.getDate()}`;
 };
-
-const normalizeSegment = (seg?: string): 'equity' | 'futures' | 'options' => {
-  const s = seg?.toLowerCase();
-  if (s === 'futures') return 'futures';
-  if (s === 'options') return 'options';
-  return 'equity';
-};
+// ─────────────────────────────────────────────────────────────────────
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-const DonutGauge = ({ accuracy, size, strokeWidth, fillColor, trackColor, textColor }: {
-  accuracy: number; size: number; strokeWidth: number;
-  fillColor: string; trackColor: string; textColor: string;
+const DonutGauge = ({ accuracy, size = 100, strokeWidth = 10, fillColor = '#3b82f6' }: {
+  accuracy: number; size?: number; strokeWidth?: number; fillColor?: string;
 }) => {
-  const anim   = useRef(new Animated.Value(0)).current;
+  const animValue = useRef(new Animated.Value(0)).current;
   const radius = (size - strokeWidth) / 2;
-  const circum = 2 * Math.PI * radius;
+  const circumference = 2 * Math.PI * radius;
   useEffect(() => {
-    Animated.timing(anim, { toValue: accuracy, duration: 1200, useNativeDriver: false }).start();
+    Animated.timing(animValue, { toValue: accuracy, duration: 1200, useNativeDriver: false }).start();
   }, [accuracy]);
-  const dashOffset = anim.interpolate({
-    inputRange:  [0, 100],
-    outputRange: [circum, circum - (accuracy / 100) * circum],
+  const strokeDashoffset = animValue.interpolate({
+    inputRange: [0, 100],
+    outputRange: [circumference, circumference - (accuracy / 100) * circumference],
   });
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
       <Svg width={size} height={size}>
-        <G rotation="-90" origin={`${size / 2},${size / 2}`}>
-          <Circle cx={size/2} cy={size/2} r={radius} stroke={trackColor} strokeWidth={strokeWidth} fill="transparent" />
+        <G rotation="-90" origin={`${size / 2}, ${size / 2}`}>
+          <Circle cx={size/2} cy={size/2} r={radius} stroke="#e2e8f0" strokeWidth={strokeWidth} fill="transparent" />
           <AnimatedCircle cx={size/2} cy={size/2} r={radius} stroke={fillColor} strokeWidth={strokeWidth}
-            fill="transparent" strokeDasharray={circum} strokeDashoffset={dashOffset} strokeLinecap="round" />
+            fill="transparent" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round" />
         </G>
       </Svg>
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: textColor, fontSize: size * 0.2, fontWeight: '700' }}>{accuracy}%</Text>
+          <Text style={{ color: '#1e3a5f', fontSize: size * 0.22, fontWeight: '900' }}>{accuracy}%</Text>
         </View>
       </View>
     </View>
   );
 };
 
-const GreetingToast = ({ name }: { name: string }) => {
-  const slide   = useRef(new Animated.Value(-100)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
+const EvilEye = () => {
+  const swayAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(swayAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(swayAnim, { toValue: -1, duration: 700, useNativeDriver: true }),
+        Animated.timing(swayAnim, { toValue: 0, duration: 350, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+  const rotate = swayAnim.interpolate({ inputRange: [-1, 1], outputRange: ['-15deg', '15deg'] });
+  return (
+    <Animated.View style={{ transform: [{ rotate }], marginLeft: 4 }}>
+      <Svg width={18} height={18} viewBox="0 0 100 100">
+        <Ellipse cx="50" cy="50" rx="46" ry="30" fill="#1565C0" />
+        <Ellipse cx="50" cy="50" rx="34" ry="22" fill="#ffffff" />
+        <Ellipse cx="50" cy="50" rx="24" ry="16" fill="#42A5F5" />
+        <Ellipse cx="50" cy="50" rx="13" ry="13" fill="#1a237e" />
+        <Ellipse cx="44" cy="44" rx="4" ry="4" fill="white" opacity="0.85" />
+        <Ellipse cx="50" cy="24" rx="10" ry="5" fill="#FFD700" opacity="0.7" />
+      </Svg>
+    </Animated.View>
+  );
+};
+
+const RoadSVG = () => (
+  <Svg width="100%" height="75" viewBox="0 0 300 110" preserveAspectRatio="xMidYMid slice">
+    <Defs>
+      <LinearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+        <Stop offset="0%" stopColor="#b8cce8" /><Stop offset="100%" stopColor="#dce8f5" />
+      </LinearGradient>
+      <LinearGradient id="rd1" x1="0" y1="0" x2="0" y2="1">
+        <Stop offset="0%" stopColor="#8899aa" /><Stop offset="100%" stopColor="#aabbcc" />
+      </LinearGradient>
+      <LinearGradient id="rd2" x1="0" y1="0" x2="0" y2="1">
+        <Stop offset="0%" stopColor="#aabbcc" /><Stop offset="100%" stopColor="#bbccdd" />
+      </LinearGradient>
+    </Defs>
+    <Rect width="300" height="110" fill="url(#sky)" />
+    <Ellipse cx="150" cy="38" rx="55" ry="22" fill="white" opacity="0.7" />
+    <Ellipse cx="150" cy="38" rx="25" ry="10" fill="white" opacity="0.9" />
+    <Polygon points="0,110 108,110 150,38 62,38" fill="url(#rd1)" opacity="0.85" />
+    <Line x1="0" y1="110" x2="150" y2="38" stroke="white" strokeWidth="1" opacity="0.4" />
+    <Line x1="108" y1="110" x2="150" y2="38" stroke="white" strokeWidth="1" opacity="0.4" />
+    <Polygon points="192,110 300,110 238,38 150,38" fill="url(#rd2)" opacity="0.85" />
+    <Line x1="192" y1="110" x2="150" y2="38" stroke="white" strokeWidth="1" opacity="0.4" />
+    <Line x1="300" y1="110" x2="238" y2="38" stroke="white" strokeWidth="1" opacity="0.4" />
+    <G opacity="0.5">
+      <Circle cx="100" cy="55" r="2.5" fill="#556688"/><Rect x="98" y="57.5" width="5" height="7" rx="1" fill="#445577"/>
+      <Circle cx="110" cy="56" r="2.5" fill="#667799"/><Rect x="108" y="58.5" width="5" height="7" rx="1" fill="#556688"/>
+      <Circle cx="120" cy="55" r="2.5" fill="#556688"/><Rect x="118" y="57.5" width="5" height="7" rx="1" fill="#445577"/>
+    </G>
+    <G opacity="0.85">
+      <Circle cx="55" cy="80" r="3.5" fill="#334466"/><Rect x="51.5" y="83.5" width="7" height="10" rx="1" fill="#223355"/>
+      <Circle cx="68" cy="81" r="3.5" fill="#556688"/><Rect x="64.5" y="84.5" width="7" height="10" rx="1" fill="#445577"/>
+      <Circle cx="81" cy="80" r="3.5" fill="#334466"/><Rect x="77.5" y="83.5" width="7" height="10" rx="1" fill="#223355"/>
+      <Circle cx="94" cy="81" r="3.5" fill="#667799"/><Rect x="90.5" y="84.5" width="7" height="10" rx="1" fill="#556688"/>
+    </G>
+    <Circle cx="212" cy="64" r="4.5" fill="#1a2a4a"/>
+    <Rect x="207.5" y="68.5" width="9" height="13" rx="2" fill="#1a2a4a"/>
+  </Svg>
+);
+
+// ── Greeting Toast ───────────────────────────────────────────────────
+const GreetingToast = ({ name, topInset = 0 }: { name: string; topInset?: number }) => {
+  const slideAnim = useRef(new Animated.Value(-120)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
   const { text, emoji } = getGreeting();
-  const first = name?.trim().split(' ')[0] || 'there';
+  const firstName = name?.trim().split(' ')[0] || 'there';
+
   useEffect(() => {
     Animated.parallel([
-      Animated.spring(slide,   { toValue: 0, friction: 8, tension: 60, useNativeDriver: true }),
-      Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.spring(slideAnim, { toValue: 0, friction: 8, tension: 60, useNativeDriver: true }),
+      Animated.timing(opacityAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
     ]).start();
-    const t = setTimeout(() => {
+
+    const timer = setTimeout(() => {
       Animated.parallel([
-        Animated.timing(slide,   { toValue: -100, duration: 350, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 0,    duration: 350, useNativeDriver: true }),
+        Animated.timing(slideAnim, { toValue: -120, duration: 350, useNativeDriver: true }),
+        Animated.timing(opacityAnim, { toValue: 0, duration: 350, useNativeDriver: true }),
       ]).start();
     }, 5000);
-    return () => clearTimeout(t);
+
+    return () => clearTimeout(timer);
   }, []);
+
   return (
-    <Animated.View style={[s.toast, { transform: [{ translateY: slide }], opacity }]}>
+    <Animated.View style={[s.toast, { top: topInset + 10, transform: [{ translateY: slideAnim }], opacity: opacityAnim }]}>
       <Text style={s.toastEmoji}>{emoji}</Text>
       <View>
-        <Text style={s.toastText}>{text}, {first}!</Text>
+        <Text style={s.toastText}>{text}, {firstName}!</Text>
         <Text style={s.toastSub}>Welcome to DhanMatrix</Text>
       </View>
     </Animated.View>
   );
 };
-
-const WavingHand = () => {
-  const rotate  = useRef(new Animated.Value(0)).current;
-  const opacity = useRef(new Animated.Value(1)).current;
-  const [visible, setVisible] = useState(true);
-  useEffect(() => {
-    Animated.sequence([
-      Animated.delay(500),
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(rotate, { toValue: 1,  duration: 200, useNativeDriver: false }),
-          Animated.timing(rotate, { toValue: -1, duration: 200, useNativeDriver: false }),
-          Animated.timing(rotate, { toValue: 0,  duration: 100, useNativeDriver: false }),
-        ]),
-        { iterations: 6 }
-      ),
-      Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: false }),
-    ]).start(() => setVisible(false));
-  }, []);
-  if (!visible) return null;
-  const rotateInterp = rotate.interpolate({ inputRange: [-1, 1], outputRange: ['-30deg', '30deg'] });
-  return (
-    <Animated.View style={{ opacity, transform: [{ rotate: rotateInterp }] }}>
-      <Text style={{ fontSize: 18 }}>👋</Text>
-    </Animated.View>
-  );
-};
-
-const TickerChip = () => (
-  <View style={s.chip}>
-    <View style={s.chipDot} />
-    <Text style={s.chipText}>New Trade Posted</Text>
-  </View>
-);
-
-// ── Portfolio — CANDLESTICK icon ──────────────────────────────────────────────
-const PortfolioCard = ({ onPress, isFree }: { onPress: () => void; isFree: boolean }) => {
-  const theme   = useTheme();
-  const bounceY = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.loop(Animated.sequence([
-      Animated.timing(bounceY, { toValue: -3, duration: 700, useNativeDriver: true }),
-      Animated.timing(bounceY, { toValue: 0,  duration: 700, useNativeDriver: true }),
-    ])).start();
-  }, []);
-  return (
-    <TouchableOpacity style={s.rc} activeOpacity={0.82} onPress={onPress}>
-      <Animated.View style={{ transform: [{ translateY: bounceY }] }}>
-        <View style={[s.circle, { backgroundColor: '#1a6030', shadowColor: '#1a6030' }]}>
-          {isFree ? (
-            <Text style={{ fontSize: 26 }}>🔒</Text>
-          ) : (
-            <Svg width={32} height={32} viewBox="0 0 34 34" fill="none">
-              <Line x1="3"  y1="29" x2="31" y2="29" stroke="#c8f5d0" strokeWidth="1.8" strokeLinecap="round" />
-              <Line x1="8"  y1="5"  x2="8"  y2="9"  stroke="#c8f5d0" strokeWidth="1.5" strokeLinecap="round" />
-              <Rect x="5"  y="9"  width="6" height="11" rx="1.5" fill="#4ade80" />
-              <Line x1="8"  y1="20" x2="8"  y2="24" stroke="#c8f5d0" strokeWidth="1.5" strokeLinecap="round" />
-              <Line x1="17" y1="7"  x2="17" y2="11" stroke="#fca5a5" strokeWidth="1.5" strokeLinecap="round" />
-              <Rect x="14" y="11" width="6" height="8"  rx="1.5" fill="#f87171" />
-              <Line x1="17" y1="19" x2="17" y2="23" stroke="#fca5a5" strokeWidth="1.5" strokeLinecap="round" />
-              <Line x1="26" y1="4"  x2="26" y2="8"  stroke="#c8f5d0" strokeWidth="1.5" strokeLinecap="round" />
-              <Rect x="23" y="8"  width="6" height="13" rx="1.5" fill="#4ade80" />
-              <Line x1="26" y1="21" x2="26" y2="25" stroke="#c8f5d0" strokeWidth="1.5" strokeLinecap="round" />
-            </Svg>
-          )}
-        </View>
-      </Animated.View>
-      <Text style={[s.rcLabel, { color: theme.text }]}>Portfolio{'\n'}Stocks</Text>
-    </TouchableOpacity>
-  );
-};
-
-const MutualFundCard = () => {
-  const theme     = useTheme();
-  const spinAnim  = useRef(new Animated.Value(0)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  useEffect(() => {
-    Animated.sequence([
-      Animated.delay(900),
-      Animated.timing(pulseAnim,  { toValue: 1.18, duration: 280, useNativeDriver: true }),
-      Animated.spring(pulseAnim,  { toValue: 1, friction: 5, tension: 80, useNativeDriver: true }),
-    ]).start();
-    Animated.loop(Animated.sequence([
-      Animated.timing(spinAnim, { toValue: 1, duration: 2200, useNativeDriver: true }),
-      Animated.timing(spinAnim, { toValue: 0, duration: 2200, useNativeDriver: true }),
-    ])).start();
-  }, []);
-  const rotatePie = spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '30deg'] });
-  return (
-    <TouchableOpacity style={s.rc} activeOpacity={0.82}>
-      <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-        <View style={[s.circle, { backgroundColor: '#8c5000', shadowColor: '#8c5000' }]}>
-          <Animated.View style={{ transform: [{ rotate: rotatePie }] }}>
-            <Svg width={32} height={32} viewBox="0 0 34 34" fill="none">
-              <Circle cx="17" cy="18" r="10" fill="none" stroke="#ffd080" strokeWidth="2.2" />
-              <Path d="M17 18 L17 8 A10 10 0 0 1 25.66 23 Z" fill="#ffd080" opacity="0.85" />
-              <Path d="M17 18 L25.66 23 A10 10 0 0 1 8.34 23 Z" fill="#ffd080" opacity="0.45" />
-              <Line x1="17" y1="5" x2="17" y2="8" stroke="#ffd080" strokeWidth="2" strokeLinecap="round" />
-            </Svg>
-          </Animated.View>
-        </View>
-      </Animated.View>
-      <Text style={[s.rcLabel, { color: theme.text }]}>Mutual{'\n'}Funds</Text>
-    </TouchableOpacity>
-  );
-};
-
-const QUOTES = [
-  '❝ Be fearful when others are greedy, and be greedy when others are fearful ❞  — Warren Buffett     ',
-  '❝ No loss is also a profit in trading ❞  — DhanMatrix     ',
-  '❝ Patience is the key to success in the market ❞  — DhanMatrix     ',
-  '❝ The stock market transfers money from the impatient to the patient ❞  — Warren Buffett     ',
-];
-const MovingQuotes = ({ bg, textColor }: { bg: string; textColor: string }) => {
-  const marquee = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.loop(Animated.timing(marquee, { toValue: -3000, duration: 60000, useNativeDriver: true })).start();
-  }, []);
-  return (
-    <View style={[s.quotesCard, { backgroundColor: bg }]}>
-      <View style={s.quotesTicker}>
-        <Animated.View style={[s.quotesInner, { transform: [{ translateX: marquee }] }]}>
-          {[...QUOTES, ...QUOTES].map((q, i) => (
-            <Text key={i} style={[s.quoteText, { color: textColor }]}>{q}</Text>
-          ))}
-        </Animated.View>
-      </View>
-    </View>
-  );
-};
+// ────────────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
   const { userData } = useAuth();
-  const router  = useRouter();
-  const theme   = useTheme();
-
-  const [loading,      setLoading]      = useState(true);
-  const [overall,      setOverall]      = useState<SegmentStats>({ total: 0, profitable: 0, losing: 0, accuracy: 0 });
-  const [equity,       setEquity]       = useState<SegmentStats>({ total: 0, profitable: 0, losing: 0, accuracy: 0 });
-  const [futures,      setFutures]      = useState<SegmentStats>({ total: 0, profitable: 0, losing: 0, accuracy: 0 });
-  const [options,      setOptions]      = useState<SegmentStats>({ total: 0, profitable: 0, losing: 0, accuracy: 0 });
+  const insets = useSafeAreaInsets();
+  const [loading, setLoading] = useState(true);
+  const [overall, setOverall] = useState<SegmentStats>({ total: 0, profitable: 0, losing: 0, accuracy: 0 });
+  const [equity, setEquity] = useState<SegmentStats>({ total: 0, profitable: 0, losing: 0, accuracy: 0 });
+  const [futures, setFutures] = useState<SegmentStats>({ total: 0, profitable: 0, losing: 0, accuracy: 0 });
+  const [options, setOptions] = useState<SegmentStats>({ total: 0, profitable: 0, losing: 0, accuracy: 0 });
+  const crownAnim = useRef(new Animated.Value(0)).current;
+  const [showForm, setShowForm] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [form, setForm] = useState({ name: '', whatsapp: '', stock: '', buyingPrice: '', qty: '' });
   const [showGreeting, setShowGreeting] = useState(false);
-  const [showUpgrade,  setShowUpgrade]  = useState(false);
-  const [activeTrades, setActiveTrades] = useState<ActiveTrade[]>([]);
-
-  const tickerAnim  = useRef(new Animated.Value(0)).current;
-  const robotFloat  = useRef(new Animated.Value(0)).current;
-  const liveDotAnim = useRef(new Animated.Value(0.3)).current;
-  const iconPopAnim = useRef(new Animated.Value(1)).current;
 
   const calcStats = (trades: ClosedTrade[]): SegmentStats => {
-    const total      = trades.length;
+    const total = trades.length;
     const profitable = trades.filter(t => t.profitLossPercent > 0).length;
     return { total, profitable, losing: total - profitable, accuracy: total > 0 ? Math.round((profitable / total) * 100) : 0 };
   };
 
   useEffect(() => {
-    Animated.loop(Animated.timing(tickerAnim, { toValue: -600, duration: 5000, useNativeDriver: true })).start();
     Animated.loop(Animated.sequence([
-      Animated.timing(robotFloat,  { toValue: -6, duration: 1450, useNativeDriver: true }),
-      Animated.timing(robotFloat,  { toValue: 0,  duration: 1450, useNativeDriver: true }),
-    ])).start();
-    Animated.loop(Animated.sequence([
-      Animated.timing(liveDotAnim, { toValue: 1,   duration: 650, useNativeDriver: true }),
-      Animated.timing(liveDotAnim, { toValue: 0.3, duration: 650, useNativeDriver: true }),
-    ])).start();
-    Animated.loop(Animated.sequence([
-      Animated.timing(iconPopAnim, { toValue: 1.15, duration: 1000, useNativeDriver: true }),
-      Animated.timing(iconPopAnim, { toValue: 1,    duration: 1000, useNativeDriver: true }),
+      Animated.timing(crownAnim, { toValue: -5, duration: 350, useNativeDriver: true }),
+      Animated.timing(crownAnim, { toValue: 0, duration: 350, useNativeDriver: true }),
     ])).start();
   }, []);
 
   useEffect(() => {
     (async () => {
       try {
-        const snap = await getDocs(collection(db, 'closedTrades'));
-        const all  = snap.docs.map(d => ({ id: d.id, ...d.data() })) as ClosedTrade[];
+        const snapshot = await getDocs(collection(db, 'closedTrades'));
+        const all = snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as ClosedTrade[];
         setOverall(calcStats(all));
         setEquity(calcStats(all.filter(t => !t.segment || t.segment === 'equity')));
         setFutures(calcStats(all.filter(t => t.segment === 'futures')));
@@ -292,309 +214,325 @@ export default function HomeScreen() {
     })();
   }, []);
 
+  // ── Show greeting once per day ───────────────────────────────────
   useEffect(() => {
-    const unsub = onSnapshot(query(collection(db, 'activeTrades')), (snap) => {
-      const trades = snap.docs.map(d => ({ id: d.id, ...d.data() })) as ActiveTrade[];
-      setActiveTrades(trades);
-    });
-    return () => unsub();
-  }, []);
-
-  useEffect(() => {
-    (async () => {
+    const checkGreeting = async () => {
       try {
-        const key   = getTodayKey();
+        const key = getTodayKey();
         const shown = await AsyncStorage.getItem(key);
-        if (!shown) { setShowGreeting(true); await AsyncStorage.setItem(key, 'true'); }
-      } catch {}
-    })();
+        if (!shown) {
+          setShowGreeting(true);
+          await AsyncStorage.setItem(key, 'true');
+        }
+      } catch (e) {
+        console.error('Greeting error:', e);
+      }
+    };
+    checkGreeting();
   }, []);
+  // ────────────────────────────────────────────────────────────────
 
-  const firstName    = userData?.name?.trim().split(' ')[0] || 'there';
-  const avatarLetter = (userData?.name || 'U')[0].toUpperCase();
-
-  // ── Latest trade segment for VIEW button ─────────────────────────────────
-  const latestSegment = activeTrades.length > 0 ? normalizeSegment(activeTrades[0].segment) : 'equity';
-
-  // ── FIX: router.navigate updates params on already-mounted tab screens ────
-  const handleTickerPress = (segment?: string) => {
-    router.navigate({
-      pathname: '/(tabs)/active-trades',
-      params: { segment: normalizeSegment(segment) },
-    });
+  const handleSubmit = () => {
+    if (!form.name || !form.whatsapp || !form.stock || !form.buyingPrice || !form.qty) return;
+    setShowForm(false);
+    setShowSuccess(true);
+    setForm({ name: '', whatsapp: '', stock: '', buyingPrice: '', qty: '' });
   };
 
-  const handlePortfolioStocksPress = () => {
-    if (userData?.status === 'FREE') { setShowUpgrade(true); }
-    else { router.push('/portfolio-stocks'); }
-  };
+  const isActive = isSubscriptionActive(userData);
 
-  if (loading) return <View style={[s.loading, { backgroundColor: theme.background }]}><ActivityIndicator size="large" color="#3b82f6" /></View>;
-
-  const segments = [
-    { label: 'Equity',  stats: equity,  color: '#22a85a', trackColor: theme.isDark ? '#0f3020' : '#e2f4ea', borderColor: '#22a85a' },
-    { label: 'Futures', stats: futures, color: '#f5a623', trackColor: theme.isDark ? '#3a2000' : '#fdf0de', borderColor: '#f5a623' },
-    { label: 'Options', stats: options, color: '#8b5cf6', trackColor: theme.isDark ? '#2a1050' : '#f0eaff', borderColor: '#8b5cf6' },
-  ];
-
-  const tickerItems = activeTrades.length > 0
-    ? [...activeTrades, ...activeTrades, ...activeTrades].slice(0, Math.max(8, activeTrades.length * 3))
-    : [{ id: '1', segment: 'equity' }, { id: '2', segment: 'futures' }, { id: '3', segment: 'options' }, { id: '4', segment: 'equity' }];
+  if (loading) {
+    return <View style={s.loading}><ActivityIndicator size="large" color="#3b82f6" /></View>;
+  }
 
   return (
-    <SafeAreaView style={[s.outer, { backgroundColor: theme.headerBg }]} edges={['top']}>
-      {showGreeting && (
-        <View style={s.toastWrapper} pointerEvents="none">
-          <GreetingToast name={userData?.name || ''} />
-        </View>
-      )}
+    <View style={s.wrapper}>
 
-      <Modal visible={showUpgrade} animationType="slide" onRequestClose={() => setShowUpgrade(false)}>
-        <View style={{ flex: 1 }}>
-          <TouchableOpacity style={s.modalClose} onPress={() => setShowUpgrade(false)}>
-            <Text style={s.modalCloseText}>✕ Close</Text>
-          </TouchableOpacity>
-          <PremiumUpgradeScreen />
-        </View>
-      </Modal>
+      {/* ── GREETING TOAST — floats above ScrollView ── */}
+      {showGreeting && <GreetingToast name={userData?.name || ''} topInset={insets.top} />}
 
-      {/* HEADER */}
-      <View style={[s.header, { backgroundColor: theme.headerBg }]}>
-        <View style={s.hdrRow}>
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={s.hdrHello}>Hi {firstName} </Text>
-              <WavingHand />
+      <ScrollView
+        style={s.scroll}
+        contentContainerStyle={[s.container, { paddingBottom: insets.bottom + 16 }]}
+        showsVerticalScrollIndicator={false}
+      >
+
+        {/* Overall */}
+        <View style={s.overallCard}>
+          <Text style={s.overallTitle}>Overall Performance</Text>
+          <DonutGauge accuracy={overall.accuracy} size={90} strokeWidth={10} fillColor="#3b82f6" />
+          <View style={s.divider} />
+          <View style={s.overallRow}>
+            <View style={s.overallStat}>
+              <Text style={s.statLabel}>Winning Trades</Text>
+              <Text style={[s.statVal, { color: '#22c55e' }]}>{overall.profitable}</Text>
             </View>
-            <Text style={s.hdrSub}>Kooky AI · <Text style={s.hdrAccent}>Your Stock Market</Text> Assistant</Text>
-          </View>
-          <View style={s.avatar}><Text style={s.avatarTxt}>{avatarLetter}</Text></View>
-        </View>
-
-        {/* Ticker pill */}
-        <View style={s.tickerPill}>
-          {/* VIEW button — navigates to latest trade's segment */}
-          <TouchableOpacity
-            style={{ flexDirection: 'row', alignItems: 'center' }}
-            onPress={() => handleTickerPress(latestSegment)}
-            activeOpacity={0.7}
-          >
-            <Animated.View style={[s.tickerIcon, { transform: [{ scale: iconPopAnim }] }]}>
-              <Svg width={10} height={10} viewBox="0 0 12 12" fill="none">
-                <Polyline points="2,6 5,9 10,3" stroke="#4ecfa8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </Svg>
-            </Animated.View>
-            <Text style={s.tickerTag}>View</Text>
-          </TouchableOpacity>
-          <View style={s.tickerTrack}>
-            <Animated.View style={[s.tickerInner, { transform: [{ translateX: tickerAnim }] }]}>
-              {tickerItems.map((trade, i) => (
-                <TouchableOpacity
-                  key={`${trade.id}-${i}`}
-                  style={s.chipWrap}
-                  onPress={() => handleTickerPress(trade.segment)}
-                  activeOpacity={0.7}
-                >
-                  <TickerChip />
-                </TouchableOpacity>
-              ))}
-            </Animated.View>
-          </View>
-        </View>
-      </View>
-
-      {/* FIXED CONTENT */}
-      <View style={[s.content, { backgroundColor: theme.background }]}>
-
-        <View style={[s.perfCard, { backgroundColor: theme.cardBackground }]}>
-          <Text style={[s.perfTitle, { color: theme.text }]}>Overall Performance</Text>
-          <DonutGauge accuracy={overall.accuracy} size={72} strokeWidth={8} fillColor="#2563eb"
-            trackColor={theme.isDark ? '#1a3460' : '#eaecf5'} textColor={theme.text} />
-          <View style={[s.perfDivider, { backgroundColor: theme.divider }]} />
-          <View style={s.perfRow}>
-            <View style={s.perfCol}>
-              <Text style={[s.perfLbl, { color: theme.textSecondary }]}>Winning Trades</Text>
-              <Text style={[s.perfVal, { color: '#22a85a' }]}>{overall.profitable}</Text>
-            </View>
-            <View style={[s.perfSep, { backgroundColor: theme.divider }]} />
-            <View style={s.perfCol}>
-              <Text style={[s.perfLbl, { color: theme.textSecondary }]}>Losing Trades</Text>
-              <Text style={[s.perfVal, { color: '#e03030' }]}>{overall.losing}</Text>
+            <View style={s.sep} />
+            <View style={s.overallStat}>
+              <Text style={s.statLabel}>Losing Trades</Text>
+              <Text style={[s.statVal, { color: '#ef4444' }]}>{overall.losing}</Text>
             </View>
           </View>
         </View>
 
+        {/* Segments */}
         <View style={s.segRow}>
-          {segments.map((seg, idx) => (
-            <View key={seg.label} style={[s.segCard, { borderTopColor: seg.borderColor, backgroundColor: theme.cardBackground }, idx < 2 && { marginRight: 5 }]}>
-              <Text style={[s.segName, { color: theme.text }]}>{seg.label}</Text>
-              <DonutGauge accuracy={seg.stats.accuracy} size={54} strokeWidth={6}
-                fillColor={seg.color} trackColor={seg.trackColor} textColor={theme.text} />
-              <View style={[s.segDivider, { backgroundColor: theme.divider }]} />
-              <View style={s.segWL}>
+          {[
+            { label: 'Equity',  stats: equity,  color: '#22c55e' },
+            { label: 'Futures', stats: futures, color: '#f59e0b' },
+            { label: 'Options', stats: options, color: '#a855f7' },
+          ].map((seg) => (
+            <View key={seg.label} style={[s.segCard, { borderTopColor: seg.color }]}>
+              <Text style={s.segTitle}>{seg.label}</Text>
+              <DonutGauge accuracy={seg.stats.accuracy} size={65} strokeWidth={7} fillColor={seg.color} />
+              <View style={s.segDivider} />
+              <View style={s.segRow2}>
                 <View style={s.segStat}>
-                  <Text style={[s.segVal, { color: '#22a85a' }]}>{seg.stats.profitable}</Text>
-                  <Text style={[s.segLbl, { color: theme.textSecondary }]}>Win</Text>
+                  <Text style={s.segStatLabel}>Win</Text>
+                  <Text style={[s.segStatVal, { color: '#22c55e' }]}>{seg.stats.profitable}</Text>
                 </View>
-                <View style={[s.segSep, { backgroundColor: theme.divider }]} />
+                <View style={s.segSep} />
                 <View style={s.segStat}>
-                  <Text style={[s.segVal, { color: '#e03030' }]}>{seg.stats.losing}</Text>
-                  <Text style={[s.segLbl, { color: theme.textSecondary }]}>Loss</Text>
+                  <Text style={s.segStatLabel}>Loss</Text>
+                  <Text style={[s.segStatVal, { color: '#ef4444' }]}>{seg.stats.losing}</Text>
                 </View>
               </View>
             </View>
           ))}
         </View>
 
-        <View style={[s.roundRow, { backgroundColor: theme.cardBackground }]}>
-          <PortfolioCard onPress={handlePortfolioStocksPress} isFree={userData?.status === 'FREE'} />
-          <MutualFundCard />
-          <TouchableOpacity style={s.rc} onPress={() => Linking.openURL('https://www.nseindia.com/market-data/all-upcoming-issues-ipo')} activeOpacity={0.82}>
-            <View style={[s.circle, { backgroundColor: '#1030a0', shadowColor: '#1030a0' }]}>
-              <Svg width={32} height={32} viewBox="0 0 34 34" fill="none">
-                <Path d="M17 6C17 6 22 10 22 17L17 20L12 17C12 10 17 6 17 6Z" fill="#a0c4ff" />
-                <Path d="M12 17L10 22L14 20Z" fill="#80aaff" />
-                <Path d="M22 17L24 22L20 20Z" fill="#80aaff" />
-                <Circle cx="17" cy="15" r="2.5" fill="#0b1e5c" />
-                <Line x1="14" y1="22" x2="20" y2="22" stroke="#a0c4ff" strokeWidth="1.8" strokeLinecap="round" />
-                <Line x1="15.5" y1="25" x2="18.5" y2="25" stroke="#a0c4ff" strokeWidth="1.5" strokeLinecap="round" />
-              </Svg>
+        {/* IPO & Mutual Fund */}
+        <View style={s.quickRow}>
+          <TouchableOpacity style={[s.quickCard, { borderLeftColor: '#3b82f6' }]}
+            onPress={() => Linking.openURL('https://www.nseindia.com/market-data/all-upcoming-issues-ipo')} activeOpacity={0.85}>
+            <View style={s.quickIcon}><Text style={s.quickEmoji}>📋</Text></View>
+            <View style={s.quickText}>
+              <Text style={s.quickTitle}>IPO</Text>
+              <Text style={s.quickSub}>View Upcoming IPOs</Text>
             </View>
-            <Text style={[s.rcLabel, { color: theme.text }]}>IPO</Text>
+            <Text style={s.quickArrow}>›</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[s.quickCard, { borderLeftColor: '#22c55e' }]} activeOpacity={0.85}>
+            <View style={s.quickIcon}><Text style={s.quickEmoji}>💼</Text></View>
+            <View style={s.quickText}>
+              <Text style={s.quickTitle}>Mutual Fund</Text>
+              <Text style={s.quickSub}>Explore Mutual Funds</Text>
+            </View>
+            <Text style={s.quickArrow}>›</Text>
           </TouchableOpacity>
         </View>
 
-        {/* KOOKY */}
-        <View style={s.kookyCard}>
-          <View style={s.kOrb1} pointerEvents="none" />
-          <View style={s.kOrb2} pointerEvents="none" />
-          <Animated.View style={[s.kRobot, { transform: [{ translateY: robotFloat }] }]}>
-            <Svg width={100} height={132} viewBox="0 0 84 112" fill="none">
-              <Line x1="42" y1="4" x2="42" y2="16" stroke="#60aaff" strokeWidth="2.4" strokeLinecap="round" />
-              <Polygon points="42,1 43.6,5.5 48.5,5.5 44.6,8.3 46,13 42,10.2 38,13 39.4,8.3 35.5,5.5 40.4,5.5" fill="#90ccff" />
-              <Rect x="9" y="16" width="66" height="48" rx="23" fill="#0e3580" stroke="#4080ff" strokeWidth="1.8" />
-              <Circle cx="9"  cy="40" r="7" fill="#0a2a6e" stroke="#4080ff" strokeWidth="1.4" />
-              <Circle cx="75" cy="40" r="7" fill="#0a2a6e" stroke="#4080ff" strokeWidth="1.4" />
-              <Ellipse cx="20" cy="52" rx="7" ry="4" fill="#60a0ff" opacity="0.14" />
-              <Ellipse cx="64" cy="52" rx="7" ry="4" fill="#60a0ff" opacity="0.14" />
-              <Rect x="24" y="27" width="16" height="14" rx="7" fill="#0a2060" />
-              <Rect x="44" y="27" width="16" height="14" rx="7" fill="#0a2060" />
-              <Rect x="25.5" y="28.5" width="13" height="11" rx="5.5" fill="#3d7fff" />
-              <Circle cx="29.5" cy="33" r="3" fill="white" opacity="0.75" />
-              <Circle cx="34"   cy="30" r="1.4" fill="white" opacity="0.35" />
-              <Rect x="45.5" y="28.5" width="13" height="11" rx="5.5" fill="#00c6ff" />
-              <Circle cx="49.5" cy="33" r="3" fill="white" opacity="0.75" />
-              <Circle cx="54"   cy="30" r="1.4" fill="white" opacity="0.35" />
-              <Path d="M27 56 Q42 66 57 56" stroke="#60aaff" strokeWidth="2.2" fill="none" strokeLinecap="round" />
-              <Rect x="35" y="64" width="14" height="9" rx="4" fill="#0c2d7a" />
-              <Rect x="11" y="73" width="62" height="37" rx="16" fill="#0c2d7a" stroke="#3060c0" strokeWidth="1.5" />
-              <Circle cx="42" cy="89" r="14" fill="#3d7fff" opacity="0.25" />
-              <Rect x="27" y="81" width="30" height="18" rx="8" fill="#0e3580" stroke="#3060c0" strokeWidth="1.1" />
-              <Polyline points="30,93 34,88 38,91 42,85 46,89 50,86" stroke="#60c0ff" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-              <Rect x="0"  y="76" width="10" height="22" rx="5" fill="#0c2d7a" stroke="#3060c0" strokeWidth="1.3" />
-              <Rect x="74" y="76" width="10" height="22" rx="5" fill="#0c2d7a" stroke="#3060c0" strokeWidth="1.3" />
-              <Circle cx="5"  cy="101" r="4.5" fill="#0c2d7a" stroke="#3060c0" strokeWidth="1.3" />
-              <Circle cx="79" cy="101" r="4.5" fill="#0c2d7a" stroke="#3060c0" strokeWidth="1.3" />
-              <Rect x="18" y="110" width="14" height="2" rx="1" fill="#3060c0" />
-              <Rect x="52" y="110" width="14" height="2" rx="1" fill="#3060c0" />
-            </Svg>
-          </Animated.View>
-          <View style={s.kText}>
-            <View style={s.kLivePill}>
-              <Animated.View style={[s.kLiveDot, { opacity: liveDotAnim }]} />
-              <Text style={s.kLiveTxt}>AI Assistant</Text>
+        {/* Portfolio Checkup */}
+        <View style={s.portfolioCard}>
+          <Text style={s.portfolioEmoji}>🩺</Text>
+          <View style={s.portfolioText}>
+            <Text style={s.portfolioTitle}>FREE Portfolio Health Checkup</Text>
+            <Text style={s.portfolioSub}>Analyze your investment portfolio for free!</Text>
+          </View>
+          <TouchableOpacity style={s.checkBtn} onPress={() => setShowForm(true)} activeOpacity={0.85}>
+            <Text style={s.checkBtnText}>Check Now</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* FREE / EXPIRED → Subscription */}
+        {!isActive && (
+          <View style={s.subCard}>
+            <View style={s.subTop}>
+              <View style={s.subLeft}>
+                <Animated.Text style={[s.crown, { transform: [{ translateY: crownAnim }] }]}>👑</Animated.Text>
+                <Text style={s.subHeading}>Subscription Plan</Text>
+              </View>
+              <View style={s.subRight}>
+                <Text style={s.gst}>Incl. of GST </Text>
+                <Text style={s.price}>₹5,000</Text>
+              </View>
             </View>
-            <Text style={s.kName}>
-              <Text style={{ color: '#7eb8ff' }}>K</Text>
-              <Text style={{ color: '#ffffff' }}>OO</Text>
-              <Text style={{ color: '#7eb8ff' }}>K</Text>
-              <Text style={{ color: '#60d4ff' }}>Y</Text>
-            </Text>
-            <View style={s.kBracket}>
-              <View style={s.kBracketTick} /><View style={s.kBracketLine} /><View style={s.kBracketTick} />
+            <Text style={s.planLabel}>Quarterly · 3 Months</Text>
+            <View style={s.subDivider} />
+            <View style={s.features}>
+              {[{ icon: '📊', label: 'Swing Trade' }, { icon: '📈', label: 'Option Trades' }, { icon: '🔮', label: 'Future Trades' }].map((f) => (
+                <View key={f.label} style={s.featurePill}>
+                  <Text style={s.featureIcon}>{f.icon}</Text>
+                  <Text style={s.featureLabel}>{f.label}</Text>
+                </View>
+              ))}
             </View>
-            <Text style={s.kSub}>Ask me anything about your portfolio and financial market.</Text>
-            <TouchableOpacity style={s.kBtn} onPress={() => router.push('/(tabs)/ajeeb')} activeOpacity={0.82}>
-              <Svg width={14} height={14} viewBox="0 0 16 16" fill="none">
-                <Circle cx="8" cy="8" r="6.5" stroke="white" strokeWidth="1.5" />
-                <Path d="M5.5 8.5l2 2 3-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </Svg>
-              <Text style={s.kBtnText}>Ask Me</Text>
+            <TouchableOpacity style={s.subBtn} activeOpacity={0.85}
+              onPress={() => Linking.openURL('https://wa.me/918383898886')}>
+              <Text style={s.subBtnText}>Subscribe Now  →</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* ACTIVE → Welcome Card */}
+        {isActive && (
+          <View style={s.welcomeCard}>
+            <View style={s.roadTop}><RoadSVG /></View>
+            <View style={s.welcomeContent}>
+              <View style={s.titleRow}>
+                <Text style={s.welcomeTitle}>
+                  Welcome to <Text style={s.welcomeBrand}>DhanMatrix</Text> family!
+                </Text>
+                <EvilEye />
+              </View>
+              <View style={s.quoteBox}>
+                <Text style={s.quoteIcon}>❝</Text>
+                <Text style={s.quoteText}>
+                  "<Text style={{ fontWeight: '900' }}>No loss</Text> is also a <Text style={{ fontWeight: '900' }}>profit</Text> in trading"
+                </Text>
+                <Text style={s.quoteAuthor}>— DhanMatrix</Text>
+              </View>
+              <View style={[s.quoteBox, { marginBottom: 0 }]}>
+                <Text style={s.quoteIcon}>❝</Text>
+                <Text style={s.quoteText}>
+                  "When everyone is greedy be <Text style={{ fontWeight: '900' }}>fearful</Text>, and when everyone is fearful be <Text style={{ fontWeight: '900' }}>greedy</Text>"
+                </Text>
+                <Text style={s.quoteAuthor}>— Warren Buffett</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+      </ScrollView>
+
+      {/* Form Modal */}
+      <Modal visible={showForm} transparent animationType="slide">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.modalOverlay}>
+          <View style={[s.modalBox, { paddingBottom: insets.bottom + 24 }]}>
+            <Text style={s.modalTitle}>🩺 Portfolio Health Checkup</Text>
+            <Text style={s.modalSub}>Fill in details — we'll send a free analysis on WhatsApp</Text>
+            <TextInput style={s.input} placeholder="Your Name" placeholderTextColor="#94a3b8" value={form.name} onChangeText={v => setForm({ ...form, name: v })} />
+            <TextInput style={s.input} placeholder="WhatsApp Number" placeholderTextColor="#94a3b8" keyboardType="phone-pad" value={form.whatsapp} onChangeText={v => setForm({ ...form, whatsapp: v })} />
+            <TextInput style={s.input} placeholder="Stock Name (e.g. RELIANCE)" placeholderTextColor="#94a3b8" value={form.stock} onChangeText={v => setForm({ ...form, stock: v })} />
+            <TextInput style={s.input} placeholder="Buying Price (₹)" placeholderTextColor="#94a3b8" keyboardType="numeric" value={form.buyingPrice} onChangeText={v => setForm({ ...form, buyingPrice: v })} />
+            <TextInput style={s.input} placeholder="Quantity Bought" placeholderTextColor="#94a3b8" keyboardType="numeric" value={form.qty} onChangeText={v => setForm({ ...form, qty: v })} />
+            <TouchableOpacity style={s.submitBtn} onPress={handleSubmit} activeOpacity={0.85}>
+              <Text style={s.submitBtnText}>Submit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowForm(false)} style={{ marginTop: 10, alignItems: 'center' }}>
+              <Text style={{ color: '#94a3b8', fontSize: 13 }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Success Modal */}
+      <Modal visible={showSuccess} transparent animationType="fade">
+        <View style={s.modalOverlay}>
+          <View style={s.successBox}>
+            <Text style={s.successEmoji}>✅</Text>
+            <Text style={s.successTitle}>Request Received!</Text>
+            <Text style={s.successMsg}>We'll research your portfolio and send you a detailed report on WhatsApp within 24 hours.</Text>
+            <TouchableOpacity style={s.submitBtn} onPress={() => setShowSuccess(false)} activeOpacity={0.85}>
+              <Text style={s.submitBtnText}>Done</Text>
             </TouchableOpacity>
           </View>
         </View>
+      </Modal>
 
-        <MovingQuotes bg={theme.quotesBg} textColor={theme.quotesText} />
-      </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  outer:   { flex: 1 },
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  content: { flex: 1, padding: 6, paddingBottom: 4 },
-  modalClose:     { backgroundColor: '#001F3F', paddingHorizontal: 20, paddingVertical: 14, alignItems: 'flex-end' },
-  modalCloseText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  toastWrapper: { position: 'absolute', top: 80, left: 16, right: 16, zIndex: 999 },
-  toast: { backgroundColor: '#001F3F', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 8 },
-  toastEmoji: { fontSize: 26, marginRight: 12 },
-  toastText:  { fontSize: 15, fontWeight: '800', color: '#fff' },
-  toastSub:   { fontSize: 11, color: '#a0b4cc', marginTop: 1 },
-  header:    { paddingHorizontal: 18, paddingTop: 10, paddingBottom: 12 },
-  hdrRow:    { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 9 },
-  hdrHello:  { color: '#fff', fontSize: 18, fontWeight: '700', lineHeight: 22 },
-  hdrSub:    { color: 'rgba(180,200,255,0.65)', fontSize: 11, lineHeight: 16, marginTop: 2 },
-  hdrAccent: { color: '#4ecfa8', fontWeight: '500' },
-  avatar:    { width: 36, height: 36, borderRadius: 18, backgroundColor: '#3b7ef8', alignItems: 'center', justifyContent: 'center' },
-  avatarTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  tickerPill:  { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.13)', borderRadius: 40, paddingVertical: 5, paddingHorizontal: 10, overflow: 'hidden' },
-  tickerIcon:  { width: 16, height: 16, borderRadius: 8, backgroundColor: 'rgba(78,207,168,0.18)', borderWidth: 1, borderColor: 'rgba(78,207,168,0.5)', alignItems: 'center', justifyContent: 'center', marginRight: 7 },
-  tickerTag:   { fontSize: 9.5, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', color: '#4ecfa8', marginRight: 7 },
-  tickerTrack: { flex: 1, overflow: 'hidden', height: 22 },
-  tickerInner: { flexDirection: 'row', alignItems: 'center', position: 'absolute' },
-  chipWrap:    { marginRight: 10 },
-  chip:        { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(78,207,168,0.13)', borderWidth: 1, borderColor: 'rgba(78,207,168,0.28)', borderRadius: 20, paddingVertical: 3, paddingHorizontal: 8 },
-  chipDot:     { width: 4, height: 4, borderRadius: 2, backgroundColor: '#4ecfa8', marginRight: 4 },
-  chipText:    { fontSize: 10, fontWeight: '700', color: '#4ecfa8' },
-  perfCard:    { borderRadius: 14, padding: 8, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2, marginBottom: 5 },
-  perfTitle:   { fontSize: 11, fontWeight: '600', marginBottom: 5 },
-  perfDivider: { width: '100%', height: 1, marginTop: 5, marginBottom: 5 },
-  perfRow:     { flexDirection: 'row', width: '100%' },
-  perfCol:     { flex: 1, alignItems: 'center' },
-  perfLbl:     { fontSize: 9, marginBottom: 1 },
-  perfVal:     { fontSize: 18, fontWeight: '700' },
-  perfSep:     { width: 1 },
-  segRow:      { flexDirection: 'row', marginBottom: 5 },
-  segCard:     { flex: 1, borderRadius: 12, padding: 5, alignItems: 'center', borderTopWidth: 3, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
-  segName:     { fontSize: 9.5, fontWeight: '600', marginBottom: 2 },
-  segDivider:  { width: '100%', height: 1, marginVertical: 3 },
-  segWL:       { flexDirection: 'row', width: '100%' },
-  segStat:     { flex: 1, alignItems: 'center' },
-  segVal:      { fontSize: 10, fontWeight: '700' },
-  segLbl:      { fontSize: 7.5 },
-  segSep:      { width: 1 },
-  roundRow:    { borderRadius: 14, paddingVertical: 8, paddingHorizontal: 4, flexDirection: 'row', justifyContent: 'space-around', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2, marginBottom: 5 },
-  rc:          { alignItems: 'center' },
-  circle:      { width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.4, shadowRadius: 7, shadowOffset: { width: 0, height: 4 }, elevation: 4, marginBottom: 4 },
-  rcLabel:     { fontSize: 10, fontWeight: '700', textAlign: 'center', lineHeight: 13 },
-  kookyCard:   { flex: 1, backgroundColor: '#0a2a6e', borderRadius: 16, padding: 10, flexDirection: 'row', alignItems: 'center', overflow: 'hidden', position: 'relative', borderWidth: 1.5, borderColor: 'rgba(80,140,255,0.25)', marginBottom: 5 },
-  kOrb1:       { position: 'absolute', top: -25, right: -25, width: 110, height: 110, borderRadius: 55, backgroundColor: 'rgba(80,140,255,0.12)' },
-  kOrb2:       { position: 'absolute', bottom: -20, left: -15, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(30,80,200,0.15)' },
-  kRobot:      { width: 105, alignItems: 'center', justifyContent: 'center', zIndex: 2, marginRight: 8 },
-  kText:       { flex: 1, zIndex: 2 },
-  kLivePill:   { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(100,160,255,0.15)', borderWidth: 1, borderColor: 'rgba(100,160,255,0.3)', borderRadius: 20, paddingVertical: 2, paddingHorizontal: 7, alignSelf: 'flex-start', marginBottom: 5 },
-  kLiveDot:    { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#60aaff', marginRight: 4 },
-  kLiveTxt:    { fontSize: 8, fontWeight: '700', color: '#90c8ff', letterSpacing: 0.5, textTransform: 'uppercase' },
-  kName:       { fontSize: 26, fontWeight: '900', lineHeight: 26, letterSpacing: -0.5, marginBottom: 4 },
-  kBracket:    { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
-  kBracketLine:{ flex: 1, height: 2, maxWidth: 70, backgroundColor: 'rgba(100,180,255,0.55)', borderRadius: 2, marginHorizontal: 3 },
-  kBracketTick:{ width: 2, height: 6, backgroundColor: 'rgba(100,180,255,0.6)', borderRadius: 2 },
-  kSub:        { fontSize: 11, color: '#8ab4e8', lineHeight: 15, marginBottom: 8 },
-  kBtn:        { flexDirection: 'row', alignItems: 'center', backgroundColor: '#3d7fff', borderRadius: 20, paddingVertical: 8, paddingHorizontal: 16, alignSelf: 'flex-start', elevation: 3 },
-  kBtnText:    { color: '#fff', fontSize: 14, fontWeight: '700', marginLeft: 6 },
-  quotesCard:   { borderRadius: 12, overflow: 'hidden', height: 46, justifyContent: 'center' },
-  quotesTicker: { overflow: 'hidden', height: 46 },
-  quotesInner:  { flexDirection: 'row', alignItems: 'center', position: 'absolute', height: 46 },
-  quoteText:    { fontSize: 13, fontStyle: 'italic', lineHeight: 46, paddingHorizontal: 10 },
+  loading: { flex: 1, backgroundColor: '#eef1f8', alignItems: 'center', justifyContent: 'center' },
+
+  // ── Root wrapper — fills the screen, toast sits here absolutely ──
+  wrapper: { flex: 1, backgroundColor: '#eef1f8' },
+
+  // ── ScrollView fills wrapper ──────────────────────────────────────
+  scroll: { flex: 1 },
+
+  // ── contentContainerStyle — no flex:1, just padding + gap ────────
+  container: { padding: 10, gap: 8 },
+
+  // ── Greeting Toast ───────────────────────────────────────────────
+  toast: {
+    position: 'absolute', left: 16, right: 16, zIndex: 999,
+    backgroundColor: '#001F3F', borderRadius: 14,
+    paddingHorizontal: 16, paddingVertical: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 }, elevation: 8,
+  },
+  toastEmoji: { fontSize: 26 },
+  toastText: { fontSize: 15, fontWeight: '800', color: '#ffffff' },
+  toastSub: { fontSize: 11, color: '#a0b4cc', marginTop: 1 },
+  // ────────────────────────────────────────────────────────────────
+
+  overallCard: { backgroundColor: '#fff', borderRadius: 16, padding: 10, alignItems: 'center', elevation: 3, shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
+  overallTitle: { fontSize: 15, fontWeight: '800', color: '#1e3a5f', marginBottom: 6 },
+  divider: { width: '100%', height: 1, backgroundColor: '#e2e8f0', marginVertical: 6 },
+  overallRow: { flexDirection: 'row', width: '100%' },
+  overallStat: { flex: 1, alignItems: 'center' },
+  statLabel: { fontSize: 11, color: '#64748b', fontWeight: '600', marginBottom: 1 },
+  statVal: { fontSize: 24, fontWeight: '900' },
+  sep: { width: 1, backgroundColor: '#e2e8f0' },
+
+  segRow: { flexDirection: 'row', gap: 7 },
+  segCard: { flex: 1, backgroundColor: '#fff', borderRadius: 13, padding: 7, alignItems: 'center', borderTopWidth: 4, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
+  segTitle: { fontSize: 10, fontWeight: '800', color: '#1e3a5f', marginBottom: 3 },
+  segDivider: { width: '100%', height: 1, backgroundColor: '#e2e8f0', marginVertical: 4 },
+  segRow2: { flexDirection: 'row', width: '100%' },
+  segStat: { flex: 1, alignItems: 'center' },
+  segStatLabel: { fontSize: 10, color: '#64748b', fontWeight: '600' },
+  segStatVal: { fontSize: 14, fontWeight: '900' },
+  segSep: { width: 1, backgroundColor: '#e2e8f0' },
+
+  quickRow: { flexDirection: 'row', gap: 7 },
+  quickCard: { flex: 1, backgroundColor: '#fff', borderRadius: 13, padding: 9, flexDirection: 'row', alignItems: 'center', borderLeftWidth: 4, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
+  quickIcon: { width: 34, height: 34, borderRadius: 8, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', marginRight: 7 },
+  quickEmoji: { fontSize: 17 },
+  quickText: { flex: 1 },
+  quickTitle: { fontSize: 13, fontWeight: '800', color: '#1e3a5f' },
+  quickSub: { fontSize: 10, color: '#64748b', marginTop: 1 },
+  quickArrow: { fontSize: 22, color: '#94a3b8' },
+
+  portfolioCard: { backgroundColor: '#eef3ff', borderRadius: 14, padding: 11, flexDirection: 'row', alignItems: 'center', borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
+  portfolioEmoji: { fontSize: 28, marginRight: 10 },
+  portfolioText: { flex: 1 },
+  portfolioTitle: { fontSize: 12, fontWeight: '800', color: '#1e3a5f' },
+  portfolioSub: { fontSize: 10, color: '#64748b', marginTop: 2 },
+  checkBtn: { backgroundColor: '#3b82f6', borderRadius: 8, paddingHorizontal: 11, paddingVertical: 7 },
+  checkBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+
+  subCard: { backgroundColor: '#fff', borderRadius: 15, padding: 11, borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
+  subTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  subLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  crown: { fontSize: 20 },
+  subHeading: { fontSize: 14, fontWeight: '800', color: '#1e3a5f' },
+  subRight: { flexDirection: 'row', alignItems: 'center' },
+  gst: { fontSize: 10, color: '#64748b', fontWeight: '600' },
+  price: { fontSize: 17, fontWeight: '900', color: '#1e3a5f' },
+  planLabel: { fontSize: 10, color: '#94a3b8', fontWeight: '600', marginTop: 2, marginBottom: 7 },
+  subDivider: { height: 1, backgroundColor: '#e2e8f0', marginBottom: 8 },
+  features: { flexDirection: 'row', gap: 7, marginBottom: 9 },
+  featurePill: { flex: 1, backgroundColor: '#f5f7fc', borderRadius: 9, padding: 7, alignItems: 'center' },
+  featureIcon: { fontSize: 15, marginBottom: 3 },
+  featureLabel: { fontSize: 10, fontWeight: '700', color: '#1e3a5f' },
+  subBtn: { backgroundColor: '#3b82f6', borderRadius: 10, padding: 10, alignItems: 'center' },
+  subBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+
+  welcomeCard: { borderRadius: 13, overflow: 'hidden', borderLeftWidth: 4, borderLeftColor: '#3b82f6', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
+  roadTop: { height: 75, backgroundColor: '#c8d8f0' },
+  welcomeContent: { backgroundColor: '#fff', paddingHorizontal: 10, paddingVertical: 10, gap: 8 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' },
+  welcomeTitle: { fontSize: 13, fontWeight: '700', color: '#1e3a5f', textAlign: 'center' },
+  welcomeBrand: { fontSize: 13, fontWeight: '900', color: '#3b82f6' },
+  quoteBox: { backgroundColor: '#eef2ff', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5 },
+  quoteIcon: { fontSize: 13, color: '#f59e0b' },
+  quoteText: { fontSize: 11, color: '#1e3a5f', fontWeight: '600', lineHeight: 15, textAlign: 'center', marginTop: 1 },
+  quoteAuthor: { fontSize: 10, color: '#64748b', fontWeight: '600', textAlign: 'right', marginTop: 2 },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalBox: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
+  modalTitle: { fontSize: 17, fontWeight: '800', color: '#1e3a5f', marginBottom: 4 },
+  modalSub: { fontSize: 12, color: '#64748b', marginBottom: 16 },
+  input: { borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, color: '#1e3a5f', marginBottom: 10, backgroundColor: '#f8fafc' },
+  submitBtn: { backgroundColor: '#3b82f6', borderRadius: 10, padding: 13, alignItems: 'center', marginTop: 4 },
+  submitBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  successBox: { backgroundColor: '#fff', borderRadius: 20, padding: 28, margin: 30, alignItems: 'center' },
+  successEmoji: { fontSize: 48, marginBottom: 12 },
+  successTitle: { fontSize: 18, fontWeight: '800', color: '#1e3a5f', marginBottom: 8 },
+  successMsg: { fontSize: 13, color: '#64748b', textAlign: 'center', lineHeight: 20, marginBottom: 20 },
 });
