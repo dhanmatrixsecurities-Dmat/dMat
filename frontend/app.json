@@ -27,10 +27,11 @@
         "backgroundColor": "#001F3F"
       },
       "package": "com.dhanmatrix.app",
-      "permissions": ["NOTIFICATIONS", "RECEIVE_BOOT_COMPLETED", "VIBRATE"],
+      "googleServicesFile": "./google-services.json",
+      "permissions": ["NOTIFICATIONS", "RECEIVE_BOOT_COMPLETED", "VIBRATE", "USE_EXACT_ALARM"],
       "jsEngine": "hermes",
       "enableProguardInRelease": true,
-      "softwareKeyboardLayoutMode": "resize"
+      "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
       "bundler": "metro",
@@ -39,7 +40,14 @@
     },
     "plugins": [
   "expo-router",
-  "expo-notifications",
+  [
+    "expo-notifications",
+    {
+      "androidMode": "default",
+      "androidCollapsedTitle": "DhanMatrix",
+      "iosDisplayInForeground": true
+    }
+  ],
   "react-native-edge-to-edge",
   [
     "expo-splash-screen",
