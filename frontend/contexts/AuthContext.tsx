@@ -12,14 +12,6 @@ import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
-
 export type UserStatus = 'FREE' | 'ACTIVE' | 'BLOCKED';
 export type SubscriptionAccess = 'equity' | 'fno' | 'all' | 'none';
 

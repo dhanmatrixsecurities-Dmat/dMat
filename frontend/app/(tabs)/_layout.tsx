@@ -2,9 +2,11 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function TabLayoutInner() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   return (
     <>
       <StatusBar style="light" backgroundColor={theme.headerBg} />
@@ -17,8 +19,8 @@ function TabLayoutInner() {
             backgroundColor: theme.tabBarBg,
             borderTopWidth: 1,
             borderTopColor: theme.border,
-            height: 58,
-            paddingBottom: 6,
+            height: 58 + insets.bottom,
+            paddingBottom: insets.bottom > 0 ? insets.bottom : 6,
             paddingTop: 4,
           },
           tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
