@@ -26,7 +26,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#001F3F"
       },
-      "package": "com.dhanmatrix.app",
+      "package": "in.dhanmatrix.app",
       "permissions": ["NOTIFICATIONS", "RECEIVE_BOOT_COMPLETED", "VIBRATE"],
       "jsEngine": "hermes",
       "enableProguardInRelease": true,
