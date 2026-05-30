@@ -284,21 +284,36 @@ export default function AdminActiveTrades() {
         <Box component="form" onSubmit={handleSubmit}>
           <DialogContent sx={{ pt: 1 }}>
 
-            <Autocomplete
+<Autocomplete
   options={NSE_STOCKS}
   getOptionLabel={(option) => typeof option === 'string' ? option : `${option.symbol} - ${option.name}`}
   filterOptions={(options, { inputValue }) => {
     const val = inputValue.toUpperCase();
     if (!val) return [];
-    return options.filter(o => o.symbol.startsWith(val) || o.name.toUpperCase().includes(val)).slice(0, 20);
+    return options.filter(o =>
+      o.symbol.startsWith(val) || o.name.toUpperCase().includes(val)
+    ).slice(0, 20);
   }}
-  value={NSE_STOCKS.find(s => s.symbol === form.symbol) || null}
-  onChange={(_, newValue) => { if (newValue && typeof newValue !== 'string') setForm({ ...form, symbol: newValue.symbol }); }}
-  inputValue={form.symbol}
-  onInputChange={(_, newInputValue) => { setForm({ ...form, symbol: newInputValue.toUpperCase() }); }}
+  onChange={(_, newValue) => {
+    if (newValue && typeof newValue !== 'string') {
+      setForm({ ...form, symbol: newValue.symbol });
+    }
+  }}
+  onInputChange={(_, newInputValue, reason) => {
+    if (reason === 'input') {
+      setForm({ ...form, symbol: newInputValue.toUpperCase() });
+    }
+  }}
   freeSolo
   renderInput={(params) => (
-    <TextField {...params} fullWidth label="Stock Name (NSE)" required placeholder="Type to search e.g. RELIANCE" sx={{ mb: 2 }} />
+    <TextField
+      {...params}
+      fullWidth
+      label="Stock Name (NSE)"
+      required
+      placeholder="Type to search e.g. RELIANCE"
+      sx={{ mb: 2 }}
+    />
   )}
   sx={{ mb: 2 }}
 />
