@@ -1,32 +1,16 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Box,
-  Drawer,
-  AppBar,
-  Toolbar,
-  List,
-  Typography,
-  Divider,
-  IconButton,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Button,
+  Box, Drawer, AppBar, Toolbar, List, Typography, Divider,
+  IconButton, ListItem, ListItemButton, ListItemIcon, ListItemText, Button,
 } from '@mui/material';
 import {
-  Dashboard as DashboardIcon,
-  People,
-  TrendingUp,
-  CheckCircle,
-  Logout,
-  Menu as MenuIcon,
-  Feedback,
-  Spa,
+  Dashboard as DashboardIcon, People, TrendingUp, CheckCircle,
+  Logout, Menu as MenuIcon, Feedback, Spa, AdminPanelSettings,
 } from '@mui/icons-material';
 import { signOut } from 'firebase/auth';
-import { auth } from '../firebaseConfig';
+import { auth, db } from '../firebaseConfig';
+import { doc, getDoc } from 'firebase/firestore';
 
 const drawerWidth = 240;
 
@@ -38,10 +22,19 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [isMaster, setIsMaster] = useState(false);
 
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
-  };
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
+    getDoc(doc(db, 'adminUsers', user.uid)).then((snap) => {
+      if (snap.exists() && snap.data()?.role === 'master') {
+        setIsMaster(true);
+      }
+    });
+  }, []);
+
+  const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
 
   const handleLogout = async () => {
     try {
@@ -53,12 +46,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   const menuItems = [
-    { text: 'Dashboard',       icon: <DashboardIcon />, path: '/' },
-    { text: 'Users',           icon: <People />,        path: '/users' },
-    { text: 'Active Trades',   icon: <TrendingUp />,    path: '/active-trades' },
-    { text: 'Closed Trades',   icon: <CheckCircle />,   path: '/closed-trades' },
-    { text: 'Portfolio',       icon: <Spa />,           path: '/portfolio' },
-    { text: 'Feedback',        icon: <Feedback />,      path: '/feedback' },
+    { text: 'Dashboard',     icon: <DashboardIcon />, path: '/' },
+    { text: 'Users',         icon: <People />,        path: '/users' },
+    { text: 'Active Trades', icon: <TrendingUp />,    path: '/active-trades' },
+    { text: 'Closed Trades', icon: <CheckCircle />,   path: '/closed-trades' },
+    { text: 'Portfolio',     icon: <Spa />,           path: '/portfolio' },
+    { text: 'Feedback',      icon: <Feedback />,      path: '/feedback' },
   ];
 
   const drawer = (
@@ -81,6 +74,28 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </ListItemButton>
           </ListItem>
         ))}
+
+        {/* Only visible to master admin */}
+        {isMaster && (
+          <ListItem disablePadding>
+            <ListItemButton
+              selected={location.pathname === '/manage-admins'}
+              onClick={() => navigate('/manage-admins')}
+              sx={{
+                borderLeft: location.pathname === '/manage-admins'
+                  ? '3px solid #1a237e' : '3px solid transparent',
+              }}
+            >
+              <ListItemIcon>
+                <AdminPanelSettings sx={{ color: '#1a237e' }} />
+              </ListItemIcon>
+              <ListItemText
+                primary="Manage Admins"
+                primaryTypographyProps={{ fontWeight: 'bold', color: '#1a237e', fontSize: 14 }}
+              />
+            </ListItemButton>
+          </ListItem>
+        )}
       </List>
       <Divider />
       <List>
@@ -116,15 +131,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             Admin Panel
           </Typography>
-          <Button color="inherit" onClick={handleLogout}>
-            Logout
-          </Button>
+          <Button color="inherit" onClick={handleLogout}>Logout</Button>
         </Toolbar>
       </AppBar>
-      <Box
-        component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-      >
+      <Box component="nav" sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}>
         <Drawer
           variant="temporary"
           open={mobileOpen}
