@@ -285,22 +285,23 @@ export default function AdminActiveTrades() {
           <DialogContent sx={{ pt: 1 }}>
 
             <Autocomplete
-              options={NSE_STOCKS}
-              getOptionLabel={(option) => typeof option === 'string' ? option : `${option.symbol} - ${option.name}`}
-              filterOptions={(options, { inputValue }) => {
-                const val = inputValue.toUpperCase();
-                if (!val) return [];
-                return options.filter(o => o.symbol.startsWith(val) || o.name.toUpperCase().includes(val)).slice(0, 20);
-              }}
-              value={NSE_STOCKS.find(s => s.symbol === form.symbol) || null}
-              onChange={(_, newValue) => { if (newValue && typeof newValue !== 'string') setForm({ ...form, symbol: newValue.symbol }); }}
-              freeSolo
-              renderInput={(params) => (
-                <TextField {...params} fullWidth label="Stock Name (NSE)" required placeholder="Type to search e.g. RELIANCE"
-                  value={form.symbol} onChange={(e) => setForm({ ...form, symbol: e.target.value.toUpperCase() })} sx={{ mb: 2 }} />
-              )}
-              sx={{ mb: 2 }}
-            />
+  options={NSE_STOCKS}
+  getOptionLabel={(option) => typeof option === 'string' ? option : `${option.symbol} - ${option.name}`}
+  filterOptions={(options, { inputValue }) => {
+    const val = inputValue.toUpperCase();
+    if (!val) return [];
+    return options.filter(o => o.symbol.startsWith(val) || o.name.toUpperCase().includes(val)).slice(0, 20);
+  }}
+  value={NSE_STOCKS.find(s => s.symbol === form.symbol) || null}
+  onChange={(_, newValue) => { if (newValue && typeof newValue !== 'string') setForm({ ...form, symbol: newValue.symbol }); }}
+  inputValue={form.symbol}
+  onInputChange={(_, newInputValue) => { setForm({ ...form, symbol: newInputValue.toUpperCase() }); }}
+  freeSolo
+  renderInput={(params) => (
+    <TextField {...params} fullWidth label="Stock Name (NSE)" required placeholder="Type to search e.g. RELIANCE" sx={{ mb: 2 }} />
+  )}
+  sx={{ mb: 2 }}
+/>
 
             <FormControl fullWidth sx={{ mb: 2 }}>
               <InputLabel>Segment</InputLabel>
