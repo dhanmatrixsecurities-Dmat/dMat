@@ -11,6 +11,7 @@ import ActiveTrades from './pages/ActiveTrades';
 import ClosedTrades from './pages/ClosedTrades';
 import FeedbackPage from './pages/Feedback';
 import Portfolio from './pages/Portfolio';
+import AdminManagement from './pages/AdminManagement';
 import Layout from './components/Layout';
 
 const theme = createTheme({
@@ -27,6 +28,7 @@ const theme = createTheme({
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setIsAuthenticated(!!user);
@@ -49,12 +51,13 @@ function App() {
             isAuthenticated ? (
               <Layout>
                 <Routes>
-                  <Route path="/"              element={<Dashboard />} />
-                  <Route path="/users"         element={<Users />} />
-                  <Route path="/active-trades" element={<ActiveTrades />} />
-                  <Route path="/closed-trades" element={<ClosedTrades />} />
-                  <Route path="/feedback"      element={<FeedbackPage />} />
-                  <Route path="/portfolio"     element={<Portfolio />} />
+                  <Route path="/"               element={<Dashboard />} />
+                  <Route path="/users"          element={<Users />} />
+                  <Route path="/active-trades"  element={<ActiveTrades />} />
+                  <Route path="/closed-trades"  element={<ClosedTrades />} />
+                  <Route path="/feedback"       element={<FeedbackPage />} />
+                  <Route path="/portfolio"      element={<Portfolio />} />
+                  <Route path="/manage-admins"  element={<AdminManagement />} />
                 </Routes>
               </Layout>
             ) : (
