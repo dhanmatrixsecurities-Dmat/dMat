@@ -39,8 +39,8 @@ const Login: React.FC = () => {
       return;
     }
 
-    // Only allow password reset for admin accounts (@dhanmatrix.com)
-    if (!email.endsWith('@dhanmatrix.com')) {
+    // Only allow password reset for admin accounts (@dhanmatrix.com or @dhanmatrix.in)
+    if (!email.endsWith('@dhanmatrix.com') && !email.endsWith('@dhanmatrix.in')) {
       setError('Password reset is only available for admin accounts. Members must contact their administrator.');
       return;
     }
