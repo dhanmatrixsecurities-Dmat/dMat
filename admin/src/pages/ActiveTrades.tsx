@@ -74,9 +74,9 @@ export default function AdminActiveTrades() {
   const [menuTrade, setMenuTrade] = useState<Trade | null>(null);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [stockSearch, setStockSearch] = useState('');
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
-    open: false, message: '', severity: 'success',
-  };
+const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+  open: false, message: '', severity: 'success',
+});
 
   useEffect(() => {
     const allTrades: { [id: string]: Trade } = {};
