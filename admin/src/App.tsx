@@ -3,7 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from './firebaseConfig';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -39,24 +39,19 @@ function App() {
         return;
       }
 
-      // Check if this user exists in adminUsers collection
+      // Check adminUsers doc by UID (document ID = Firebase Auth UID)
       try {
-        const q = query(
-          collection(db, 'adminUsers'),
-          where('email', '==', user.email),
-          where('active', '==', true)
-        );
-        const snapshot = await getDocs(q);
+        const adminDoc = await getDoc(doc(db, 'adminUsers', user.uid));
 
-        if (snapshot.empty) {
+        if (adminDoc.exists() && adminDoc.data().active === true) {
+          setIsAuthenticated(true);
+          setIsAuthorized(true);
+        } else {
           // Not an admin — force logout immediately
           await signOut(auth);
           setIsAuthenticated(false);
           setIsAuthorized(false);
           alert('Access denied. You are not authorized to access this panel.');
-        } else {
-          setIsAuthenticated(true);
-          setIsAuthorized(true);
         }
       } catch (err) {
         console.error('Admin check failed:', err);
