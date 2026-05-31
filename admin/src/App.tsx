@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from './firebaseConfig';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { auth, db } from './firebaseConfig';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
@@ -28,15 +29,47 @@ const theme = createTheme({
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setIsAuthenticated(!!user);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        setIsAuthenticated(false);
+        setIsAuthorized(false);
+        return;
+      }
+
+      // Check if this user exists in adminUsers collection
+      try {
+        const q = query(
+          collection(db, 'adminUsers'),
+          where('email', '==', user.email),
+          where('active', '==', true)
+        );
+        const snapshot = await getDocs(q);
+
+        if (snapshot.empty) {
+          // Not an admin — force logout immediately
+          await signOut(auth);
+          setIsAuthenticated(false);
+          setIsAuthorized(false);
+          alert('Access denied. You are not authorized to access this panel.');
+        } else {
+          setIsAuthenticated(true);
+          setIsAuthorized(true);
+        }
+      } catch (err) {
+        console.error('Admin check failed:', err);
+        await signOut(auth);
+        setIsAuthenticated(false);
+        setIsAuthorized(false);
+      }
     });
+
     return unsubscribe;
   }, []);
 
-  if (isAuthenticated === null) {
+  if (isAuthenticated === null || isAuthorized === null) {
     return <div>Loading...</div>;
   }
 
@@ -48,7 +81,7 @@ function App() {
         <Route
           path="/*"
           element={
-            isAuthenticated ? (
+            isAuthenticated && isAuthorized ? (
               <Layout>
                 <Routes>
                   <Route path="/"               element={<Dashboard />} />
