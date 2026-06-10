@@ -34,7 +34,7 @@ function TabLayoutInner() {
         <Tabs.Screen name="index"         options={{ title: 'Home',         headerShown: false, tabBarIcon: ({ color, size }) => <Ionicons name="home"          size={size} color={color} /> }} />
         <Tabs.Screen name="active-trades" options={{ title: 'Active Trades',               tabBarIcon: ({ color, size }) => <Ionicons name="pulse"         size={size} color={color} /> }} />
         <Tabs.Screen name="closed-trades" options={{ title: 'Closed Trades',               tabBarIcon: ({ color, size }) => <Ionicons name="checkmark-done" size={size} color={color} /> }} />
-        <Tabs.Screen name="ajeeb"         options={{ title: '🤖 ai',         headerShown: false, tabBarIcon: ({ color, size }) => <Ionicons name="sparkles"     size={size} color={color} />, tabBarLabelStyle: { fontSize: 10, fontWeight: '600' } }} />
+        <Tabs.Screen name="kooky"         options={{ title: '🤖 ai',         headerShown: false, tabBarIcon: ({ color, size }) => <Ionicons name="sparkles"     size={size} color={color} />, tabBarLabelStyle: { fontSize: 10, fontWeight: '600' } }} />
         {/* portfolio-stocks removed from tabs — accessible from home screen icon via /portfolio-stocks route */}
         <Tabs.Screen name="profile"       options={{ title: 'Profile',                     tabBarIcon: ({ color, size }) => <Ionicons name="person"        size={size} color={color} /> }} />
       </Tabs>
