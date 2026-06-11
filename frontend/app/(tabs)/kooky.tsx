@@ -10,8 +10,8 @@ import { useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { PremiumUpgradeScreen } from './active-trades';
-import KookyAnalysisCard, { KookyAnalysis } from './KookyAnalysisCard';
-import KookyPortfolioCard, { PortfolioAnalysis } from './KookyPortfolioCard';
+import KookyAnalysisCard, { KookyAnalysis } from '../components/KookyAnalysisCard';
+import KookyPortfolioCard, { PortfolioAnalysis } from '../components/KookyPortfolioCard';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://your-vercel-app.vercel.app';
 const HEADER_BG   = '#0B1A2E';
