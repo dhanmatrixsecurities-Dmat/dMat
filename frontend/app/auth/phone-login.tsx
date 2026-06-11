@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform, ScrollView, Alert,
-  ActivityIndicator, SafeAreaView, Animated, Dimensions,
+  ActivityIndicator, SafeAreaView, Animated, Dimensions, Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { auth, db } from '@/firebaseConfig';
@@ -358,15 +358,49 @@ export default function PhoneLogin() {
           </View>
 
           {/* Contact */}
-          <View style={styles.contactRow}>
-            <TouchableOpacity style={styles.contactBtn}>
-              <Ionicons name="logo-whatsapp" size={14} color="#22C55E" />
-              <Text style={styles.contactText}>+91 92583 03916</Text>
+          <View style={styles.contactSection}>
+            <Text style={styles.contactHeading}>Contact Us</Text>
+            <TouchableOpacity
+              style={styles.contactItem}
+              onPress={() => Linking.openURL('https://wa.me/919258303916')}
+              activeOpacity={0.75}
+            >
+              <View style={styles.contactIconWrap}>
+                <Ionicons name="logo-whatsapp" size={16} color="#22C55E" />
+              </View>
+              <View>
+                <Text style={styles.contactLabel}>WhatsApp</Text>
+                <Text style={styles.contactVal}>+91 92583 03916</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={14} color={Colors.textSecondary} style={{ marginLeft: 'auto' }} />
             </TouchableOpacity>
-            <View style={styles.contactDivider} />
-            <TouchableOpacity style={styles.contactBtn}>
-              <Ionicons name="mail-outline" size={14} color={Colors.primary} />
-              <Text style={styles.contactText}>info@dhanmatrix.in</Text>
+            <TouchableOpacity
+              style={styles.contactItem}
+              onPress={() => Linking.openURL('https://wa.me/918383898886')}
+              activeOpacity={0.75}
+            >
+              <View style={styles.contactIconWrap}>
+                <Ionicons name="logo-whatsapp" size={16} color="#22C55E" />
+              </View>
+              <View>
+                <Text style={styles.contactLabel}>WhatsApp</Text>
+                <Text style={styles.contactVal}>83838 98886</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={14} color={Colors.textSecondary} style={{ marginLeft: 'auto' }} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.contactItem}
+              onPress={() => Linking.openURL('mailto:info@dhanmatrix.in')}
+              activeOpacity={0.75}
+            >
+              <View style={[styles.contactIconWrap, { backgroundColor: Colors.primary + '18' }]}>
+                <Ionicons name="mail-outline" size={16} color={Colors.primary} />
+              </View>
+              <View>
+                <Text style={styles.contactLabel}>Email</Text>
+                <Text style={styles.contactVal}>info@dhanmatrix.in</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={14} color={Colors.textSecondary} style={{ marginLeft: 'auto' }} />
             </TouchableOpacity>
           </View>
 
@@ -409,9 +443,11 @@ const styles = StyleSheet.create({
   switchLink:      { marginTop: 16, alignItems: 'center' },
   switchText:      { fontSize: 13, color: Colors.textSecondary },
   switchTextBold:  { color: Colors.primary, fontWeight: '700' },
-  contactRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  contactBtn:      { flexDirection: 'row', alignItems: 'center', gap: 5, padding: 8 },
-  contactText:     { fontSize: 11, color: Colors.textSecondary, fontWeight: '600' },
-  contactDivider:  { width: 1, height: 14, backgroundColor: Colors.border },
+  contactSection:  { marginBottom: 14 },
+  contactHeading:  { fontSize: 11, fontWeight: '700', color: Colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8, textAlign: 'center' },
+  contactItem:     { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: Colors.cardBackground, borderRadius: 12, borderWidth: 1, borderColor: Colors.border, padding: 11, marginBottom: 7 },
+  contactIconWrap: { width: 32, height: 32, borderRadius: 8, backgroundColor: 'rgba(34,197,94,0.12)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  contactLabel:    { fontSize: 10, color: Colors.textSecondary, fontWeight: '600', marginBottom: 1 },
+  contactVal:      { fontSize: 13, color: Colors.text, fontWeight: '700' },
   disc:            { fontSize: 10, color: Colors.textSecondary, textAlign: 'center', lineHeight: 15, marginBottom: 60 },
 });
